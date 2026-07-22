@@ -46,9 +46,10 @@ h1,h2,h3{color:var(--ink);letter-spacing:-.03em}.eyebrow{font-size:.74rem;font-w
 .result{background:#07172b;border-radius:16px;padding:1.1rem 1.3rem;color:#eef8ff}.result b{font-size:1.6rem;color:#67e5ff}.result small{color:#adc5d9}
 .good{background:#e9f8f3;border:1px solid #afe2d2;color:#12644f;border-radius:13px;padding:.9rem 1rem}.warn{background:#fff5e8;border:1px solid #ffd5a6;color:#794411;border-radius:13px;padding:.9rem 1rem}
 .room{min-height:230px;border-radius:18px;border:8px solid #d6e0e9;background:linear-gradient(180deg,#e8f6ff 0 72%,#d5c4a7 72%);position:relative;padding:1rem;text-align:center;overflow:hidden}.sound{font-size:2.5rem;margin-top:45px}.wall{height:230px;border-radius:14px;display:grid;place-items:center;background:repeating-linear-gradient(90deg,#8fa3b8 0,#8fa3b8 10px,#aebdca 10px,#aebdca 20px);color:white;font-weight:800}
+.acoustic-demo{background:#fff;border:1px solid var(--line);border-radius:20px;padding:1.1rem;box-shadow:0 7px 25px #173b6810;margin:.75rem 0 1rem}.acoustic-scene{display:grid;grid-template-columns:1fr 62px 1fr;min-height:310px;overflow:hidden;border:1px solid #c9d8e7;border-radius:16px;background:#eaf5fc}.demo-room{position:relative;overflow:hidden;background:linear-gradient(180deg,#dff2ff 0 75%,#cdbb9d 75%);display:flex;align-items:center;justify-content:center}.demo-room:first-child{border-right:5px solid #8295a8}.demo-room:last-child{border-left:5px solid #8295a8}.room-label{position:absolute;left:14px;top:12px;z-index:5;background:#ffffffdf;border:1px solid #d8e5ef;border-radius:8px;padding:.35rem .55rem;font-size:.72rem;font-weight:800;color:#40536a}.source-icon,.receiver-icon{font-size:3.2rem;z-index:3}.sound-wave{position:absolute;left:55%;top:47%;font-size:2rem;color:#0b78d1;font-weight:800;letter-spacing:.1rem}.partition{position:relative;background:repeating-linear-gradient(90deg,#899bad 0,#899bad 8px,#aab8c4 8px,#aab8c4 16px);display:flex;align-items:center;justify-content:center}.isolation-layer{position:absolute;inset:13px 7px;border:5px solid #1076c8;border-radius:5px;background:repeating-linear-gradient(0deg,#dbf0ff 0,#dbf0ff 14px,#76b7e8 14px,#76b7e8 18px);box-shadow:inset 0 0 0 3px #fff}.isolation-layer.double{border-width:7px;border-color:#075a9c;background:repeating-linear-gradient(0deg,#cbe9ff 0,#cbe9ff 10px,#278bcf 10px,#278bcf 14px)}.partition-tag{position:relative;z-index:3;writing-mode:vertical-rl;transform:rotate(180deg);background:#07172bdc;color:#fff;border-radius:7px;padding:.55rem .3rem;font-size:.68rem;font-weight:800}.absorber{position:absolute;width:78px;height:34px;border-radius:5px;background:repeating-linear-gradient(135deg,#0fb6c9 0,#0fb6c9 6px,#77dfe9 6px,#77dfe9 12px);border:3px solid white;box-shadow:0 2px 8px #123b6840}.absorber.a1{left:8%;top:25%}.absorber.a2{left:8%;top:48%}.absorber.a3{right:7%;top:18%}.absorber.a4{right:7%;top:52%}.ceiling-cloud{position:absolute;left:24%;right:24%;top:8%;height:15px;border-radius:5px;background:#14b8c8;border:3px solid white}.result-card{height:100%;border-radius:17px;padding:1.15rem 1.25rem;background:#fff;border:1px solid var(--line);box-shadow:0 7px 25px #173b6810}.result-card.rt{border-top:5px solid #15a9ba}.result-card.iso{border-top:5px solid #0875d1}.result-label{font-size:.72rem;font-weight:800;letter-spacing:.08em;color:#60718a;text-transform:uppercase}.result-value{font-size:2rem;font-weight:800;color:#14243a;margin:.2rem 0}.result-change{display:inline-block;border-radius:20px;padding:.25rem .55rem;font-size:.78rem;font-weight:800}.result-change.goodchange{background:#e7f8f4;color:#08775d}.result-note{color:#60718a;font-size:.82rem;margin-top:.55rem}
 .footer{color:#718198;font-size:.75rem;text-align:center;border-top:1px solid #dbe5ef;margin-top:2rem;padding:1rem}
 div[data-testid="stMetric"]{background:white;border:1px solid var(--line);border-radius:15px;padding:1rem}button[kind="primary"]{background:#0875d1!important;border-radius:11px!important}
-@media(max-width:720px){.institutional{align-items:flex-start;gap:1rem;padding:1rem}.institutional-left{gap:.75rem}.institutional-left img{width:56px;height:72px}.institutional-copy{padding-left:.75rem}.institutional-title{font-size:.88rem}.institutional-sub{font-size:.75rem}.institutional-right img{width:110px}.hero{padding:1.5rem}.hero h1{font-size:1.8rem}}
+@media(max-width:720px){.institutional{align-items:flex-start;gap:1rem;padding:1rem}.institutional-left{gap:.75rem}.institutional-left img{width:56px;height:72px}.institutional-copy{padding-left:.75rem}.institutional-title{font-size:.88rem}.institutional-sub{font-size:.75rem}.institutional-right img{width:110px}.hero{padding:1.5rem}.hero h1{font-size:1.8rem}.acoustic-scene{grid-template-columns:1fr 42px 1fr;min-height:245px}.absorber{width:48px;height:26px}.source-icon,.receiver-icon{font-size:2.4rem}.sound-wave{display:none}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -153,29 +154,79 @@ if page == "Inicio":
     st.info("En este curso nos concentraremos principalmente en la trayectoria: particiones verticales y horizontales frente al ruido transmitido por vía aérea.")
 
 elif page.startswith("1 ·"):
-    module_head("MÓDULO 1 · DISTINGUE", "Aislamiento vs. absorción", "Aplica tratamientos a una sala y observa qué variable modifica realmente cada solución.")
-    treatments = {
-        "Sin tratamiento": (0,0,"No cambia ni la reverberación ni la transmisión."),
-        "Espuma acústica interior": (35,1,"Reduce reflexiones internas, pero casi no agrega masa ni sella la partición."),
-        "Cielo absorbente": (45,0,"Mejora la acústica interna del recinto, no el aislamiento del muro separador."),
-        "Sellos en puerta y rendijas": (5,12,"Cierra caminos de fuga. Puede mejorar mucho si existían aberturas."),
-        "Segunda placa de alta densidad": (2,5,"Aumenta la masa superficial y mejora el aislamiento."),
-        "Tabique doble desacoplado": (8,18,"Combina masa, cámara y desacoplamiento para reducir la transmisión."),
-    }
-    treatment = st.selectbox("Tratamiento a probar", list(treatments))
-    base_rt = st.slider("Reverberación inicial, T₆₀ (s)", .4, 3.0, 1.8, .1)
-    base_r = st.slider("Aislamiento inicial, R (dB)", 15, 55, 30)
-    ar, dr, why = treatments[treatment]
-    rt = base_rt * (1-ar/100); rr=base_r+dr
-    c1,c2=st.columns([1.2,1])
-    with c1:
-        x,y=st.columns(2)
-        with x: st.markdown(f'<div class="room"><div class="sound">🔊 )))</div><b>RECINTO EMISOR</b><br><small>T₆₀: {rt:.2f} s</small></div>',unsafe_allow_html=True)
-        with y: st.markdown(f'<div class="room"><div class="sound">👂</div><b>RECINTO RECEPTOR</b><br><small>R: {rr:.0f} dB</small></div>',unsafe_allow_html=True)
-    with c2:
-        st.metric("Cambio en reverberación", f"{rt:.2f} s", f"-{ar}%")
-        st.metric("Cambio en aislamiento", f"{rr:.0f} dB", f"+{dr} dB")
-        st.markdown(f'<div class="concept"><b>¿Por qué?</b><br>{why}</div>',unsafe_allow_html=True)
+    module_head("MÓDULO 1 · DISTINGUE", "Aislamiento aéreo vs. absorción acústica", "Interviene dos recintos contiguos y comprueba que controlar las reflexiones interiores no equivale a impedir la transmisión del sonido.")
+
+    st.markdown("### 1. Elige qué elementos instalar")
+    controls_a, controls_b = st.columns(2)
+    with controls_a:
+        st.markdown("#### ▥ Muro divisorio · aislamiento")
+        isolation = st.selectbox(
+            "Solución de aislamiento",
+            ["Sin intervención", "Panel de alta densidad", "Sistema doble desacoplado"],
+            help="Estas soluciones actúan sobre la transmisión entre ambos recintos.",
+        )
+    with controls_b:
+        st.markdown("#### ◫ Paredes interiores · absorción")
+        absorber = st.selectbox(
+            "Tratamiento absorbente",
+            ["Sin absorbentes", "Paneles absorbentes murales", "Paneles murales + nube de cielo"],
+            help="Estos elementos actúan principalmente sobre las reflexiones dentro del recinto emisor.",
+        )
+
+    isolation_gain = {
+        "Sin intervención": 0,
+        "Panel de alta densidad": 6,
+        "Sistema doble desacoplado": 16,
+    }[isolation]
+    rt_reduction = {
+        "Sin absorbentes": 0.0,
+        "Paneles absorbentes murales": 0.55,
+        "Paneles murales + nube de cielo": 0.75,
+    }[absorber]
+    base_rt, base_r = 1.80, 30
+    final_rt = base_rt * (1 - rt_reduction)
+    final_r = base_r + isolation_gain
+
+    isolation_class = " double" if isolation == "Sistema doble desacoplado" else ""
+    isolation_visual = "" if isolation == "Sin intervención" else f'<div class="isolation-layer{isolation_class}"></div>'
+    wall_absorbers = "" if absorber == "Sin absorbentes" else '<span class="absorber a1"></span><span class="absorber a2"></span><span class="absorber a3"></span><span class="absorber a4"></span>'
+    ceiling_absorber = '<span class="ceiling-cloud"></span>' if absorber == "Paneles murales + nube de cielo" else ""
+
+    st.markdown("### 2. Observa dónde actúa cada solución")
+    st.markdown(
+        f'''<div class="acoustic-demo"><div class="acoustic-scene">
+        <div class="demo-room"><span class="room-label">RECINTO EMISOR</span>{wall_absorbers}{ceiling_absorber}<span class="source-icon">🔊</span><span class="sound-wave">)))</span></div>
+        <div class="partition">{isolation_visual}<span class="partition-tag">MURO DIVISORIO</span></div>
+        <div class="demo-room"><span class="room-label">RECINTO RECEPTOR</span><span class="receiver-icon">👂</span></div>
+        </div></div>''',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### 3. Compara el resultado")
+    r1, r2 = st.columns(2)
+    with r1:
+        st.markdown(
+            f'''<div class="result-card rt"><div class="result-label">Cambio de reverberación · recinto emisor</div>
+            <div class="result-value">T₆₀ {final_rt:.2f} s</div><span class="result-change goodchange">{final_rt-base_rt:+.2f} s</span>
+            <div class="result-note">Valor inicial: {base_rt:.2f} s · Los absorbentes reducen las reflexiones y el decaimiento sonoro dentro del recinto.</div></div>''',
+            unsafe_allow_html=True,
+        )
+    with r2:
+        st.markdown(
+            f'''<div class="result-card iso"><div class="result-label">Cambio de aislamiento · muro divisorio</div>
+            <div class="result-value">R = {final_r:.0f} dB</div><span class="result-change goodchange">+{isolation_gain:.0f} dB</span>
+            <div class="result-note">Valor inicial: R = {base_r} dB · Aumentar masa y desacoplar la partición reduce el sonido transmitido al recinto receptor.</div></div>''',
+            unsafe_allow_html=True,
+        )
+
+    if absorber != "Sin absorbentes" and isolation == "Sin intervención":
+        st.markdown('<div class="warn"><b>Observación clave:</b> el recinto emisor ahora tiene menos reverberación, pero el aislamiento entre ambos recintos permanece en 30 dB.</div>', unsafe_allow_html=True)
+    elif isolation != "Sin intervención" and absorber == "Sin absorbentes":
+        st.markdown('<div class="concept"><b>Observación clave:</b> mejoró el aislamiento hacia el recinto receptor, pero la reverberación del recinto emisor no cambió.</div>', unsafe_allow_html=True)
+    elif isolation != "Sin intervención" and absorber != "Sin absorbentes":
+        st.markdown('<div class="good"><b>Dos objetivos, dos soluciones:</b> la partición mejora el aislamiento y los absorbentes acondicionan acústicamente el recinto.</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="concept"><b>Prueba el laboratorio:</b> instala primero absorbentes y luego una solución en el muro divisorio. Observa que cada intervención modifica una tarjeta diferente.</div>', unsafe_allow_html=True)
     st.markdown("### Comprueba")
     quiz("foam", "Se instala espuma en el muro porque se oyen los vecinos. ¿Cuál es el error?", ["La espuma es demasiado delgada", "Se está tratando absorción cuando el problema es aislamiento", "Falta pintar la espuma"], "Se está tratando absorción cuando el problema es aislamiento", "La espuma puede reducir el eco dentro de la sala, pero normalmente aporta muy poco aislamiento entre recintos.")
 
