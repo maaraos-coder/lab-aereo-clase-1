@@ -276,11 +276,22 @@ def send_evaluation_email(pdf_bytes, filename):
     """Envía el informe mediante Gmail usando secretos de Streamlit."""
     try:
         gmail_secrets = st.secrets["gmail"]
-        sender = gmail_secrets.get("email", SENDER_EMAIL)
-        app_password = gmail_secrets["app_password"]
+        sender = str(gmail_secrets.get("email", SENDER_EMAIL)).strip()
+        # Google suele mostrar la contraseña de aplicación separada en grupos.
+        # SMTP necesita recibir los 16 caracteres sin espacios.
+        app_password = "".join(str(gmail_secrets["app_password"]).split())
     except (KeyError, FileNotFoundError):
         raise RuntimeError(
             "Falta configurar gmail.email y gmail.app_password en los secretos de Streamlit."
+        )
+    if sender.lower() != SENDER_EMAIL.lower():
+        raise RuntimeError(
+            f"La cuenta emisora configurada debe ser {SENDER_EMAIL}."
+        )
+    if len(app_password) != 16:
+        raise RuntimeError(
+            "La clave configurada no parece una contraseña de aplicación de Google: "
+            "debe tener 16 caracteres. No uses la contraseña normal de Gmail."
         )
 
     student = st.session_state.final_student
@@ -310,7 +321,14 @@ def send_evaluation_email(pdf_bytes, filename):
         filename=filename,
     )
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=25) as smtp:
-        smtp.login(sender, app_password)
+        try:
+            smtp.login(sender, app_password)
+        except smtplib.SMTPAuthenticationError as error:
+            raise RuntimeError(
+                "Google rechazó el acceso. Genera una nueva contraseña de aplicación "
+                "para labdiplomadouc@gmail.com y reemplaza gmail.app_password en "
+                "Settings → Secrets. La contraseña normal de Gmail no funciona."
+            ) from error
         smtp.send_message(message)
 
 
@@ -775,7 +793,70 @@ elif page.startswith("4 ·"):
         "Modifica un único recinto receptor: aplica materiales en cada superficie y observa en tiempo real cómo cambian la absorción equivalente y el tiempo de reverberación.",
     )
 
-    st.markdown("### 1. Define el recinto y la frecuencia que quieres observar")
+    st.markdown("### 1. Antes de experimentar: ¿qué es la reverberación?")
+    st.markdown(
+        r'''<div class="concept"><b>La reverberación</b> es la permanencia del sonido
+        dentro de un recinto después de que la fuente deja de emitir. Ocurre porque el sonido
+        llega directamente al receptor, pero también se refleja repetidas veces en el cielo,
+        el piso y los muros. Cada reflexión pierde parte de su energía y conserva otra parte.</div>''',
+        unsafe_allow_html=True,
+    )
+
+    rt_intro_left, rt_intro_right = st.columns([1.2, 1])
+    with rt_intro_left:
+        st.markdown(
+            r'''<div class="abs-room-card">
+            <div class="abs-room-title">¿Qué ocurre cuando la fuente se detiene?</div>
+            <div style="padding:1.1rem 1.2rem 1.25rem">
+            <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:.8rem;align-items:center">
+            <div style="padding:.8rem;border-radius:12px;background:#e9f4ff;text-align:center">
+            <div style="font-size:2rem">🔊</div><b>Sonido directo</b><br>
+            <span style="font-size:.85rem;color:#52606d">Llega primero al oído</span></div>
+            <div style="font-size:1.6rem;color:#0875d1">→</div>
+            <div style="padding:.8rem;border-radius:12px;background:#fff3e8;text-align:center">
+            <div style="font-size:2rem">↗ ↘ ↺</div><b>Reflexiones</b><br>
+            <span style="font-size:.85rem;color:#52606d">Persisten y decaen</span></div>
+            </div>
+            <div style="margin-top:.9rem;padding:.75rem;border-left:4px solid #0aaec2;background:#f3fbfc">
+            Superficies duras reflejan más energía; materiales absorbentes retienen y disipan
+            una fracción mayor en cada encuentro.</div></div></div>''',
+            unsafe_allow_html=True,
+        )
+    with rt_intro_right:
+        st.markdown(
+            r'''<div class="result-card rt">
+            <div class="result-label">TIEMPO DE REVERBERACIÓN · T₆₀</div>
+            <div class="result-value">−60 dB</div>
+            <div class="result-note">Es el tiempo, medido en segundos, que tarda el nivel sonoro
+            en disminuir 60 dB después de interrumpir la fuente.</div>
+            </div>''',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            r'''<div class="concept" style="margin-top:.8rem"><b>Ejemplo:</b> si al apagar una
+            fuente el sonido tarda 1,4 s en caer 60 dB, entonces
+            <b>T₆₀ = 1,4 s</b>. Un T₆₀ mayor significa que el sonido permanece más tiempo;
+            uno menor indica un recinto más amortiguado.</div>''',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown(
+        r'''<div class="warn"><b>No es aislamiento acústico.</b> El T₆₀ describe cuánto
+        persiste el sonido <b>dentro</b> del recinto. El aislamiento describe cuánto sonido
+        atraviesa un elemento hacia otro recinto. Agregar paneles absorbentes puede reducir
+        la reverberación sin aumentar de forma significativa el índice R del muro.</div>''',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        r'''<div class="concept"><b>Modelo que utilizaremos:</b>
+        T₆₀ = 0,161·V/A, donde <b>V</b> es el volumen del recinto en m³ y
+        <b>A = Σ(Sᵢ·αᵢ)</b> es la absorción equivalente en m² sabin.
+        Por eso, manteniendo el volumen, aumentar la absorción hace que el sonido decaiga
+        más rápido y disminuya el T₆₀. Tanto α como T₆₀ deben analizarse por frecuencia.</div>''',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### 2. Define el recinto y la frecuencia que quieres observar")
     d1, d2, d3, d4 = st.columns(4)
     with d1:
         L = st.number_input("Largo (m)", 2.0, 30.0, 6.0, .5, key="abs_l")
@@ -804,7 +885,7 @@ elif page.startswith("4 ·"):
     }
     volume = L * W * H
 
-    st.markdown("### 2. Aplica materiales sobre el mismo recinto")
+    st.markdown("### 3. Aplica materiales sobre el mismo recinto")
     st.caption("En cada superficie selecciona el material existente, el material que agregarás y el porcentaje de cobertura. El coeficiente α mostrado corresponde a la banda seleccionada.")
 
     default_base = {
@@ -916,7 +997,7 @@ elif page.startswith("4 ·"):
     if treatment_visible("Piso"):
         floor_overlay = '<span style="position:absolute;z-index:3;left:8%;right:8%;bottom:1%;height:22%;background:repeating-linear-gradient(90deg,#12aebe 0,#12aebe 18px,#75dbe4 18px,#75dbe4 36px);clip-path:polygon(10% 0,90% 0,100% 100%,0 100%);opacity:.82"></span>'
 
-    st.markdown("### 3. Observa cómo cambia el mismo recinto")
+    st.markdown("### 4. Observa cómo cambia el mismo recinto")
     room_col, values_col = st.columns([1.35, 1])
     with room_col:
         room_html = (
@@ -953,7 +1034,7 @@ elif page.startswith("4 ·"):
             unsafe_allow_html=True,
         )
 
-    st.markdown("### 4. Analiza el resultado")
+    st.markdown("### 5. Analiza el resultado")
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Volumen", f"{volume:.1f} m³")
     m2.metric("Área tratada", f"{treated_area_total:.1f} m²")
@@ -987,7 +1068,7 @@ elif page.startswith("4 ·"):
         )
         st.caption("El α efectivo combina la parte original y la parte cubierta de cada superficie.")
 
-    st.markdown("### 5. Comprueba el comportamiento por frecuencia")
+    st.markdown("### 6. Comprueba el comportamiento por frecuencia")
     curve_a, curve_rt = st.columns(2)
     with curve_a:
         st.plotly_chart(
@@ -1956,8 +2037,8 @@ else:
                     st.rerun()
                 except Exception as error:
                     st.error(
-                        "No fue posible enviar el informe. Revisa la configuración de Gmail "
-                        f"en Streamlit Cloud. Detalle: {error}"
+                        "No fue posible enviar el informe. "
+                        f"{error}"
                     )
 
         st.caption(
