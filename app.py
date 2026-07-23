@@ -48,9 +48,10 @@ h1,h2,h3{color:var(--ink);letter-spacing:-.03em}.eyebrow{font-size:.74rem;font-w
 .room{min-height:230px;border-radius:18px;border:8px solid #d6e0e9;background:linear-gradient(180deg,#e8f6ff 0 72%,#d5c4a7 72%);position:relative;padding:1rem;text-align:center;overflow:hidden}.sound{font-size:2.5rem;margin-top:45px}.wall{height:230px;border-radius:14px;display:grid;place-items:center;background:repeating-linear-gradient(90deg,#8fa3b8 0,#8fa3b8 10px,#aebdca 10px,#aebdca 20px);color:white;font-weight:800}
 .acoustic-demo{background:#fff;border:1px solid var(--line);border-radius:20px;padding:1.1rem;box-shadow:0 7px 25px #173b6810;margin:.75rem 0 1rem}.acoustic-scene{display:grid;grid-template-columns:1fr 62px 1fr;min-height:310px;overflow:hidden;border:1px solid #c9d8e7;border-radius:16px;background:#eaf5fc}.demo-room{position:relative;overflow:hidden;background:linear-gradient(180deg,#dff2ff 0 75%,#cdbb9d 75%);display:flex;align-items:center;justify-content:center}.demo-room:first-child{border-right:5px solid #8295a8}.demo-room:last-child{border-left:5px solid #8295a8}.room-label{position:absolute;left:14px;top:12px;z-index:5;background:#ffffffdf;border:1px solid #d8e5ef;border-radius:8px;padding:.35rem .55rem;font-size:.72rem;font-weight:800;color:#40536a}.source-icon,.receiver-icon{font-size:3.2rem;z-index:3}.sound-wave{position:absolute;left:55%;top:47%;font-size:2rem;color:#0b78d1;font-weight:800;letter-spacing:.1rem}.partition{position:relative;background:repeating-linear-gradient(90deg,#899bad 0,#899bad 8px,#aab8c4 8px,#aab8c4 16px);display:flex;align-items:center;justify-content:center}.isolation-layer{position:absolute;inset:13px 7px;border:5px solid #1076c8;border-radius:5px;background:repeating-linear-gradient(0deg,#dbf0ff 0,#dbf0ff 14px,#76b7e8 14px,#76b7e8 18px);box-shadow:inset 0 0 0 3px #fff}.isolation-layer.double{border-width:7px;border-color:#075a9c;background:repeating-linear-gradient(0deg,#cbe9ff 0,#cbe9ff 10px,#278bcf 10px,#278bcf 14px)}.partition-tag{position:relative;z-index:3;writing-mode:vertical-rl;transform:rotate(180deg);background:#07172bdc;color:#fff;border-radius:7px;padding:.55rem .3rem;font-size:.68rem;font-weight:800}.absorber{position:absolute;width:78px;height:34px;border-radius:5px;background:repeating-linear-gradient(135deg,#0fb6c9 0,#0fb6c9 6px,#77dfe9 6px,#77dfe9 12px);border:3px solid white;box-shadow:0 2px 8px #123b6840}.absorber.a1{left:8%;top:25%}.absorber.a2{left:8%;top:48%}.absorber.a3{right:7%;top:18%}.absorber.a4{right:7%;top:52%}.ceiling-cloud{position:absolute;left:24%;right:24%;top:8%;height:15px;border-radius:5px;background:#14b8c8;border:3px solid white}.result-card{height:100%;border-radius:17px;padding:1.15rem 1.25rem;background:#fff;border:1px solid var(--line);box-shadow:0 7px 25px #173b6810}.result-card.rt{border-top:5px solid #15a9ba}.result-card.iso{border-top:5px solid #0875d1}.result-label{font-size:.72rem;font-weight:800;letter-spacing:.08em;color:#60718a;text-transform:uppercase}.result-value{font-size:2rem;font-weight:800;color:#14243a;margin:.2rem 0}.result-change{display:inline-block;border-radius:20px;padding:.25rem .55rem;font-size:.78rem;font-weight:800}.result-change.goodchange{background:#e7f8f4;color:#08775d}.result-note{color:#60718a;font-size:.82rem;margin-top:.55rem}
 .abs-room-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:1rem;box-shadow:0 7px 25px #173b6810}.abs-room-title{font-size:.75rem;font-weight:800;letter-spacing:.08em;color:#60718a;text-transform:uppercase;margin-bottom:.65rem}.abs-room{height:270px;position:relative;overflow:hidden;border:1px solid #bed0df;border-radius:14px;background:linear-gradient(145deg,#e7f5ff 0 63%,#c6af8c 63%)}.abs-back{position:absolute;left:15%;right:15%;top:12%;bottom:24%;border:4px solid #a5b8c8;background:#dff0f9}.abs-side-l,.abs-side-r{position:absolute;top:8%;bottom:18%;width:18%;background:#cfdfeb}.abs-side-l{left:0;clip-path:polygon(0 0,100% 12%,100% 88%,0 100%)}.abs-side-r{right:0;clip-path:polygon(0 12%,100% 0,100% 100%,0 88%)}.abs-floor{position:absolute;left:0;right:0;bottom:0;height:26%;background:repeating-linear-gradient(90deg,#b99d75 0,#b99d75 22px,#c9b18e 22px,#c9b18e 44px);clip-path:polygon(15% 0,85% 0,100% 100%,0 100%)}.abs-person{position:absolute;z-index:4;left:47%;bottom:15%;font-size:2.7rem}.abs-panel{position:absolute;z-index:3;width:18%;height:20%;border:3px solid #fff;border-radius:5px;background:repeating-linear-gradient(135deg,#0aaec2 0,#0aaec2 7px,#72dce7 7px,#72dce7 14px);box-shadow:0 3px 8px #123b6840}.abs-panel.p1{left:22%;top:24%}.abs-panel.p2{right:22%;top:24%}.abs-panel.p3{left:22%;top:50%}.abs-panel.p4{right:22%;top:50%}.abs-panel.side1{left:2%;top:32%;transform:skewY(-8deg)}.abs-panel.side2{right:2%;top:32%;transform:skewY(8deg)}.abs-cloud{position:absolute;z-index:4;left:32%;right:32%;top:7%;height:12px;border:3px solid #fff;border-radius:5px;background:#0aaec2;box-shadow:0 5px 8px #123b6835}.abs-echo{position:absolute;z-index:2;color:#0b78d1;font-size:1.2rem;font-weight:800}.abs-echo.e1{left:25%;bottom:29%}.abs-echo.e2{right:22%;bottom:38%}.abs-room-badge{position:absolute;z-index:6;left:10px;top:10px;background:#07172bdd;color:#fff;border-radius:8px;padding:.35rem .55rem;font-size:.68rem;font-weight:800}.abs-summary{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-top:.8rem}.abs-mini{border-radius:12px;background:#f4f8fc;border:1px solid #dce6f2;padding:.75rem}.abs-mini b{display:block;font-size:1.25rem;color:#14243a}.abs-mini span{font-size:.72rem;color:#60718a}
+.compound-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:1rem;box-shadow:0 7px 25px #173b6810}.compound-scene{position:relative;height:360px;overflow:hidden;border:1px solid #bfd0df;border-radius:15px;background:linear-gradient(180deg,#e4f4ff 0 82%,#c8b18e 82%)}.compound-wall{position:absolute;left:6%;right:6%;top:7%;bottom:10%;border:7px solid #71879b;border-radius:5px;background:repeating-linear-gradient(0deg,#d8e0e6 0,#d8e0e6 24px,#c7d2da 24px,#c7d2da 27px)}.compound-door{position:absolute;left:13%;bottom:0;width:24%;height:67%;border:6px solid #755a43;border-bottom:0;background:linear-gradient(90deg,#a77b55,#c3986e);box-shadow:inset -7px 0 #7b5a3f}.compound-door:after{content:"";position:absolute;right:12%;top:50%;width:8px;height:8px;border-radius:50%;background:#f4d06f}.compound-window{position:absolute;right:12%;top:18%;width:35%;height:36%;border:8px solid #426c8d;background:linear-gradient(135deg,#bce8fa,#e9f8ff);box-shadow:inset 0 0 0 3px #fff}.compound-window:before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:4px solid #426c8d}.compound-leak{position:absolute;left:11%;right:60%;bottom:-3px;height:9px;border-radius:4px;background:#ef8b2c;box-shadow:0 0 12px #ef8b2c}.compound-label{position:absolute;z-index:4;border-radius:7px;padding:.3rem .48rem;font-size:.65rem;font-weight:800;color:#fff;background:#07172bdc}.compound-label.wall-l{left:42%;top:5%}.compound-label.door-l{left:14%;bottom:4%}.compound-label.window-l{right:15%;top:21%}.compound-label.leak-l{left:13%;bottom:1%;background:#b65a0d}.energy-list{display:grid;gap:.55rem;margin-top:.8rem}.energy-row{display:grid;grid-template-columns:95px 1fr 62px;align-items:center;gap:.55rem;font-size:.76rem}.energy-track{height:10px;border-radius:8px;background:#edf2f7;overflow:hidden}.energy-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,#17c3e6,#0875d1)}.energy-row.dominant{font-weight:800;color:#b65a0d}.energy-row.dominant .energy-fill{background:linear-gradient(90deg,#f3ad56,#ef7525)}
 .footer{color:#718198;font-size:.75rem;text-align:center;border-top:1px solid #dbe5ef;margin-top:2rem;padding:1rem}
 div[data-testid="stMetric"]{background:white;border:1px solid var(--line);border-radius:15px;padding:1rem}button[kind="primary"]{background:#0875d1!important;border-radius:11px!important}
-@media(max-width:720px){.institutional{align-items:flex-start;gap:1rem;padding:1rem}.institutional-left{gap:.75rem}.institutional-left img{width:56px;height:72px}.institutional-copy{padding-left:.75rem}.institutional-title{font-size:.88rem}.institutional-sub{font-size:.75rem}.institutional-right img{width:110px}.hero{padding:1.5rem}.hero h1{font-size:1.8rem}.acoustic-scene{grid-template-columns:1fr 42px 1fr;min-height:245px}.absorber{width:48px;height:26px}.source-icon,.receiver-icon{font-size:2.4rem}.sound-wave{display:none}.abs-room{height:225px}.abs-summary{grid-template-columns:1fr}}
+@media(max-width:720px){.institutional{align-items:flex-start;gap:1rem;padding:1rem}.institutional-left{gap:.75rem}.institutional-left img{width:56px;height:72px}.institutional-copy{padding-left:.75rem}.institutional-title{font-size:.88rem}.institutional-sub{font-size:.75rem}.institutional-right img{width:110px}.hero{padding:1.5rem}.hero h1{font-size:1.8rem}.acoustic-scene{grid-template-columns:1fr 42px 1fr;min-height:245px}.absorber{width:48px;height:26px}.source-icon,.receiver-icon{font-size:2.4rem}.sound-wave{display:none}.abs-room{height:225px}.abs-summary{grid-template-columns:1fr}.compound-scene{height:270px}.energy-row{grid-template-columns:78px 1fr 52px}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -687,18 +688,154 @@ elif page.startswith("4 ·"):
     )
 
 elif page.startswith("5 ·"):
-    module_head("MÓDULO 5 · COMBINA", "Elementos compuestos", "Descubre por qué una pequeña superficie débil puede controlar el desempeño de toda una partición.")
-    c1,c2=st.columns([.8,1.3])
-    with c1:
-        total=st.slider("Superficie total (m²)",5.0,50.0,20.0,.5); opening=st.slider("Porcentaje de puerta/ventana",0,50,20)
-        rw_wall=st.slider("R del muro (dB)",30,70,55);rw_open=st.slider("R de puerta/ventana (dB)",10,50,28)
-        ao=total*opening/100; aw=total-ao
-        rg,tg=compound([("Muro",aw,rw_wall),("Abertura",ao,rw_open)]) if ao else (rw_wall,tau(rw_wall))
-        st.markdown(f'<div class="result"><small>AISLAMIENTO GLOBAL</small><br><b>{rg:.1f} dB</b><br><small>Pérdida respecto del muro: {rw_wall-rg:.1f} dB</small></div>',unsafe_allow_html=True)
-    with c2:
-        fig=go.Figure(go.Bar(x=["Muro solo","Abertura sola","Conjunto"],y=[rw_wall,rw_open,rg],marker_color=["#0875d1","#ef8b2c","#17c3e6"],text=[f"{rw_wall} dB",f"{rw_open} dB",f"{rg:.1f} dB"],textposition="outside"));fig.update_layout(height=340,yaxis_title="R (dB)",yaxis_range=[0,max(rw_wall+10,70)],paper_bgcolor="white",plot_bgcolor="white",margin=dict(l=20,r=20,t=30,b=20));st.plotly_chart(fig,use_container_width=True)
-        if opening and rw_open<rw_wall: st.markdown(f'<div class="warn"><b>Elemento dominante: puerta/ventana.</b><br>Aunque ocupa {opening}% del área, transmite aproximadamente {ao*tau(rw_open)/(aw*tau(rw_wall)+ao*tau(rw_open))*100:.1f}% de la energía que atraviesa el conjunto.</div>',unsafe_allow_html=True)
-    quiz("weak", "¿Qué conviene mejorar primero en un muro R=55 dB con ventana R=28 dB?", ["Agregar más masa al muro", "Mejorar la ventana y sus sellos", "Agregar panel absorbente al cielo"], "Mejorar la ventana y sus sellos", "La transmisión se concentra en el elemento de menor aislamiento y en sus encuentros.")
+    module_head(
+        "MÓDULO 5 · COMBINA",
+        "Aislamiento de elementos compuestos",
+        "Construye un elemento separador y observa cómo puertas, ventanas y pequeñas rendijas pueden controlar su aislamiento global.",
+    )
+    st.markdown(
+        r'''<div class="concept"><b>Idea central:</b> los decibeles de los componentes no se promedian.
+        Primero se transforma cada índice de reducción sonora en coeficiente de transmisión
+        τᵢ = 10<sup>−Rᵢ/10</sup>; después se pondera la energía transmitida por el área de cada componente.</div>''',
+        unsafe_allow_html=True,
+    )
+
+    dimensions, components = st.columns([.85, 1.15])
+    with dimensions:
+        st.markdown("#### 1. Define el elemento separador")
+        wall_width = st.slider("Ancho total (m)", 3.0, 10.0, 6.0, .1)
+        wall_height = st.slider("Alto total (m)", 2.2, 4.0, 2.7, .1)
+        total_area = wall_width * wall_height
+        rw_wall = st.slider("R del muro base (dB)", 30, 70, 55)
+
+    with components:
+        st.markdown("#### 2. Agrega los componentes")
+        door_col, window_col, leak_col = st.columns(3)
+        with door_col:
+            use_door = st.checkbox("Puerta", value=True)
+            door_area = st.slider("Área puerta (m²)", .8, 4.0, 1.8, .1, disabled=not use_door)
+            rw_door = st.slider("R puerta (dB)", 10, 50, 28, disabled=not use_door)
+        with window_col:
+            use_window = st.checkbox("Ventana", value=True)
+            window_area = st.slider("Área ventana (m²)", .5, 8.0, 3.0, .1, disabled=not use_window)
+            rw_window = st.slider("R ventana (dB)", 10, 50, 32, disabled=not use_window)
+        with leak_col:
+            use_leak = st.checkbox("Rendija", value=False)
+            leak_area_cm2 = st.slider("Área rendija (cm²)", 10, 500, 100, 10, disabled=not use_leak)
+            rw_leak = st.slider("R rendija (dB)", 0, 20, 5, disabled=not use_leak)
+
+    active_door_area = door_area if use_door else 0.0
+    active_window_area = window_area if use_window else 0.0
+    active_leak_area = leak_area_cm2 / 10000 if use_leak else 0.0
+    opening_area = active_door_area + active_window_area + active_leak_area
+    wall_net_area = total_area - opening_area
+
+    if wall_net_area <= 0:
+        st.error("La suma de puerta, ventana y rendija debe ser menor que la superficie total del muro.")
+        st.stop()
+
+    parts = [("Muro", wall_net_area, rw_wall)]
+    if use_door:
+        parts.append(("Puerta", active_door_area, rw_door))
+    if use_window:
+        parts.append(("Ventana", active_window_area, rw_window))
+    if use_leak:
+        parts.append(("Rendija", active_leak_area, rw_leak))
+
+    rg, tg = compound(parts)
+    wall_only_tau = tau(rw_wall)
+    transmitted_terms = {name: area * tau(r_value) for name, area, r_value in parts}
+    transmitted_sum = sum(transmitted_terms.values())
+    shares = {name: term / transmitted_sum * 100 for name, term in transmitted_terms.items()}
+    dominant = max(shares, key=shares.get)
+
+    view, reading = st.columns([1.15, .85])
+    with view:
+        door_html = '<div class="compound-door"></div><div class="compound-label door-l">Puerta</div>' if use_door else ""
+        window_html = '<div class="compound-window"></div><div class="compound-label window-l">Ventana</div>' if use_window else ""
+        leak_html = '<div class="compound-leak"></div><div class="compound-label leak-l">Rendija</div>' if use_leak else ""
+        st.markdown(
+            f'''<div class="compound-card"><div class="abs-room-title">ELEMENTO SEPARADOR INTERACTIVO · {total_area:.1f} m²</div>
+            <div class="compound-scene"><div class="compound-wall">
+            <div class="compound-label wall-l">Muro base · R {rw_wall} dB</div>
+            {door_html}{window_html}{leak_html}</div></div></div>''',
+            unsafe_allow_html=True,
+        )
+
+    with reading:
+        loss = rw_wall - rg
+        st.markdown(
+            f'''<div class="result-card iso"><div class="result-label">AISLAMIENTO GLOBAL DEL CONJUNTO</div>
+            <div class="result-value">{rg:.1f} dB</div>
+            <span class="result-change goodchange">τ global = {tg:.2e}</span>
+            <div class="result-note">El conjunto pierde <b>{loss:.1f} dB</b> respecto del muro sin aberturas.</div></div>''',
+            unsafe_allow_html=True,
+        )
+        rows = ""
+        for name, share in sorted(shares.items(), key=lambda item: item[1], reverse=True):
+            row_class = "energy-row dominant" if name == dominant else "energy-row"
+            rows += (
+                f'<div class="{row_class}"><span>{name}</span><div class="energy-track">'
+                f'<div class="energy-fill" style="width:{max(share, .5):.2f}%"></div></div><span>{share:.1f} %</span></div>'
+            )
+        st.markdown(
+            f'''<div class="compound-card" style="margin-top:.75rem"><div class="abs-room-title">APORTE A LA ENERGÍA TRANSMITIDA</div>
+            <div class="energy-list">{rows}</div></div>''',
+            unsafe_allow_html=True,
+        )
+
+    area_df = pd.DataFrame(
+        {
+            "Componente": [name for name, _, _ in parts],
+            "Área (m²)": [area for _, area, _ in parts],
+            "R (dB)": [r_value for _, _, r_value in parts],
+            "Participación de área (%)": [area / total_area * 100 for _, area, _ in parts],
+            "Energía transmitida (%)": [shares[name] for name, _, _ in parts],
+        }
+    )
+    st.dataframe(
+        area_df.style.format(
+            {
+                "Área (m²)": "{:.3f}",
+                "R (dB)": "{:.1f}",
+                "Participación de área (%)": "{:.2f}",
+                "Energía transmitida (%)": "{:.2f}",
+            }
+        ),
+        hide_index=True,
+        use_container_width=True,
+    )
+
+    if dominant != "Muro":
+        dominant_area = next(area for name, area, _ in parts if name == dominant)
+        st.markdown(
+            f'''<div class="warn"><b>Elemento acústicamente dominante: {dominant.lower()}.</b>
+            Representa solo {dominant_area / total_area * 100:.2f} % de la superficie, pero conduce
+            {shares[dominant]:.1f} % de la energía transmitida. Mejorarlo producirá más efecto que seguir
+            aumentando el aislamiento del muro base.</div>''',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div class="good"><b>El muro base domina la transmisión.</b> Las aberturas seleccionadas no son actualmente el camino principal; revisa sus áreas y valores de R antes de decidir una mejora.</div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown(
+        r'''<div class="concept"><b>Cálculo utilizado:</b>
+        τ<sub>global</sub> = Σ(Sᵢτᵢ)/ΣSᵢ &nbsp; y &nbsp;
+        R<sub>global</sub> = −10 log<sub>10</sub>(τ<sub>global</sub>).
+        La rendija se representa pedagógicamente como un componente de pequeña superficie y bajo R.
+        En obra real, su comportamiento depende de la geometría, profundidad, sellos y encuentros.</div>''',
+        unsafe_allow_html=True,
+    )
+    quiz(
+        "weak",
+        "Un muro de 55 dB contiene una ventana de 28 dB. ¿Qué conviene revisar primero?",
+        ["Agregar más masa al muro", "Mejorar la ventana y sus sellos", "Agregar panel absorbente al cielo"],
+        "Mejorar la ventana y sus sellos",
+        "La energía transmitida se concentra en los elementos de menor aislamiento y en sus encuentros.",
+    )
 
 elif page.startswith("6 ·"):
     module_head("MÓDULO 6 · DECIDE", "Decisión técnico-económica", "Compara alternativas por atenuación, costo por dB, retorno y cumplimiento del objetivo de diseño.")
