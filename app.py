@@ -857,7 +857,11 @@ elif page.startswith("6 ·"):
     st.markdown(
         r'''<div class="concept"><b>Primero se verifica la suficiencia técnica.</b>
         Una alternativa económica o con ROI positivo no es recomendable si no alcanza la
-        atenuación requerida. Después se comparan económicamente solo las soluciones que cumplen.</div>''',
+        atenuación requerida. Después se comparan económicamente solo las soluciones que cumplen.
+        <br><br><b>Importante:</b> una alternativa debe ser una estrategia constructiva completa.
+        El sellado de fugas, las placas, el material absorbente de la cámara y el tratamiento de
+        encuentros son componentes complementarios dentro de una solución; no se comparan como si
+        fueran proyectos independientes.</div>''',
         unsafe_allow_html=True,
     )
 
@@ -867,26 +871,39 @@ elif page.startswith("6 ·"):
     with c2:
         horizon = st.slider("Horizonte de evaluación (años)", 1, 20, 10)
 
-    st.markdown("### Define las alternativas")
+    st.markdown("### Compara tres estrategias constructivas distintas")
     st.caption(
-        "El beneficio anual debe representar un efecto monetizable y justificable: "
-        "costos evitados, menor pérdida de uso, reducción de reclamos, productividad u otro beneficio documentado."
+        "Cada fila corresponde a una solución completa y mutuamente excluyente para resolver el "
+        "mismo problema. Puedes modificar sus supuestos. El beneficio anual debe representar costos "
+        "evitados, menor pérdida de uso, reducción de reclamos, productividad u otro efecto documentado."
     )
 
     base_data = pd.DataFrame(
         {
-            "Solución": ["Sellado de fugas", "Refuerzo de placa", "Tabique doble", "Sistema premium"],
-            "Atenuación (dB)": [12.0, 25.0, 35.0, 42.0],
-            "Inversión inicial (CLP)": [280000, 720000, 1200000, 2400000],
-            "Mantenimiento anual (CLP)": [20000, 30000, 45000, 60000],
-            "Beneficio anual (CLP)": [90000, 180000, 310000, 430000],
-            "Vida útil (años)": [5, 10, 15, 20],
+            "Solución": [
+                "A · Rehabilitar tabique existente",
+                "B · Trasdosado acústico independiente",
+                "C · Sustituir por tabique doble desacoplado",
+            ],
+            "Sistema constructivo": [
+                "Sellado integral + refuerzo de placas + tratamiento de cajas y encuentros",
+                "Nueva hoja autoportante desacoplada + lana mineral + doble placa + sellos",
+                "Doble estructura independiente + cámara absorbente + placas múltiples + sellos",
+            ],
+            "Atenuación (dB)": [20.0, 32.0, 42.0],
+            "Inversión inicial (CLP)": [650000, 1350000, 2300000],
+            "Mantenimiento anual (CLP)": [30000, 35000, 45000],
+            "Beneficio anual (CLP)": [190000, 360000, 500000],
+            "Vida útil (años)": [8, 15, 20],
         }
     )
     inputs = st.data_editor(
         base_data,
         column_config={
             "Solución": st.column_config.TextColumn(required=True),
+            "Sistema constructivo": st.column_config.TextColumn(
+                help="Conjunto de medidas complementarias incluidas en la alternativa."
+            ),
             "Atenuación (dB)": st.column_config.NumberColumn(min_value=0.0, max_value=80.0, step=1.0, format="%.1f dB"),
             "Inversión inicial (CLP)": st.column_config.NumberColumn(min_value=1, step=50000, format="$%d"),
             "Mantenimiento anual (CLP)": st.column_config.NumberColumn(min_value=0, step=10000, format="$%d"),
@@ -896,7 +913,21 @@ elif page.startswith("6 ·"):
         hide_index=True,
         use_container_width=True,
         num_rows="dynamic",
-        key="economic_inputs",
+        key="economic_inputs_v2",
+    )
+
+    st.markdown(
+        '''<div class="card">
+        <div class="eyebrow">QUÉ SE ESTÁ COMPARANDO</div>
+        <b>A · Rehabilitación:</b> conserva el tabique y corrige integralmente sus debilidades.<br>
+        <b>B · Trasdosado independiente:</b> conserva el tabique, pero agrega una nueva hoja
+        desacoplada como sistema completo.<br>
+        <b>C · Sustitución:</b> retira el elemento existente y construye un tabique doble
+        desacoplado nuevo.<br><br>
+        En las tres alternativas el sellado forma parte de la correcta ejecución. No constituye,
+        por sí solo, una cuarta solución comparable.
+        </div>''',
+        unsafe_allow_html=True,
     )
 
     # Todos los indicadores se recalculan después de cada edición.
@@ -986,7 +1017,7 @@ elif page.startswith("6 ·"):
 
         display = analysis[
             [
-                "Solución", "Atenuación (dB)", "Cumple objetivo", "Años evaluados",
+                "Solución", "Sistema constructivo", "Atenuación (dB)", "Cumple objetivo", "Años evaluados",
                 "Costo total (CLP)", "Beneficio acumulado (CLP)", "Beneficio neto (CLP)",
                 "ROI (%)", "Payback (años)", "Punto de equilibrio",
                 "Costo ciclo por dB (CLP/dB)",
