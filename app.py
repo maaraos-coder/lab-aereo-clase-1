@@ -437,10 +437,10 @@ elif page.startswith("4 ·"):
     module_head(
         "MÓDULO 4 · ACONDICIONA",
         "Absorción acústica del recinto",
-        "Interviene el recinto receptor y observa cómo el coeficiente de absorción, el área tratada y la frecuencia modifican la absorción equivalente y el tiempo de reverberación.",
+        "Modifica un único recinto receptor: aplica materiales en cada superficie y observa en tiempo real cómo cambian la absorción equivalente y el tiempo de reverberación.",
     )
 
-    st.markdown("### 1. Define el recinto receptor y la banda de análisis")
+    st.markdown("### 1. Define el recinto y la frecuencia que quieres observar")
     d1, d2, d3, d4 = st.columns(4)
     with d1:
         L = st.number_input("Largo (m)", 2.0, 30.0, 6.0, .5, key="abs_l")
@@ -460,106 +460,168 @@ elif page.startswith("4 ·"):
     freq_index = list(FREQS).index(selected_abs_freq)
     s_floor = L * W
     s_ceiling = s_floor
-    s_walls = 2 * (L + W) * H
+    surface_areas = {
+        "Cielo": s_ceiling,
+        "Piso": s_floor,
+        "Muro frontal": W * H,
+        "Muro posterior": W * H,
+        "Muros laterales": 2 * L * H,
+    }
     volume = L * W * H
 
-    st.markdown("### 2. Configura el estado inicial y agrega tratamiento")
-    base_col, treatment_col = st.columns(2)
-    with base_col:
-        st.markdown("#### Estado inicial del recinto")
-        floor_material = st.selectbox("Material del piso", list(ABS_FREQ), index=0, key="abs_floor")
-        wall_material = st.selectbox("Material de los muros", list(ABS_FREQ), index=2, key="abs_walls")
-        ceiling_material = st.selectbox("Material del cielo", list(ABS_FREQ), index=2, key="abs_ceiling")
-    with treatment_col:
-        st.markdown("#### Tratamiento absorbente")
-        panel_material = st.selectbox(
-            "Material absorbente",
-            ["Panel de lana mineral", "Cortina pesada", "Cielo acústico"],
-            key="abs_panel_material",
-        )
-        wall_coverage = st.slider(
-            "Cobertura de muros con absorbente", 0, 60, 20, 5,
-            format="%d %%", key="abs_wall_coverage",
-        )
-        cloud_coverage = st.slider(
-            "Cobertura del cielo con nube acústica", 0, 100, 30, 5,
-            format="%d %%", key="abs_cloud_coverage",
-        )
+    st.markdown("### 2. Aplica materiales sobre el mismo recinto")
+    st.caption("En cada superficie selecciona el material existente, el material que agregarás y el porcentaje de cobertura. El coeficiente α mostrado corresponde a la banda seleccionada.")
 
-    alpha_floor = ABS_FREQ[floor_material][freq_index]
-    alpha_wall = ABS_FREQ[wall_material][freq_index]
-    alpha_ceiling = ABS_FREQ[ceiling_material][freq_index]
-    alpha_panel = ABS_FREQ[panel_material][freq_index]
-    treated_wall_area = s_walls * wall_coverage / 100
-    treated_cloud_area = s_ceiling * cloud_coverage / 100
+    default_base = {
+        "Cielo": "Yeso-cartón", "Piso": "Hormigón pintado",
+        "Muro frontal": "Yeso-cartón", "Muro posterior": "Yeso-cartón",
+        "Muros laterales": "Yeso-cartón",
+    }
+    treatment_options = ["Sin tratamiento"] + list(ABS_FREQ)
+    default_treatment = {
+        "Cielo": "Cielo acústico", "Piso": "Alfombra",
+        "Muro frontal": "Panel de lana mineral", "Muro posterior": "Cortina pesada",
+        "Muros laterales": "Panel de lana mineral",
+    }
+    default_coverage = {"Cielo": 30, "Piso": 0, "Muro frontal": 20, "Muro posterior": 0, "Muros laterales": 20}
+    surface_config = {}
 
-    base_parts = [
-        ("Piso", s_floor, alpha_floor),
-        ("Muros", s_walls, alpha_wall),
-        ("Cielo", s_ceiling, alpha_ceiling),
-    ]
-    treated_parts = [
-        ("Piso existente", s_floor, alpha_floor),
-        ("Muros sin tratar", s_walls - treated_wall_area, alpha_wall),
-        ("Paneles murales", treated_wall_area, alpha_panel),
-        ("Cielo sin tratar", s_ceiling - treated_cloud_area, alpha_ceiling),
-        ("Nube acústica", treated_cloud_area, alpha_panel),
-    ]
-    base_a = sum(area * alpha for _, area, alpha in base_parts)
-    treated_a = sum(area * alpha for _, area, alpha in treated_parts)
-    base_rt = .161 * volume / max(base_a, .01)
-    treated_rt = .161 * volume / max(treated_a, .01)
-    rt_change = treated_rt - base_rt
+    for n, surface in enumerate(surface_areas):
+        with st.expander(f"{surface} · {surface_areas[surface]:.1f} m²", expanded=surface in ("Cielo", "Muros laterales")):
+            c_base, c_treat, c_cover, c_alpha = st.columns([1.2, 1.2, 1.35, .75])
+            with c_base:
+                base_material = st.selectbox(
+                    "Material existente", list(ABS_FREQ),
+                    index=list(ABS_FREQ).index(default_base[surface]),
+                    key=f"abs_base_{n}",
+                )
+            with c_treat:
+                treatment_material = st.selectbox(
+                    "Material aplicado", treatment_options,
+                    index=treatment_options.index(default_treatment[surface]),
+                    key=f"abs_treatment_{n}",
+                )
+            with c_cover:
+                coverage = st.slider(
+                    "Cobertura", 0, 100, default_coverage[surface], 5,
+                    format="%d %%", key=f"abs_coverage_{n}",
+                    disabled=treatment_material == "Sin tratamiento",
+                )
+            if treatment_material == "Sin tratamiento":
+                coverage = 0
+                treatment_alpha = ABS_FREQ[base_material][freq_index]
+            else:
+                treatment_alpha = ABS_FREQ[treatment_material][freq_index]
+            with c_alpha:
+                st.metric("α aplicado", f"{treatment_alpha:.2f}")
+            surface_config[surface] = {
+                "area": surface_areas[surface],
+                "base": base_material,
+                "treatment": treatment_material,
+                "coverage": coverage,
+            }
+
+    base_a_curve = np.zeros(len(FREQS), dtype=float)
+    treated_a_curve = np.zeros(len(FREQS), dtype=float)
+    contribution_rows = []
+    treated_area_total = 0.0
+
+    for surface, cfg in surface_config.items():
+        area = cfg["area"]
+        fraction = cfg["coverage"] / 100
+        base_curve = np.array(ABS_FREQ[cfg["base"]], dtype=float)
+        treatment_name = cfg["treatment"]
+        treatment_curve = base_curve if treatment_name == "Sin tratamiento" else np.array(ABS_FREQ[treatment_name], dtype=float)
+        effective_curve = base_curve * (1 - fraction) + treatment_curve * fraction
+        base_a_curve += area * base_curve
+        treated_a_curve += area * effective_curve
+        treated_area_total += area * fraction
+        contribution_rows.append({
+            "Superficie": surface,
+            "Área (m²)": area,
+            "Cobertura": cfg["coverage"],
+            "Material aplicado": treatment_name,
+            "α efectivo": effective_curve[freq_index],
+            "Absorción (sabines)": area * effective_curve[freq_index],
+        })
+
+    base_rt_curve = .161 * volume / np.maximum(base_a_curve, .01)
+    treated_rt_curve = .161 * volume / np.maximum(treated_a_curve, .01)
+    base_a = float(base_a_curve[freq_index])
+    treated_a = float(treated_a_curve[freq_index])
+    base_rt = float(base_rt_curve[freq_index])
+    treated_rt = float(treated_rt_curve[freq_index])
     a_change = treated_a - base_a
+    rt_change = treated_rt - base_rt
 
-    panel_count = 0 if wall_coverage == 0 else min(4, max(1, math.ceil(wall_coverage / 15)))
-    panel_html = "".join(
-        f'<span class="abs-panel {panel_class}"></span>'
-        for panel_class in ["p1", "p2", "p3", "p4"][:panel_count]
+    show_original = st.toggle(
+        "Comparar con el recinto original",
+        value=False,
+        help="Actívalo para ver el mismo recinto sin los materiales aplicados. Tus selecciones no se borran.",
     )
-    if wall_coverage >= 45:
-        panel_html += '<span class="abs-panel side1"></span><span class="abs-panel side2"></span>'
-    cloud_html = '<span class="abs-cloud"></span>' if cloud_coverage > 0 else ""
-    echo_after = ")))" if treated_rt > 1.2 else ")" if treated_rt < .6 else "))"
+    visible_a = base_a if show_original else treated_a
+    visible_rt = base_rt if show_original else treated_rt
+    room_label = "RECINTO ORIGINAL" if show_original else "RECINTO INTERVENIDO"
+    echo_visible = "))))" if visible_rt > 1.2 else ")" if visible_rt < .6 else "))"
 
-    st.markdown("### 3. Observa el recinto antes y después")
-    before_room, after_room = st.columns(2)
-    with before_room:
+    def treatment_visible(surface):
+        cfg = surface_config[surface]
+        return (not show_original) and cfg["coverage"] > 0 and cfg["treatment"] != "Sin tratamiento"
+
+    back_panels = ""
+    if treatment_visible("Muro frontal") or treatment_visible("Muro posterior"):
+        back_cov = max(surface_config["Muro frontal"]["coverage"], surface_config["Muro posterior"]["coverage"])
+        count = min(4, max(1, math.ceil(back_cov / 25)))
+        back_panels = "".join(f'<span class="abs-panel {p}"></span>' for p in ["p1", "p2", "p3", "p4"][:count])
+    side_panels = ""
+    if treatment_visible("Muros laterales"):
+        side_panels = '<span class="abs-panel side1"></span><span class="abs-panel side2"></span>'
+    cloud_html = '<span class="abs-cloud"></span>' if treatment_visible("Cielo") else ""
+    floor_overlay = ""
+    if treatment_visible("Piso"):
+        floor_overlay = '<span style="position:absolute;z-index:3;left:8%;right:8%;bottom:1%;height:22%;background:repeating-linear-gradient(90deg,#12aebe 0,#12aebe 18px,#75dbe4 18px,#75dbe4 36px);clip-path:polygon(10% 0,90% 0,100% 100%,0 100%);opacity:.82"></span>'
+
+    st.markdown("### 3. Observa cómo cambia el mismo recinto")
+    room_col, values_col = st.columns([1.35, 1])
+    with room_col:
         st.markdown(
-            f'''<div class="abs-room-card"><div class="abs-room-title">Estado inicial · {selected_abs_freq} Hz</div>
-            <div class="abs-room"><span class="abs-room-badge">SIN TRATAMIENTO</span><span class="abs-back"></span>
+            f'''<div class="abs-room-card"><div class="abs-room-title">Recinto receptor · {selected_abs_freq} Hz</div>
+            <div class="abs-room"><span class="abs-room-badge">{room_label}</span><span class="abs-back"></span>
             <span class="abs-side-l"></span><span class="abs-side-r"></span><span class="abs-floor"></span>
-            <span class="abs-person">👂</span><span class="abs-echo e1">))))</span><span class="abs-echo e2">)))</span></div>
-            <div class="abs-summary"><div class="abs-mini"><span>ABSORCIÓN EQUIVALENTE</span><b>{base_a:.1f} sabines</b></div>
-            <div class="abs-mini"><span>TIEMPO DE REVERBERACIÓN</span><b>{base_rt:.2f} s</b></div></div></div>''',
+            {floor_overlay}{back_panels}{side_panels}{cloud_html}
+            <span class="abs-person">👂</span><span class="abs-echo e1">{echo_visible}</span></div></div>''',
             unsafe_allow_html=True,
         )
-    with after_room:
+    with values_col:
         st.markdown(
-            f'''<div class="abs-room-card"><div class="abs-room-title">Estado tratado · {selected_abs_freq} Hz</div>
-            <div class="abs-room"><span class="abs-room-badge">RECINTO RECEPTOR TRATADO</span><span class="abs-back"></span>
-            <span class="abs-side-l"></span><span class="abs-side-r"></span><span class="abs-floor"></span>
-            {panel_html}{cloud_html}<span class="abs-person">👂</span><span class="abs-echo e1">{echo_after}</span></div>
-            <div class="abs-summary"><div class="abs-mini"><span>ABSORCIÓN EQUIVALENTE</span><b>{treated_a:.1f} sabines</b></div>
-            <div class="abs-mini"><span>TIEMPO DE REVERBERACIÓN</span><b>{treated_rt:.2f} s</b></div></div></div>''',
+            f'''<div class="result-card rt"><div class="result-label">Absorción equivalente · {selected_abs_freq} Hz</div>
+            <div class="result-value">{visible_a:.1f} sabines</div>
+            <div class="result-change goodchange">{treated_a - base_a:+.1f} sabines respecto del original</div>
+            <div class="result-note">Original: {base_a:.1f} · Intervenido: {treated_a:.1f} sabines</div></div>''',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f'''<div class="result-card iso" style="margin-top:.8rem"><div class="result-label">Tiempo de reverberación T₆₀</div>
+            <div class="result-value">{visible_rt:.2f} s</div>
+            <div class="result-change goodchange">{treated_rt - base_rt:+.2f} s respecto del original</div>
+            <div class="result-note">Original: {base_rt:.2f} s · Intervenido: {treated_rt:.2f} s</div></div>''',
             unsafe_allow_html=True,
         )
 
-    st.markdown("### 4. Compara el efecto del tratamiento")
+    st.markdown("### 4. Analiza el resultado")
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Volumen", f"{volume:.1f} m³")
-    m2.metric("Área tratada", f"{treated_wall_area + treated_cloud_area:.1f} m²")
+    m2.metric("Área tratada", f"{treated_area_total:.1f} m²")
     m3.metric("Cambio de absorción", f"{a_change:+.1f} sabines")
     m4.metric("Cambio de T₆₀", f"{rt_change:+.2f} s")
 
-    contribution_df = pd.DataFrame(treated_parts, columns=["Superficie", "Área (m²)", "α"])
-    contribution_df["Absorción (sabines)"] = contribution_df["Área (m²)"] * contribution_df["α"]
+    contribution_df = pd.DataFrame(contribution_rows)
     chart_col, table_col = st.columns([1.15, 1])
     with chart_col:
         fig = go.Figure(go.Bar(
             x=contribution_df["Superficie"],
             y=contribution_df["Absorción (sabines)"],
-            marker_color=["#8fa3b8", "#a8b8c6", "#0aaec2", "#c2ced8", "#0875d1"],
+            marker_color=["#0875d1", "#ef8b2c", "#0aaec2", "#14a37f", "#6a70d6"],
             text=contribution_df["Absorción (sabines)"].round(1),
             textposition="outside",
         ))
@@ -573,18 +635,29 @@ elif page.startswith("4 ·"):
     with table_col:
         st.dataframe(
             contribution_df.style.format({
-                "Área (m²)": "{:.1f}", "α": "{:.2f}", "Absorción (sabines)": "{:.1f}",
+                "Área (m²)": "{:.1f}", "Cobertura": "{} %",
+                "α efectivo": "{:.2f}", "Absorción (sabines)": "{:.1f}",
             }),
             use_container_width=True, hide_index=True,
         )
-        st.caption(
-            f"En {selected_abs_freq} Hz: α del tratamiento = {alpha_panel:.2f}. "
-            "Un sabin equivale a 1 m² de superficie perfectamente absorbente."
+        st.caption("El α efectivo combina la parte original y la parte cubierta de cada superficie.")
+
+    st.markdown("### 5. Comprueba el comportamiento por frecuencia")
+    curve_a, curve_rt = st.columns(2)
+    with curve_a:
+        st.plotly_chart(
+            plot_line(FREQS, [base_a_curve, treated_a_curve], ["Recinto original", "Recinto intervenido"], "A equivalente (sabines)", "Absorción equivalente por frecuencia"),
+            use_container_width=True,
+        )
+    with curve_rt:
+        st.plotly_chart(
+            plot_line(FREQS, [base_rt_curve, treated_rt_curve], ["Recinto original", "Recinto intervenido"], "T₆₀ (s)", "Tiempo de reverberación por frecuencia"),
+            use_container_width=True,
         )
 
     if a_change <= .01:
         st.markdown(
-            '<div class="warn"><b>Aún no hay una intervención efectiva.</b> Aumenta la cobertura o selecciona un material con mayor α en la banda analizada.</div>',
+            '<div class="warn"><b>La intervención no mejora esta banda.</b> Aumenta la cobertura o elige un material cuyo coeficiente α sea mayor en la frecuencia analizada.</div>',
             unsafe_allow_html=True,
         )
     else:
@@ -600,6 +673,7 @@ elif page.startswith("4 ·"):
     st.markdown(
         r'''<div class="concept"><b>Modelo utilizado:</b>
         A = Σ Sᵢαᵢ y T₆₀ = 0,161 V/A.
+        Cuando una superficie se cubre parcialmente se usa α efectivo = (1−c)α original + cα aplicado.
         La ecuación de Sabine supone un campo suficientemente difuso y absorción distribuida.
         En recintos muy absorbentes, geometrías especiales o distribución no uniforme, la estimación puede perder precisión.</div>''',
         unsafe_allow_html=True,
