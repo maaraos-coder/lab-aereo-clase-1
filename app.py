@@ -1818,6 +1818,43 @@ else:
                         "coverage": teacher_coverage,
                     }
             teacher_result = evaluate_practical(teacher_solution)
+            teacher_treated = {
+                item[0]: item[2] for item in teacher_result["details"]
+            }
+            teacher_ceiling_fill = min(
+                100,
+                teacher_treated["Cielo"] / PRACTICAL_SURFACES["Cielo"] * 100,
+            )
+            teacher_wall_fill = min(
+                100,
+                (
+                    teacher_treated["Muro frontal"]
+                    + teacher_treated["Muro posterior"]
+                    + teacher_treated["Muros laterales"]
+                )
+                / 84
+                * 100,
+            )
+            st.markdown(
+                f"""
+                <div style="position:relative;height:300px;border:5px solid #14243a;border-radius:18px;
+                background:linear-gradient(to top,#d9c3a5 0 18%,#f7f4ee 18%);
+                overflow:hidden;margin:18px 0">
+                  <div style="position:absolute;left:0;top:0;width:{teacher_ceiling_fill:.0f}%;
+                  height:28px;background:#18a7c9;transition:width .45s ease"></div>
+                  <div style="position:absolute;left:0;bottom:18%;width:{teacher_wall_fill:.0f}%;
+                  height:42%;background:repeating-linear-gradient(
+                  90deg,#f5b400 0 42px,#ffd96a 42px 47px);
+                  border-radius:0 10px 0 0;transition:width .45s ease"></div>
+                  <div style="position:absolute;right:7%;bottom:18%;font-size:4rem">🧑‍🏫</div>
+                  <div style="position:absolute;left:4%;top:42px;color:#14243a;font-weight:800">
+                  Cielo tratado: {teacher_ceiling_fill:.0f}%</div>
+                  <div style="position:absolute;left:4%;bottom:23%;color:#14243a;font-weight:800">
+                  Muros tratados: {teacher_wall_fill:.0f}%</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
             t1, t2, t3, t4 = st.columns(4)
             t1.metric("T₆₀", f'{teacher_result["t60"]:.2f} s')
             t2.metric("Costo", f'${teacher_result["cost"]:,.0f}')
