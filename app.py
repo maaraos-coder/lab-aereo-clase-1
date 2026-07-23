@@ -226,6 +226,7 @@ def _attempt_state():
         "final_identifier", "final_date", "final_current", "final_answers",
         "final_option_orders", "final_practical_stage",
         "final_practical_result", "final_practical_draft", "final_score",
+        "final_practical_calculation",
         "final_email_sent", "final_email_sent_at",
     )
     return {key: st.session_state.get(key) for key in keys}
@@ -297,6 +298,7 @@ def clear_attempt_session():
         "final_identifier", "final_date", "final_current", "final_answers",
         "final_option_orders", "final_practical_stage",
         "final_practical_result", "final_practical_draft", "final_score",
+        "final_practical_calculation",
         "final_email_sent", "final_email_sent_at", "final_attempt_token",
         "confirm_final_practical",
     }
@@ -391,7 +393,44 @@ def _single_number_from_curve(curve):
     return PRACTICAL_REFERENCE_CURVE[7] + shift
 
 
-def evaluate_practical(solution):
+def practical_expected_values(solution):
+    """Resultados que el estudiante debe obtener antes de ver la simulación."""
+    density = PRACTICAL_MATERIALS[solution["material"]]["density"]
+    thickness_mm = float(solution["thickness_mm"])
+    total_area = float(solution["wall_width"]) * float(solution["wall_height"])
+    door_area = float(solution["door_width"]) * float(solution["door_height"])
+    opaque_area = total_area - door_area
+    surface_mass = density * thickness_mm / 1000
+    wall_r = {
+        frequency: max(
+            0.0, 20 * math.log10(max(surface_mass * frequency, 1.0)) - 47
+        )
+        for frequency in (125, 500, 2000)
+    }
+    door_r_500 = PRACTICAL_DOORS[solution["door_type"]]["curve"][
+        PRACTICAL_FREQS.index(500)
+    ]
+    wall_power = opaque_area * 10 ** (-wall_r[500] / 10)
+    door_power = door_area * 10 ** (-door_r_500 / 10)
+    compound_r_500 = -10 * math.log10((wall_power + door_power) / total_area)
+    return {
+        "total_area": total_area,
+        "door_area": door_area,
+        "opaque_area": opaque_area,
+        "surface_mass": surface_mass,
+        "r125": wall_r[125],
+        "r500": wall_r[500],
+        "r2000": wall_r[2000],
+        "compound_r500": compound_r_500,
+    }
+
+
+def calculation_score(record):
+    """Puntaje de cálculo ya congelado al desbloquear la simulación."""
+    return int((record or {}).get("points", 0))
+
+
+def evaluate_practical(solution, calculation=None):
     """Evalúa por bandas un muro simple con puerta como cerramiento compuesto."""
     material = solution["material"]
     thickness_mm = float(solution["thickness_mm"])
@@ -423,9 +462,10 @@ def evaluate_practical(solution):
     diagnosis_ok = solution.get("dominant_answer") == dominant
     trend_ok = solution.get("trend_answer") == "El aislamiento aumenta al aumentar la frecuencia"
     margin = compound_index - PRACTICAL_TARGET
-    points = (5 if target_ok else 3 if compound_index >= PRACTICAL_TARGET - 3 else 1)
-    points += 3 if diagnosis_ok else 0
-    points += 2 if trend_ok else 0
+    points = calculation_score(calculation)
+    points += 2 if target_ok else 0
+    points += 1 if diagnosis_ok else 0
+    points += 1 if trend_ok else 0
     points += 1 if margin >= 2 else 0
     points = min(points, PRACTICAL_POINTS)
     status = (
@@ -446,6 +486,7 @@ def evaluate_practical(solution):
         "compound_index": compound_index, "dominant": dominant,
         "diagnosis_answer": solution.get("dominant_answer"),
         "trend_answer": solution.get("trend_answer"),
+        "calculation": calculation or {},
         "diagnosis_ok": diagnosis_ok, "trend_ok": trend_ok,
         "target_ok": target_ok, "margin": margin,
         "points": points, "status": status,
@@ -466,28 +507,16 @@ def practical_controls(prefix, disabled=False):
             "Espesor (mm)", data["min_mm"], data["max_mm"], data["default_mm"],
             key=f"{prefix}_thickness", disabled=disabled,
         )
-        wall_width = st.slider(
-            "Ancho total del cerramiento (m)", 3.0, 8.0, 5.0, 0.1,
-            key=f"{prefix}_wall_width", disabled=disabled,
-        )
-        wall_height = st.slider(
-            "Altura total del cerramiento (m)", 2.2, 4.0, 2.8, 0.1,
-            key=f"{prefix}_wall_height", disabled=disabled,
-        )
+        wall_width, wall_height = 4.5, 2.8
+        st.info("Dimensiones del cerramiento: 4,50 × 2,80 m")
     with right:
         st.markdown("#### Puerta incorporada")
         door_type = st.selectbox(
             "Tipo de puerta", list(PRACTICAL_DOORS),
             key=f"{prefix}_door_type", disabled=disabled,
         )
-        door_width = st.slider(
-            "Ancho de la puerta (m)", 0.7, 2.0, 0.9, 0.1,
-            key=f"{prefix}_door_width", disabled=disabled,
-        )
-        door_height = st.slider(
-            "Altura de la puerta (m)", 1.8, 2.5, 2.0, 0.1,
-            key=f"{prefix}_door_height", disabled=disabled,
-        )
+        door_width, door_height = 0.9, 2.1
+        st.info("Dimensiones de la puerta: 0,90 × 2,10 m")
         dominant_answer = st.selectbox(
             "¿Qué elemento domina la transmisión del conjunto?",
             ["Selecciona una respuesta", "El muro", "La puerta"],
@@ -507,6 +536,125 @@ def practical_controls(prefix, disabled=False):
         "door_type": door_type, "door_width": door_width, "door_height": door_height,
         "dominant_answer": dominant_answer, "trend_answer": trend_answer,
     }
+
+
+def render_calculation_challenge(solution, prefix, teacher=False):
+    """Exige los cálculos antes de revelar la gráfica y los resultados."""
+    expected = practical_expected_values(solution)
+    if teacher:
+        st.markdown("#### Cálculos que debe realizar el estudiante")
+        st.dataframe(
+            {
+                "Magnitud": [
+                    "Superficie total", "Superficie de puerta", "Superficie opaca",
+                    "Masa superficial", "R(125 Hz)", "R(500 Hz)",
+                    "R(2.000 Hz)", "R compuesto (500 Hz)",
+                ],
+                "Resultado correcto": [
+                    f'{expected["total_area"]:.2f} m²',
+                    f'{expected["door_area"]:.2f} m²',
+                    f'{expected["opaque_area"]:.2f} m²',
+                    f'{expected["surface_mass"]:.2f} kg/m²',
+                    f'{expected["r125"]:.2f} dB',
+                    f'{expected["r500"]:.2f} dB',
+                    f'{expected["r2000"]:.2f} dB',
+                    f'{expected["compound_r500"]:.2f} dB',
+                ],
+            },
+            hide_index=True,
+            use_container_width=True,
+        )
+        st.caption("Tolerancia de corrección: ±0,05 m² y ±0,5 kg/m² o dB.")
+        return {
+            "unlocked": True, "points": 6, "attempts": 0,
+            "values": expected, "correct": {key: True for key in expected},
+        }
+
+    state_key = f"{prefix}_calculation_record"
+    record = (
+        st.session_state.get(state_key)
+        or st.session_state.get("final_practical_calculation")
+        or {
+        "attempts": 0, "unlocked": False, "points": 0, "correct": {},
+        }
+    )
+    st.session_state[state_key] = record
+    if record.get("unlocked"):
+        st.success(
+            f'Cálculo entregado · {record["points"]}/6 puntos. '
+            "La comprobación gráfica está desbloqueada."
+        )
+        return record
+
+    st.markdown("#### Etapa 1 · Resuelve antes de simular")
+    st.write(
+        "Calcula sin ver la gráfica. Puedes verificar como máximo **dos veces**. "
+        "Después del segundo intento se desbloqueará la comprobación, aunque existan errores."
+    )
+    with st.form(f"{prefix}_calculation_form"):
+        a, b = st.columns(2)
+        with a:
+            total_area = st.number_input("Superficie total (m²)", min_value=0.0, step=0.01)
+            door_area = st.number_input("Superficie de la puerta (m²)", min_value=0.0, step=0.01)
+            opaque_area = st.number_input("Superficie opaca descontando la puerta (m²)", min_value=0.0, step=0.01)
+            surface_mass = st.number_input("Masa superficial m′ (kg/m²)", min_value=0.0, step=0.1)
+        with b:
+            r125 = st.number_input("R del muro a 125 Hz (dB)", min_value=0.0, step=0.1)
+            r500 = st.number_input("R del muro a 500 Hz (dB)", min_value=0.0, step=0.1)
+            r2000 = st.number_input("R del muro a 2.000 Hz (dB)", min_value=0.0, step=0.1)
+            compound_r500 = st.number_input("R compuesto a 500 Hz (dB)", min_value=0.0, step=0.1)
+        verify = st.form_submit_button(
+            f'Verificar cálculos · intento {record["attempts"] + 1} de 2',
+            type="primary",
+            use_container_width=True,
+        )
+    if verify:
+        submitted = {
+            "total_area": total_area, "door_area": door_area,
+            "opaque_area": opaque_area, "surface_mass": surface_mass,
+            "r125": r125, "r500": r500, "r2000": r2000,
+            "compound_r500": compound_r500,
+        }
+        tolerances = {
+            "total_area": .05, "door_area": .05, "opaque_area": .05,
+            "surface_mass": .5, "r125": .5, "r500": .5,
+            "r2000": .5, "compound_r500": .5,
+        }
+        correct = {
+            key: abs(submitted[key] - expected[key]) <= tolerances[key]
+            for key in expected
+        }
+        attempts = record["attempts"] + 1
+        # 6 puntos: superficies 1, masa 1, ley de masa 3 y compuesto 1.
+        points = (
+            (1 if all(correct[key] for key in ("total_area", "door_area", "opaque_area")) else 0)
+            + (1 if correct["surface_mass"] else 0)
+            + sum(1 for key in ("r125", "r500", "r2000") if correct[key])
+            + (1 if correct["compound_r500"] else 0)
+        )
+        record = {
+            "attempts": attempts,
+            "unlocked": all(correct.values()) or attempts >= 2,
+            "points": points,
+            "correct": correct,
+            "submitted": submitted,
+            "expected": expected,
+        }
+        st.session_state[state_key] = record
+        st.session_state.final_practical_calculation = record
+        save_attempt()
+        st.rerun()
+
+    if record["attempts"]:
+        hits = sum(record["correct"].values())
+        if hits == len(expected):
+            st.success("Todos los resultados son correctos.")
+        else:
+            st.warning(
+                f'{hits} de {len(expected)} resultados están dentro de tolerancia. '
+                f'Te queda {2 - record["attempts"]} verificación.'
+            )
+    return record
 
 
 def render_practical_result(result, show_score=False):
@@ -578,6 +726,7 @@ def make_evaluation_pdf(student, identifier, course_date, answers, score, practi
     for section_name, hits, total in section_summary:
         lines.append(("R", 9, f"{section_name}: {hits}/{total} · {hits/total*100:.0f}%"))
     if practical:
+        calculation = practical.get("calculation") or {}
         lines.extend([
             ("R", 8, ""),
             ("B", 11, "PREGUNTA 30 · CERRAMIENTO COMPUESTO POR FRECUENCIAS"),
@@ -589,7 +738,15 @@ def make_evaluation_pdf(student, identifier, course_date, answers, score, practi
             ("R", 9, f"Objetivo educativo: {PRACTICAL_TARGET} dB · componente dominante: {practical['dominant']}"),
             ("R", 9, f"Diagnóstico del estudiante: {practical['diagnosis_answer']}"),
             ("R", 9, f"Interpretación de la curva: {practical['trend_answer']}"),
+            ("R", 9, f"Cálculos previos: {calculation.get('points', 0)}/6 · verificaciones utilizadas: {calculation.get('attempts', 0)}/2"),
         ])
+        if calculation.get("submitted"):
+            submitted = calculation["submitted"]
+            lines.extend([
+                ("R", 8, f"Resultados ingresados: S total {submitted['total_area']:.2f} m2 · puerta {submitted['door_area']:.2f} m2 · opaca {submitted['opaque_area']:.2f} m2"),
+                ("R", 8, f"m' {submitted['surface_mass']:.2f} kg/m2 · R125 {submitted['r125']:.1f} dB · R500 {submitted['r500']:.1f} dB · R2000 {submitted['r2000']:.1f} dB"),
+                ("R", 8, f"R compuesto ingresado a 500 Hz: {submitted['compound_r500']:.1f} dB"),
+            ])
         lines.append(("R", 8, "Bandas (Hz) · R muro / R puerta / R compuesto (dB)"))
         for frequency, wall_r, door_r, compound_r in zip(
             PRACTICAL_FREQS, practical["wall_curve"], practical["door_curve"], practical["compound_curve"]
@@ -1944,12 +2101,15 @@ else:
         with teacher_tab_practical:
             st.markdown("### Pregunta 30 de 30 · Caso práctico de aislamiento al ruido aéreo")
             st.markdown(
-                f"Configura un muro simple con puerta, analiza su comportamiento entre "
-                f"100 y 3150 Hz y comprueba si el cerramiento compuesto alcanza "
-                f"el objetivo de **{PRACTICAL_TARGET} dB**."
+                f"El estudiante configura un muro simple con puerta y debe resolver los "
+                f"cálculos antes de ver la simulación. La vista docente muestra también "
+                f"las soluciones y el resultado gráfico."
             )
             teacher_solution = practical_controls("teacher_practical")
-            teacher_result = evaluate_practical(teacher_solution)
+            teacher_calculation = render_calculation_challenge(
+                teacher_solution, "teacher_practical", teacher=True
+            )
+            teacher_result = evaluate_practical(teacher_solution, teacher_calculation)
             render_practical_result(teacher_result, show_score=True)
             if teacher_result["target_ok"]:
                 st.success(f'La configuración alcanza el objetivo de {PRACTICAL_TARGET} dB.')
@@ -2050,6 +2210,7 @@ else:
                     st.session_state.final_practical_stage = False
                     st.session_state.final_practical_result = None
                     st.session_state.final_practical_draft = {}
+                    st.session_state.final_practical_calculation = None
                     st.session_state.final_score = 0
                     st.session_state.final_email_sent = False
                     st.session_state.final_email_sent_at = None
@@ -2069,33 +2230,54 @@ else:
             f"""
             <div class="exam-shell">
               <span class="topic-chip">Ley de masa · Cerramiento compuesto</span>
-              <div class="exam-kicker">Análisis entre 100 y 3150 Hz en tercios de octava</div>
+              <div class="exam-kicker">Cálculo, decisión y comprobación por tercios de octava</div>
               <div class="exam-title">Diseña un cerramiento que alcance un índice único estimado de {PRACTICAL_TARGET} dB</div>
-              <div class="exam-meta">Selecciona material y espesor, incorpora una puerta y observa cómo cambia
-              el aislamiento por frecuencia. Después interpreta el elemento débil y entrega una única solución.</div>
+              <div class="exam-meta">Primero selecciona la solución y calcula superficies, masa superficial,
+              ley de masa y aislamiento compuesto. La gráfica se revelará solo después de entregar esos cálculos.</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
         locked = st.session_state.final_practical_result is not None
-        solution = practical_controls("practical_final", disabled=locked)
+        existing_calculation = (
+            st.session_state.get("practical_final_calculation_record")
+            or st.session_state.get("final_practical_calculation")
+            or {}
+        )
+        configuration_locked = locked or existing_calculation.get("attempts", 0) > 0
+        solution = practical_controls(
+            "practical_final", disabled=configuration_locked
+        )
 
         if not locked and solution != st.session_state.get("final_practical_draft"):
             st.session_state.final_practical_draft = solution
             save_attempt()
 
-        preview = st.session_state.final_practical_result or evaluate_practical(solution)
-        render_practical_result(preview)
-        st.caption(
-            "El índice único se obtiene automáticamente a partir de toda la curva. "
-            "No corresponde a un promedio aritmético; su procedimiento se estudiará más adelante."
+        calculation = render_calculation_challenge(
+            solution, "practical_final", teacher=False
         )
 
-        if not locked:
+        if not calculation.get("unlocked"):
             st.info(
-                "Prueba distintas combinaciones antes de entregar. Observa especialmente cuánto cambia "
-                "la curva compuesta al modificar la puerta, el espesor y la masa superficial."
+                "La selección queda disponible mientras calculas. Si cambias material, "
+                "espesor o puerta, debes rehacer los valores antes de verificarlos."
+            )
+        else:
+            preview = st.session_state.final_practical_result or evaluate_practical(
+                solution, calculation
+            )
+            st.markdown("#### Etapa 2 · Comprueba, interpreta y decide")
+            render_practical_result(preview)
+            st.caption(
+                "El índice único se obtiene automáticamente a partir de toda la curva. "
+                "No corresponde a un promedio aritmético; su procedimiento se estudiará más adelante."
+            )
+
+        if not locked and calculation.get("unlocked"):
+            st.info(
+                "Compara tus cálculos con la curva, identifica el elemento dominante y "
+                "entrega una única decisión técnica."
             )
             confirm_practical = st.checkbox(
                 "Confirmo que esta será mi solución definitiva.",
@@ -2105,7 +2287,9 @@ else:
                 if not confirm_practical:
                     st.warning("Confirma la entrega definitiva antes de continuar.")
                 else:
-                    st.session_state.final_practical_result = evaluate_practical(solution)
+                    st.session_state.final_practical_result = evaluate_practical(
+                        solution, calculation
+                    )
                     save_attempt()
                     st.rerun()
         else:
@@ -2122,8 +2306,8 @@ else:
                     f'Puntaje: {result["points"]}/{PRACTICAL_POINTS}.'
                 )
             st.caption(
-                "Criterio: cumplimiento del objetivo 5 pt · identificación del elemento dominante "
-                "3 pt · interpretación por frecuencia 2 pt · margen de seguridad 1 pt."
+                "Criterio: cálculos previos 6 pt · cumplimiento del objetivo 2 pt · "
+                "elemento dominante 1 pt · tendencia por frecuencia 1 pt · margen de seguridad 1 pt."
             )
             if st.button("Finalizar evaluación y generar PDF", type="primary", use_container_width=True):
                 score = sum(
