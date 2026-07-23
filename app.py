@@ -1,6 +1,9 @@
 import math
 import random
 import base64
+import textwrap
+from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 
 import numpy as np
@@ -127,18 +130,134 @@ def quiz(key, question, options, correct, explanation):
             st.success(f"Correcto. {explanation}")
         else: st.error(f"Aún no. {explanation}")
 
+FINAL_QUESTIONS = [
+    ("Fundamentos", "¿Qué describe mejor el aislamiento acústico?", ["La reducción de reflexiones dentro de un recinto", "La oposición de un elemento al paso del sonido entre recintos", "La eliminación total del ruido de fondo", "El aumento de la inteligibilidad"], 1, "El aislamiento limita la transmisión entre recintos; la absorción controla las reflexiones interiores."),
+    ("Fundamentos", "¿Qué efecto produce principalmente un panel absorbente instalado en el recinto receptor?", ["Aumenta directamente el índice R del muro", "Reduce el tiempo de reverberación del recinto", "Duplica la masa del tabique", "Elimina la transmisión flanqueante"], 1, "El absorbente reduce las reflexiones y el T₆₀, pero no aumenta por sí mismo el aislamiento del muro."),
+    ("Fundamentos", "En el esquema fuente–trayectoria–receptor, un tabique separador pertenece principalmente a:", ["La fuente", "La trayectoria", "El receptor", "La instrumentación"], 1, "El tabique forma parte de la trayectoria que debe recorrer el sonido."),
+    ("Fundamentos", "Si se desea menos reverberación y menos ruido transmitido, la estrategia correcta es:", ["Usar solamente absorbentes", "Aumentar solamente el volumen del recinto", "Combinar absorción interior con una mejora del elemento separador", "Eliminar todo el mobiliario"], 2, "Son fenómenos distintos y normalmente requieren intervenciones complementarias."),
+    ("Fundamentos", "¿Cuál afirmación es correcta?", ["Absorción y aislamiento son sinónimos", "Una espuma liviana suele aportar gran aislamiento", "Un recinto puede tener baja reverberación y aun así transmitir ruido", "Más absorción siempre significa mayor R"], 2, "La reverberación interior y la transmisión entre recintos pueden comportarse de manera independiente."),
+    ("Transmisión sonora", "Con L₁ = 86 dB y L₂ = 51 dB, ¿cuál es el aislamiento simplificado R?", ["25 dB", "35 dB", "45 dB", "137 dB"], 1, "En el modelo simplificado, R = L₁ − L₂ = 35 dB."),
+    ("Transmisión sonora", "Para R = 30 dB, el coeficiente de transmisión τ es:", ["10⁻¹", "10⁻²", "10⁻³", "10⁻⁶"], 2, "τ = 10^(−R/10) = 10⁻³."),
+    ("Transmisión sonora", "Un valor τ = 0,0001 significa que atraviesa aproximadamente:", ["1 de cada 10 partes de energía", "1 de cada 100", "1 de cada 1.000", "1 de cada 10.000"], 3, "0,0001 equivale a una diezmilésima parte de la energía incidente."),
+    ("Transmisión sonora", "Si R aumenta 10 dB, la energía transmitida:", ["Se reduce aproximadamente 10 veces", "Se reduce 2 veces", "No cambia", "Aumenta 10 veces"], 0, "Cada aumento de 10 dB en R reduce τ por un factor 10."),
+    ("Transmisión sonora", "La relación L₂ = L₁ − R usada en el laboratorio es:", ["Una predicción completa de terreno", "Un modelo didáctico simplificado", "La ecuación de Sabine", "Una fórmula exclusiva para ruido de impacto"], 1, "La predicción real incorpora área, absorción del receptor, flancos y condiciones normalizadas."),
+    ("Ley de masa", "Según la ley de masa ideal, duplicar la masa superficial aumenta R aproximadamente:", ["3 dB", "6 dB", "10 dB", "20 dB"], 1, "La duplicación produce 20·log₁₀(2) ≈ 6,02 dB."),
+    ("Ley de masa", "Si se duplica la frecuencia manteniendo la masa superficial, R ideal:", ["Disminuye 6 dB", "Aumenta aproximadamente 6 dB", "No cambia", "Aumenta 3 dB"], 1, "La dependencia logarítmica con la frecuencia también entrega cerca de +6 dB."),
+    ("Ley de masa", "La masa superficial m′ se expresa normalmente en:", ["kg/m²", "kg/m³", "m²/kg", "dB/Hz"], 0, "La masa superficial es masa por unidad de área."),
+    ("Ley de masa", "Para una placa homogénea, la masa superficial se obtiene principalmente mediante:", ["Densidad × espesor", "Área × frecuencia", "Volumen ÷ absorción", "R × T₆₀"], 0, "m′ = ρ·e, usando unidades coherentes."),
+    ("Ley de masa", "¿Dónde no debe aplicarse sin cautela la ley de masa simple?", ["En un elemento simple y homogéneo", "En una placa dentro de su rango ideal", "En un tabique doble desacoplado", "Al comparar dos espesores del mismo material"], 2, "Los sistemas dobles presentan resonancias, cámaras y desacoplamiento que el modelo simple no representa."),
+    ("Absorción del recinto", "La absorción equivalente A se calcula como:", ["Σ(Sᵢ·αᵢ)", "Σ(Sᵢ/αᵢ)", "V·R", "L₁−L₂"], 0, "Cada superficie aporta su área multiplicada por su coeficiente de absorción."),
+    ("Absorción del recinto", "En unidades métricas, la ecuación de Sabine es aproximadamente:", ["T₆₀ = 0,161·V/A", "T₆₀ = A/V", "T₆₀ = R·V", "T₆₀ = 10 log A"], 0, "Sabine relaciona volumen y absorción equivalente mediante T₆₀ = 0,161·V/A."),
+    ("Absorción del recinto", "Si aumenta A y el volumen permanece constante, T₆₀:", ["Aumenta", "Disminuye", "No cambia", "Se vuelve igual a R"], 1, "Al aumentar la absorción equivalente, la energía decae más rápido."),
+    ("Absorción del recinto", "¿Por qué debe seleccionarse una banda de frecuencia al evaluar α?", ["Porque α puede variar con la frecuencia", "Porque el área cambia con la frecuencia", "Porque el volumen desaparece", "Porque R y α siempre son iguales"], 0, "Los materiales no absorben de igual manera en todas las bandas."),
+    ("Absorción del recinto", "Cubrir 40 m² con un material de α = 0,75 aporta:", ["30 m² sabin", "40 m² sabin", "53,3 m² sabin", "0,019 m² sabin"], 0, "A = S·α = 40·0,75 = 30 m² sabin."),
+    ("Elementos compuestos", "El aislamiento global de un muro con puerta y ventana se obtiene:", ["Promediando aritméticamente sus R", "Sumando directamente sus R", "Combinando energéticamente áreas y coeficientes τ", "Usando solo el R del muro"], 2, "Los índices en decibeles deben transformarse a transmisión energética antes de combinarse."),
+    ("Elementos compuestos", "En un muro de alto R, una puerta de bajo R puede:", ["No tener efecto si su área es pequeña", "Dominar la transmisión global", "Mejorar automáticamente el muro", "Actuar como absorbente"], 1, "Una abertura débil puede transmitir una fracción desproporcionada de la energía."),
+    ("Elementos compuestos", "Una rendija pequeña sin sellar suele ser crítica porque:", ["Tiene masa infinita", "Permite una vía directa de transmisión", "Aumenta la absorción del recinto", "Reduce el área del muro"], 1, "Las fugas evitan que el conjunto alcance el desempeño de sus componentes principales."),
+    ("Elementos compuestos", "Para identificar qué componente domina, conviene comparar:", ["Solo su color", "Solo su superficie", "Su aporte porcentual a la energía transmitida", "Su costo unitario"], 2, "El componente dominante es el que más contribuye a la transmisión total."),
+    ("Elementos compuestos", "Si el muro tiene R = 55 dB y la puerta R = 25 dB, la primera prioridad suele ser:", ["Añadir más masa al muro", "Mejorar la puerta y sus sellos", "Agregar alfombra", "Pintar el muro"], 1, "Conviene intervenir primero la ruta acústicamente más débil."),
+    ("Decisión técnico-económica", "La fórmula utilizada para ROI es:", ["Costo total/beneficio × 100", "(Beneficio acumulado − costo total)/costo total × 100", "Atenuación/costo total", "Beneficio anual × R"], 1, "El ROI compara el beneficio neto con el costo total de la alternativa."),
+    ("Decisión técnico-económica", "Antes de comparar el ROI de alternativas, se debe comprobar:", ["Que todas tengan el mismo color", "Que cumplan el objetivo acústico", "Que tengan igual inversión inicial", "Que no requieran mantenimiento"], 1, "Una solución rentable pero técnicamente insuficiente no debe recomendarse."),
+    ("Decisión técnico-económica", "El punto de equilibrio ocurre cuando:", ["El beneficio acumulado iguala los costos acumulados", "R es igual a α", "El costo por dB es máximo", "Termina la vida útil"], 0, "En ese instante el flujo neto acumulado llega a cero."),
+    ("Decisión técnico-económica", "¿Cuál es una comparación válida entre alternativas?", ["Sellado, placas y lana como si fueran siempre proyectos independientes", "Tres sistemas completos y técnicamente distintos para resolver el mismo problema", "Una solución real contra dos que no cumplen", "Solo el precio de compra"], 1, "Cada alternativa debe ser un paquete coherente que compita por resolver el mismo objetivo."),
+    ("Decisión técnico-económica", "La alternativa de mayor ROI:", ["Siempre es la recomendada", "Puede no ser la mejor integral si tiene poco margen, riesgo o menor vida útil", "No necesita cumplir acústicamente", "Es necesariamente la más cara"], 1, "La decisión integral también considera suficiencia, margen, payback, vida útil y riesgo."),
+]
+
+def make_evaluation_pdf(student, identifier, course_date, answers, score):
+    """Genera un PDF simple, multipágina y sin dependencias externas."""
+    section_summary = []
+    for section_name in dict.fromkeys(item[0] for item in FINAL_QUESTIONS):
+        indexes = [i for i, item in enumerate(FINAL_QUESTIONS) if item[0] == section_name]
+        hits = sum(answers[i] == FINAL_QUESTIONS[i][3] for i in indexes)
+        section_summary.append((section_name, hits, len(indexes)))
+    lines = [
+        ("B", 16, "EVALUACIÓN FINAL · AISLAMIENTO A RUIDO AÉREO"),
+        ("R", 10, "Diplomado en Acústica en la Edificación"),
+        ("R", 10, "Escuela de Construcción Civil · Facultad de Ingeniería"),
+        ("R", 10, ""),
+        ("B", 11, f"Estudiante: {student}"),
+        ("R", 10, f"Identificación: {identifier}"),
+        ("R", 10, f"Fecha: {course_date}"),
+        ("B", 13, f"Resultado final: {score}/30 respuestas correctas · {score/30*100:.1f}%"),
+        ("R", 10, ""),
+        ("B", 11, "DESEMPEÑO POR CONTENIDO"),
+    ]
+    for section_name, hits, total in section_summary:
+        lines.append(("R", 9, f"{section_name}: {hits}/{total} · {hits/total*100:.0f}%"))
+    lines.extend([
+        ("R", 8, ""),
+        ("B", 11, "REVISIÓN DE RESPUESTAS"),
+        ("R", 8, ""),
+    ])
+    for i, (section, question, options, correct, explanation) in enumerate(FINAL_QUESTIONS):
+        selected = answers[i]
+        ok = selected == correct
+        lines.extend([
+            ("B", 10, f"{i+1}. {question}"),
+            ("R", 9, f"Respuesta: {options[selected]}"),
+            ("B", 9, f"{'CORRECTA' if ok else 'INCORRECTA'} · Solución: {options[correct]}"),
+            ("R", 8, explanation),
+            ("R", 6, ""),
+        ])
+
+    pages, page, y = [], [], 790
+    for style, size, raw in lines:
+        width = max(45, int(105 * 9 / max(size, 1)))
+        wrapped = textwrap.wrap(raw, width=width, break_long_words=False) or [""]
+        needed = len(wrapped) * (size + 4)
+        if y - needed < 45:
+            pages.append(page); page = []; y = 790
+        for line in wrapped:
+            page.append((style, size, 45, y, line))
+            y -= size + 4
+    if page: pages.append(page)
+
+    objects = []
+    def add(data):
+        objects.append(data)
+        return len(objects)
+    font_r = add(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+    font_b = add(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")
+    page_ids, content_ids = [], []
+    for content_page in pages:
+        commands = []
+        for style, size, x, yy, line in content_page:
+            safe = line.encode("cp1252", "replace").decode("cp1252").replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+            font = "F2" if style == "B" else "F1"
+            commands.append(f"BT /{font} {size} Tf {x} {yy} Td ({safe}) Tj ET")
+        stream = "\n".join(commands).encode("cp1252", "replace")
+        content_ids.append(add(f"<< /Length {len(stream)} >>\nstream\n".encode() + stream + b"\nendstream"))
+        page_ids.append(add(b""))
+    pages_id = add(b"")
+    for idx, (pid, cid) in enumerate(zip(page_ids, content_ids)):
+        objects[pid-1] = f"<< /Type /Page /Parent {pages_id} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 {font_r} 0 R /F2 {font_b} 0 R >> >> /Contents {cid} 0 R >>".encode()
+    kids = " ".join(f"{pid} 0 R" for pid in page_ids)
+    objects[pages_id-1] = f"<< /Type /Pages /Kids [{kids}] /Count {len(page_ids)} >>".encode()
+    catalog_id = add(f"<< /Type /Catalog /Pages {pages_id} 0 R >>".encode())
+    out = BytesIO(); out.write(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets = [0]
+    for i, obj in enumerate(objects, 1):
+        offsets.append(out.tell()); out.write(f"{i} 0 obj\n".encode()); out.write(obj); out.write(b"\nendobj\n")
+    xref = out.tell()
+    out.write(f"xref\n0 {len(objects)+1}\n0000000000 65535 f \n".encode())
+    for offset in offsets[1:]: out.write(f"{offset:010d} 00000 n \n".encode())
+    out.write(f"trailer\n<< /Size {len(objects)+1} /Root {catalog_id} 0 R >>\nstartxref\n{xref}\n%%EOF".encode())
+    return out.getvalue()
+
 with st.sidebar:
     st.markdown("## ◉ LAB AÉREO")
     st.caption("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN")
     st.markdown("**Curso 1**")
     st.caption("AISLAMIENTO A RUIDO AÉREO")
     st.markdown("---")
-    pages = ["Inicio", "1 · Aislamiento vs. absorción", "2 · Transmisión sonora", "3 · Ley de masa", "4 · Absorción del recinto", "5 · Elementos compuestos", "6 · Decisión técnico-económica", "Desafíos", "Evaluación final"]
+    pages = ["Inicio", "1 · Aislamiento vs. absorción", "2 · Transmisión sonora", "3 · Ley de masa", "4 · Absorción del recinto", "5 · Elementos compuestos", "6 · Decisión técnico-económica", "Evaluación final"]
     page = st.radio("Ruta de aprendizaje", pages, label_visibility="collapsed")
     st.markdown("---")
-    st.markdown(f"**Puntaje de práctica**  \
-### {st.session_state.score} pts")
-    st.progress(min(st.session_state.score / 50, 1.0))
+    if st.session_state.get("final_submitted"):
+        st.markdown(f"**Evaluación final**  \n### {st.session_state.final_score}/30")
+        st.progress(st.session_state.final_score / 30)
+    else:
+        st.caption("La evaluación final permite un único envío por sesión.")
     st.caption("Docente: Marco Araos Barría")
 
 institutional_header()
@@ -153,7 +272,7 @@ if page == "Inicio":
         ("03","Interpreta","Conecta cada resultado numérico con su significado físico."),
         ("04","Combina","Comprueba cómo puertas y ventanas dominan una partición."),
         ("05","Decide","Compara desempeño, costo, beneficio y suficiencia técnica."),
-        ("06","Demuestra","Resuelve desafíos y comprueba el aprendizaje alcanzado."),
+        ("06","Demuestra","Completa la evaluación final y documenta el aprendizaje alcanzado."),
     ]
     for i,(n,t,d) in enumerate(items):
         with cols[i%3]: st.markdown(f'<div class="card"><span class="number">{n}</span><h3>{t}</h3><p>{d}</p></div>',unsafe_allow_html=True)
@@ -1248,34 +1367,224 @@ elif page.startswith("6 ·"):
             "La suficiencia técnica funciona como condición de entrada; después se comparan costos y beneficios.",
         )
 
-elif page == "Desafíos":
-    module_head("PRÁCTICA · RETROALIMENTACIÓN", "Desafíos de aplicación", "Resuelve los conceptos centrales del curso. Cada respuesta correcta suma 10 puntos una sola vez.")
-    quiz("d1","Un muro separa recintos con L₁=85 dB y L₂=50 dB. ¿Cuál es R simplificado?",["25 dB","35 dB","45 dB"],"35 dB","R = L₁ − L₂ = 35 dB.")
-    quiz("d2","Para R=40 dB, ¿cuál es aproximadamente τ?",["0,01","0,001","0,0001"],"0,0001","τ=10⁻⁴: atraviesa una diezmilésima parte de la energía.")
-    quiz("d3","¿Qué aporta lana mineral dentro de la cámara de un tabique doble?",["Solo aumenta la masa","Amortigua resonancias de la cámara","Sella automáticamente las juntas"],"Amortigua resonancias de la cámara","Disipa energía dentro de la cavidad; no reemplaza masa, desacoplamiento ni sellado.")
-    quiz("d4","Hay buen aislamiento directo, pero aún se oye ruido. ¿Qué sospechas?",["Transmisión flanqueante","Exceso de absorción","Demasiada masa"],"Transmisión flanqueante","El sonido puede rodear la partición por losas, fachadas, ductos, encuentros o instalaciones.")
-
 else:
-    module_head("EVALUACIÓN · CIERRE DEL CURSO", "Caso final: sala de reuniones", "Integra los fundamentos desarrollados durante el laboratorio de aislamiento a ruido aéreo.")
-    st.markdown('<div class="card"><b>Situación profesional</b><p>Una sala de reuniones genera 82 dB. En la oficina vecina se requiere no superar 42 dB. La separación tiene 18 m²: un muro de 50 dB y una puerta de 28 dB que ocupa 2 m². Además, la sala presenta exceso de reverberación.</p></div>',unsafe_allow_html=True)
-    rg,_=compound([("Muro",16,50),("Puerta",2,28)]); receiver=82-rg; needed=82-42
-    st.write("")
-    c1,c2,c3=st.columns(3);c1.metric("R requerido",f"{needed:.0f} dB");c2.metric("R global actual",f"{rg:.1f} dB");c3.metric("Nivel receptor estimado",f"{receiver:.1f} dB",f"{receiver-42:.1f} dB sobre meta")
-    st.markdown("### Diseña tu intervención")
-    isolation=st.selectbox("Medida principal de aislamiento",["Agregar espuma al muro","Mejorar puerta y sellos a R=40 dB","Agregar cortinas interiores"])
-    absorption=st.selectbox("Medida para la reverberación",["Paneles absorbentes interiores","Aumentar espesor del muro","Cambiar la puerta por una metálica sin sellos"])
-    reasoning=st.text_area("Justifica brevemente por qué cada medida resuelve un fenómeno diferente",placeholder="La primera medida... La segunda medida...")
-    if st.button("Evaluar solución",type="primary"):
-        points=0; feedback=[]
-        if isolation=="Mejorar puerta y sellos a R=40 dB": points+=50;feedback.append("✓ Identificaste correctamente el elemento débil.")
-        else: feedback.append("✗ La medida elegida no mejora de forma relevante la ruta de transmisión dominante.")
-        if absorption=="Paneles absorbentes interiores": points+=30;feedback.append("✓ Elegiste absorción para controlar la reverberación.")
-        else: feedback.append("✗ Para la reverberación se necesita absorción dentro del recinto.")
-        if len(reasoning.strip())>=40: points+=20;feedback.append("✓ Incluiste una justificación técnica.")
-        else: feedback.append("○ Amplía la justificación distinguiendo transmisión y reflexiones internas.")
-        newrg,_=compound([("Muro",16,50),("Puerta",2,40)])
-        st.markdown(f'<div class="result"><small>RESULTADO</small><br><b>{points}/100 puntos</b><br><small>{"<br>".join(feedback)}</small></div>',unsafe_allow_html=True)
-        if isolation=="Mejorar puerta y sellos a R=40 dB": st.info(f"Con la mejora, el conjunto alcanzaría aproximadamente R={newrg:.1f} dB y el receptor {82-newrg:.1f} dB. La meta queda prácticamente alcanzada; el diseño real debe verificarse con método normalizado.")
-        if points>=80: st.balloons();st.success("Preparación lograda. Ya puedes avanzar a la siguiente clase.")
+    module_head(
+        "EVALUACIÓN · CIERRE DEL CURSO",
+        "Evaluación final interactiva",
+        "30 desafíos breves para integrar los contenidos del Curso 1. Se presenta una pregunta por vez y cada respuesta queda bloqueada después de confirmarla.",
+    )
+
+    st.markdown(
+        """
+        <style>
+        .exam-shell{background:linear-gradient(135deg,#f7faff,#eef4fb);border:1px solid #d8e3ef;
+        border-radius:22px;padding:22px 24px;margin:8px 0 18px;box-shadow:0 12px 30px rgba(20,36,58,.07)}
+        .exam-kicker{font-size:.78rem;font-weight:800;letter-spacing:.08em;color:#1769aa;text-transform:uppercase}
+        .exam-title{font-size:1.34rem;font-weight:800;color:#14243a;margin:.3rem 0}
+        .exam-meta{color:#5c6c7c;font-size:.92rem}
+        .exam-rule{background:#fff;border-left:5px solid #f5b400;border-radius:12px;padding:13px 16px;margin:10px 0}
+        .feedback-ok{background:#eaf8f0;border:1px solid #8dd5ab;border-radius:16px;padding:18px;color:#155b35}
+        .feedback-no{background:#fff0f0;border:1px solid #efaaaa;border-radius:16px;padding:18px;color:#8a2020}
+        .topic-chip{display:inline-block;background:#1769aa;color:white;border-radius:999px;padding:5px 11px;
+        font-size:.76rem;font-weight:800;letter-spacing:.03em;margin-bottom:8px}
+        div[data-testid="stRadio"] > div{gap:.55rem}
+        div[data-testid="stRadio"] label{background:white;border:1px solid #d6e0ea;border-radius:13px;
+        padding:.72rem .9rem;box-shadow:0 3px 10px rgba(20,36,58,.04)}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if not st.session_state.get("final_exam_started", False) and not st.session_state.get("final_submitted", False):
+        st.markdown(
+            """
+            <div class="exam-shell">
+              <div class="exam-kicker">Antes de comenzar</div>
+              <div class="exam-title">Así funciona esta evaluación</div>
+              <div class="exam-meta">Una pregunta por pantalla · 4 alternativas · 1 punto por respuesta correcta</div>
+              <div class="exam-rule"><b>Intento único por pregunta:</b> selecciona una alternativa y luego presiona
+              <b>Confirmar respuesta</b>. Después de confirmarla no podrás cambiarla ni volver atrás.</div>
+              Recibirás retroalimentación inmediata y al finalizar podrás descargar un PDF con tu identificación,
+              puntaje, desempeño por contenido y revisión completa.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        with st.form("final_exam_identification"):
+            st.markdown("### Identificación del estudiante")
+            c1, c2, c3 = st.columns([1.4, 1, 0.8])
+            student = c1.text_input("Nombre completo")
+            identifier = c2.text_input("RUT o identificación")
+            course_date = c3.date_input("Fecha")
+            accept = st.checkbox("Comprendo que cada respuesta podrá confirmarse una sola vez.")
+            start_exam = st.form_submit_button("Comenzar evaluación", type="primary", use_container_width=True)
+        if start_exam:
+            if not student.strip() or not identifier.strip():
+                st.error("Completa el nombre y la identificación para comenzar.")
+            elif not accept:
+                st.error("Confirma que comprendiste la modalidad de intento único.")
+            else:
+                option_orders = []
+                for _, _, options, _, _ in FINAL_QUESTIONS:
+                    order = list(range(len(options)))
+                    random.shuffle(order)
+                    option_orders.append(order)
+                st.session_state.final_exam_started = True
+                st.session_state.final_student = student.strip()
+                st.session_state.final_identifier = identifier.strip()
+                st.session_state.final_date = course_date.strftime("%d-%m-%Y")
+                st.session_state.final_current = 0
+                st.session_state.final_answers = []
+                st.session_state.final_option_orders = option_orders
+                st.rerun()
+
+    elif st.session_state.get("final_exam_started", False) and not st.session_state.get("final_submitted", False):
+        current = st.session_state.final_current
+        section, question, options, correct, explanation = FINAL_QUESTIONS[current]
+        order = st.session_state.final_option_orders[current]
+        displayed_options = [options[index] for index in order]
+        already_answered = len(st.session_state.final_answers) > current
+        selected_original = st.session_state.final_answers[current] if already_answered else None
+        selected_display = order.index(selected_original) if already_answered else None
+        progress = (current + 1) / len(FINAL_QUESTIONS)
+
+        top_a, top_b = st.columns([3, 1])
+        with top_a:
+            st.markdown(f"**Pregunta {current + 1} de {len(FINAL_QUESTIONS)}**")
+            st.progress(progress)
+        with top_b:
+            provisional = sum(
+                answer == FINAL_QUESTIONS[i][3]
+                for i, answer in enumerate(st.session_state.final_answers)
+            )
+            st.metric("Aciertos confirmados", f"{provisional}/{len(st.session_state.final_answers)}")
+
+        st.markdown(
+            f"""
+            <div class="exam-shell">
+              <span class="topic-chip">{section}</span>
+              <div class="exam-kicker">Caso {current + 1}</div>
+              <div class="exam-title">{question}</div>
+              <div class="exam-meta">Selecciona la alternativa que mejor resuelve la situación.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        choice = st.radio(
+            "Alternativas",
+            range(len(displayed_options)),
+            format_func=lambda idx: f"{chr(65 + idx)}. {displayed_options[idx]}",
+            index=selected_display,
+            key=f"interactive_final_q_{current}",
+            disabled=already_answered,
+            label_visibility="collapsed",
+        )
+
+        if not already_answered:
+            if st.button("Confirmar respuesta", type="primary", use_container_width=True):
+                if choice is None:
+                    st.warning("Selecciona una alternativa antes de confirmar.")
+                else:
+                    st.session_state.final_answers.append(order[choice])
+                    st.rerun()
+            st.caption("La selección todavía puede cambiar. Quedará bloqueada únicamente al confirmar.")
+        else:
+            is_correct = selected_original == correct
+            if is_correct:
+                st.markdown(
+                    f'<div class="feedback-ok"><b>✅ Respuesta correcta</b><br>{explanation}</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    f'<div class="feedback-no"><b>❌ Respuesta incorrecta</b><br>'
+                    f'La solución correcta es: <b>{options[correct]}</b><br><br>{explanation}</div>',
+                    unsafe_allow_html=True,
+                )
+
+            if current < len(FINAL_QUESTIONS) - 1:
+                if st.button("Siguiente pregunta →", type="primary", use_container_width=True):
+                    st.session_state.final_current += 1
+                    st.rerun()
+            else:
+                st.success("Has respondido las 30 preguntas. Ya puedes cerrar y generar tu informe.")
+                if st.button("Finalizar evaluación y generar resultado", type="primary", use_container_width=True):
+                    score = sum(
+                        answer == FINAL_QUESTIONS[i][3]
+                        for i, answer in enumerate(st.session_state.final_answers)
+                    )
+                    st.session_state.final_score = score
+                    st.session_state.final_submitted = True
+                    st.session_state.final_exam_started = False
+                    st.rerun()
+
+    else:
+        score = st.session_state.final_score
+        percent = score / 30 * 100
+        level = "Logro destacado" if percent >= 85 else "Logro satisfactorio" if percent >= 70 else "En desarrollo" if percent >= 60 else "Requiere reforzamiento"
+        st.markdown(f'<div class="result"><small>RESULTADO DEFINITIVO</small><br><b>{score}/30 puntos · {percent:.1f}%</b><br><small>{level}</small></div>', unsafe_allow_html=True)
+        a, b, c = st.columns(3)
+        a.metric("Respuestas correctas", f"{score}")
+        b.metric("Respuestas incorrectas", f"{30-score}")
+        c.metric("Porcentaje", f"{percent:.1f}%")
+        st.warning("Evaluación finalizada. Las 30 respuestas de este intento están bloqueadas.")
+
+        sections = list(dict.fromkeys(question[0] for question in FINAL_QUESTIONS))
+        section_results = []
+        for section_name in sections:
+            indexes = [i for i, item in enumerate(FINAL_QUESTIONS) if item[0] == section_name]
+            hits = sum(
+                st.session_state.final_answers[i] == FINAL_QUESTIONS[i][3]
+                for i in indexes
+            )
+            section_results.append(
+                {
+                    "Contenido": section_name,
+                    "Correctas": hits,
+                    "Total": len(indexes),
+                    "Logro": hits / len(indexes) * 100,
+                }
+            )
+        st.markdown("### Desempeño por contenido")
+        result_cols = st.columns(3)
+        for idx, result in enumerate(section_results):
+            with result_cols[idx % 3]:
+                st.metric(
+                    result["Contenido"],
+                    f'{result["Correctas"]}/{result["Total"]}',
+                    f'{result["Logro"]:.0f}% de logro',
+                )
+
+        weakest = min(section_results, key=lambda item: item["Logro"])
+        if weakest["Logro"] < 80:
+            st.info(
+                f'**Recomendación de repaso:** vuelve al módulo “{weakest["Contenido"]}”. '
+                f'Fue el contenido con menor logro ({weakest["Logro"]:.0f} %).'
+            )
+
+        pdf = make_evaluation_pdf(
+            st.session_state.final_student,
+            st.session_state.final_identifier,
+            st.session_state.final_date,
+            st.session_state.final_answers,
+            score,
+        )
+        safe_name = "".join(ch if ch.isalnum() else "_" for ch in st.session_state.final_student).strip("_")
+        st.download_button(
+            "Descargar informe de evaluación en PDF",
+            data=pdf,
+            file_name=f"Evaluacion_Aislamiento_Aereo_{safe_name}.pdf",
+            mime="application/pdf",
+            type="primary",
+            use_container_width=True,
+        )
+        st.markdown("### Revisión de respuestas")
+        for i, (section, question, options, correct, explanation) in enumerate(FINAL_QUESTIONS):
+            selected = st.session_state.final_answers[i]
+            if selected == correct:
+                st.success(f"**{i+1}. {question}**  \nTu respuesta: {options[selected]}")
+            else:
+                st.error(f"**{i+1}. {question}**  \nTu respuesta: {options[selected]}  \n\n**Respuesta correcta:** {options[correct]}  \n\n{explanation}")
 
 st.markdown('<div class="footer"><b>Escuela de Construcción Civil · Facultad de Ingeniería</b><br>LAB AÉREO · Diplomado en Acústica en la Edificación · Herramienta didáctica basada en modelos simplificados</div>',unsafe_allow_html=True)
