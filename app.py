@@ -848,17 +848,253 @@ elif page.startswith("5 ·"):
     )
 
 elif page.startswith("6 ·"):
-    module_head("MÓDULO 6 · DECIDE", "Decisión técnico-económica", "Compara alternativas por atenuación, costo por dB, retorno y cumplimiento del objetivo de diseño.")
-    target=st.slider("Atenuación mínima requerida (dB)",15,45,30)
-    data=pd.DataFrame({"Solución":["Sellado de fugas","Refuerzo de placa","Tabique doble","Sistema premium"],"Atenuación (dB)":[12,25,35,42],"Costo (CLP)":[280000,720000,1200000,2400000],"Beneficio estimado (CLP)":[500000,950000,1700000,2600000]})
-    data["Costo por dB"]=data["Costo (CLP)"]/data["Atenuación (dB)"];data["ROI (%)"]=(data["Beneficio estimado (CLP)"]-data["Costo (CLP)"])/data["Costo (CLP)"]*100;data["Cumple"]=np.where(data["Atenuación (dB)"]>=target,"Sí","No")
-    edited=st.data_editor(data,column_config={"Costo (CLP)":st.column_config.NumberColumn(format="$%d"),"Beneficio estimado (CLP)":st.column_config.NumberColumn(format="$%d"),"Costo por dB":st.column_config.NumberColumn(format="$%d/dB"),"ROI (%)":st.column_config.NumberColumn(format="%.1f%%")},disabled=["Costo por dB","ROI (%)","Cumple"],hide_index=True,use_container_width=True)
-    feasible=edited[edited["Atenuación (dB)"]>=target]
-    if len(feasible):
-        best=feasible.loc[feasible["Costo (CLP)"].idxmin()]
-        st.success(f"Alternativa de menor costo que cumple {target} dB: **{best['Solución']}**, con un costo de ${best['Costo (CLP)']:,.0f} CLP.")
-    else: st.warning("Ninguna alternativa cumple el objetivo definido.")
-    fig=go.Figure();fig.add_trace(go.Scatter(x=edited["Atenuación (dB)"],y=edited["Costo (CLP)"],mode="markers+text",text=edited["Solución"],textposition="top center",marker=dict(size=18,color=edited["ROI (%)"],colorscale="Teal",showscale=True,colorbar=dict(title="ROI %"))));fig.add_vline(x=target,line_dash="dash",line_color="#ef8b2c",annotation_text="Objetivo");fig.update_layout(height=380,xaxis_title="Atenuación (dB)",yaxis_title="Costo (CLP)",paper_bgcolor="white",plot_bgcolor="white",margin=dict(l=20,r=20,t=30,b=20));st.plotly_chart(fig,use_container_width=True)
+    module_head(
+        "MÓDULO 6 · DECIDE",
+        "Decisión técnico-económica",
+        "Compara soluciones que cumplan el objetivo acústico y evalúa su costo, beneficio, vida útil, mantenimiento, ROI y plazo de recuperación.",
+    )
+
+    st.markdown(
+        r'''<div class="concept"><b>Primero se verifica la suficiencia técnica.</b>
+        Una alternativa económica o con ROI positivo no es recomendable si no alcanza la
+        atenuación requerida. Después se comparan económicamente solo las soluciones que cumplen.</div>''',
+        unsafe_allow_html=True,
+    )
+
+    c1, c2 = st.columns(2)
+    with c1:
+        target = st.slider("Atenuación mínima requerida (dB)", 10, 50, 30)
+    with c2:
+        horizon = st.slider("Horizonte de evaluación (años)", 1, 20, 10)
+
+    st.markdown("### Define las alternativas")
+    st.caption(
+        "El beneficio anual debe representar un efecto monetizable y justificable: "
+        "costos evitados, menor pérdida de uso, reducción de reclamos, productividad u otro beneficio documentado."
+    )
+
+    base_data = pd.DataFrame(
+        {
+            "Solución": ["Sellado de fugas", "Refuerzo de placa", "Tabique doble", "Sistema premium"],
+            "Atenuación (dB)": [12.0, 25.0, 35.0, 42.0],
+            "Inversión inicial (CLP)": [280000, 720000, 1200000, 2400000],
+            "Mantenimiento anual (CLP)": [20000, 30000, 45000, 60000],
+            "Beneficio anual (CLP)": [90000, 180000, 310000, 430000],
+            "Vida útil (años)": [5, 10, 15, 20],
+        }
+    )
+    inputs = st.data_editor(
+        base_data,
+        column_config={
+            "Solución": st.column_config.TextColumn(required=True),
+            "Atenuación (dB)": st.column_config.NumberColumn(min_value=0.0, max_value=80.0, step=1.0, format="%.1f dB"),
+            "Inversión inicial (CLP)": st.column_config.NumberColumn(min_value=1, step=50000, format="$%d"),
+            "Mantenimiento anual (CLP)": st.column_config.NumberColumn(min_value=0, step=10000, format="$%d"),
+            "Beneficio anual (CLP)": st.column_config.NumberColumn(min_value=0, step=10000, format="$%d"),
+            "Vida útil (años)": st.column_config.NumberColumn(min_value=1, max_value=50, step=1, format="%d años"),
+        },
+        hide_index=True,
+        use_container_width=True,
+        num_rows="dynamic",
+        key="economic_inputs",
+    )
+
+    # Todos los indicadores se recalculan después de cada edición.
+    analysis = inputs.copy()
+    numeric_cols = [
+        "Atenuación (dB)", "Inversión inicial (CLP)", "Mantenimiento anual (CLP)",
+        "Beneficio anual (CLP)", "Vida útil (años)",
+    ]
+    for col in numeric_cols:
+        analysis[col] = pd.to_numeric(analysis[col], errors="coerce").fillna(0)
+    analysis = analysis[
+        (analysis["Solución"].astype(str).str.strip() != "")
+        & (analysis["Inversión inicial (CLP)"] > 0)
+    ].copy()
+
+    if analysis.empty:
+        st.warning("Agrega al menos una alternativa con nombre e inversión inicial mayor que cero.")
+    else:
+        analysis["Años evaluados"] = np.minimum(analysis["Vida útil (años)"], horizon)
+        analysis["Mantenimiento acumulado (CLP)"] = (
+            analysis["Mantenimiento anual (CLP)"] * analysis["Años evaluados"]
+        )
+        analysis["Costo total (CLP)"] = (
+            analysis["Inversión inicial (CLP)"] + analysis["Mantenimiento acumulado (CLP)"]
+        )
+        analysis["Beneficio acumulado (CLP)"] = (
+            analysis["Beneficio anual (CLP)"] * analysis["Años evaluados"]
+        )
+        analysis["Beneficio neto (CLP)"] = (
+            analysis["Beneficio acumulado (CLP)"] - analysis["Costo total (CLP)"]
+        )
+        analysis["ROI (%)"] = analysis["Beneficio neto (CLP)"] / analysis["Costo total (CLP)"] * 100
+        annual_net = analysis["Beneficio anual (CLP)"] - analysis["Mantenimiento anual (CLP)"]
+        analysis["Payback (años)"] = np.where(
+            annual_net > 0,
+            analysis["Inversión inicial (CLP)"] / annual_net,
+            np.inf,
+        )
+        analysis["Costo ciclo por dB (CLP/dB)"] = np.where(
+            analysis["Atenuación (dB)"] > 0,
+            analysis["Costo total (CLP)"] / analysis["Atenuación (dB)"],
+            np.inf,
+        )
+        analysis["Cumple objetivo"] = np.where(analysis["Atenuación (dB)"] >= target, "Sí", "No")
+        analysis["Recuperable en horizonte"] = np.where(
+            analysis["Payback (años)"] <= analysis["Años evaluados"], "Sí", "No"
+        )
+
+        st.markdown(
+            r'''<div class="card">
+            <div class="eyebrow">RETORNO DE LA INVERSIÓN</div>
+            <h3 style="margin-bottom:.4rem">Fórmula del ROI</h3>
+            <div style="font-size:1.25rem;font-weight:800;color:#0967d2">
+            ROI = [(Beneficio acumulado − Costo total) / Costo total] × 100
+            </div>
+            <p style="margin-bottom:.25rem">
+            Costo total = inversión inicial + mantenimiento acumulado.<br>
+            Beneficio acumulado = beneficio anual × años evaluados.
+            </p>
+            <small>ROI &gt; 0 % indica que el beneficio supera el costo; ROI = 0 % corresponde al punto
+            de equilibrio; ROI &lt; 0 % indica que la inversión no se recupera dentro del horizonte.</small>
+            </div>''',
+            unsafe_allow_html=True,
+        )
+
+        display = analysis[
+            [
+                "Solución", "Atenuación (dB)", "Cumple objetivo", "Años evaluados",
+                "Costo total (CLP)", "Beneficio acumulado (CLP)", "Beneficio neto (CLP)",
+                "ROI (%)", "Payback (años)", "Costo ciclo por dB (CLP/dB)",
+            ]
+        ].copy()
+        display["Payback (años)"] = display["Payback (años)"].replace(np.inf, np.nan)
+        st.markdown("### Resultados recalculados")
+        st.dataframe(
+            display,
+            column_config={
+                "Atenuación (dB)": st.column_config.NumberColumn(format="%.1f dB"),
+                "Años evaluados": st.column_config.NumberColumn(format="%d"),
+                "Costo total (CLP)": st.column_config.NumberColumn(format="$%d"),
+                "Beneficio acumulado (CLP)": st.column_config.NumberColumn(format="$%d"),
+                "Beneficio neto (CLP)": st.column_config.NumberColumn(format="$%d"),
+                "ROI (%)": st.column_config.NumberColumn(format="%.1f %%"),
+                "Payback (años)": st.column_config.NumberColumn(format="%.1f"),
+                "Costo ciclo por dB (CLP/dB)": st.column_config.NumberColumn(format="$%d/dB"),
+            },
+            hide_index=True,
+            use_container_width=True,
+        )
+
+        feasible = analysis[analysis["Cumple objetivo"] == "Sí"].copy()
+        if feasible.empty:
+            st.markdown(
+                f'<div class="warn"><b>Ninguna alternativa cumple los {target} dB requeridos.</b> '
+                'No corresponde recomendar una solución basándose únicamente en su ROI o bajo costo.</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            economically_positive = feasible[feasible["Beneficio neto (CLP)"] >= 0]
+            if not economically_positive.empty:
+                best = economically_positive.loc[economically_positive["Costo total (CLP)"].idxmin()]
+                criterion = "menor costo total entre las alternativas que cumplen y generan beneficio neto no negativo"
+            else:
+                best = feasible.loc[feasible["Costo total (CLP)"].idxmin()]
+                criterion = "menor costo total entre las alternativas que cumplen, aunque ninguna recupera la inversión"
+
+            st.markdown("### Recomendación")
+            r1, r2, r3, r4 = st.columns(4)
+            r1.metric("Alternativa", str(best["Solución"]))
+            r2.metric("Atenuación", f'{best["Atenuación (dB)"]:.1f} dB')
+            r3.metric("ROI", f'{best["ROI (%)"]:.1f} %')
+            payback_text = "No recupera" if not np.isfinite(best["Payback (años)"]) else f'{best["Payback (años)"]:.1f} años'
+            r4.metric("Payback", payback_text)
+            st.markdown(
+                f'<div class="good"><b>Alternativa recomendada: {best["Solución"]}.</b> '
+                f'Criterio aplicado: {criterion}. La decisión definitiva debe considerar también '
+                'factibilidad constructiva, riesgo, durabilidad y verificación acústica del diseño.</div>',
+                unsafe_allow_html=True,
+            )
+
+        st.markdown("### Comparación gráfica")
+        g1, g2 = st.columns(2)
+        with g1:
+            fig_cost = go.Figure()
+            fig_cost.add_trace(
+                go.Bar(
+                    x=analysis["Solución"],
+                    y=analysis["Costo total (CLP)"],
+                    name="Costo total",
+                    marker_color="#ef8b2c",
+                )
+            )
+            fig_cost.add_trace(
+                go.Bar(
+                    x=analysis["Solución"],
+                    y=analysis["Beneficio acumulado (CLP)"],
+                    name="Beneficio acumulado",
+                    marker_color="#0f9d78",
+                )
+            )
+            fig_cost.update_layout(
+                barmode="group", height=390, title="Costo versus beneficio acumulado",
+                yaxis_title="CLP", paper_bgcolor="white", plot_bgcolor="white",
+                margin=dict(l=20, r=20, t=55, b=20),
+            )
+            st.plotly_chart(fig_cost, use_container_width=True)
+        with g2:
+            roi_colors = np.where(analysis["Cumple objetivo"] == "Sí", analysis["ROI (%)"], -100)
+            fig_decision = go.Figure()
+            fig_decision.add_trace(
+                go.Scatter(
+                    x=analysis["Atenuación (dB)"],
+                    y=analysis["Costo total (CLP)"],
+                    mode="markers+text",
+                    text=analysis["Solución"],
+                    textposition="top center",
+                    customdata=np.column_stack(
+                        [analysis["ROI (%)"], analysis["Beneficio neto (CLP)"], analysis["Cumple objetivo"]]
+                    ),
+                    hovertemplate=(
+                        "<b>%{text}</b><br>Atenuación: %{x:.1f} dB<br>Costo total: $%{y:,.0f}"
+                        "<br>ROI: %{customdata[0]:.1f} %<br>Beneficio neto: $%{customdata[1]:,.0f}"
+                        "<br>Cumple: %{customdata[2]}<extra></extra>"
+                    ),
+                    marker=dict(
+                        size=20, color=roi_colors, colorscale="RdYlGn", cmin=-100, cmax=100,
+                        showscale=True, colorbar=dict(title="ROI %"),
+                        line=dict(color="#ffffff", width=2),
+                    ),
+                )
+            )
+            fig_decision.add_vline(
+                x=target, line_dash="dash", line_color="#ef8b2c",
+                annotation_text="Objetivo acústico",
+            )
+            fig_decision.update_layout(
+                height=390, title="Suficiencia técnica y costo del ciclo",
+                xaxis_title="Atenuación (dB)", yaxis_title="Costo total (CLP)",
+                paper_bgcolor="white", plot_bgcolor="white",
+                margin=dict(l=20, r=20, t=55, b=20),
+            )
+            st.plotly_chart(fig_decision, use_container_width=True)
+
+        st.markdown(
+            '''<div class="warn"><b>Alcance del análisis:</b> el ROI no transforma automáticamente
+            una mejora acústica en dinero. El beneficio debe estar respaldado por un supuesto explícito
+            y verificable. Este laboratorio usa valores sin descuento financiero; para proyectos reales
+            de larga duración conviene complementar con valor presente neto, tasa de descuento, riesgo
+            y análisis de sensibilidad.</div>''',
+            unsafe_allow_html=True,
+        )
+        quiz(
+            "economic",
+            "Una solución tiene ROI alto, pero entrega 24 dB cuando el objetivo exige 30 dB. ¿Debe recomendarse?",
+            ["Sí, porque es rentable", "No, primero debe cumplir el objetivo acústico", "Sí, si su payback es corto"],
+            "No, primero debe cumplir el objetivo acústico",
+            "La suficiencia técnica funciona como condición de entrada; después se comparan costos y beneficios.",
+        )
 
 elif page == "Desafíos":
     module_head("PRÁCTICA · RETROALIMENTACIÓN", "Desafíos de aplicación", "Resuelve los conceptos centrales del curso. Cada respuesta correcta suma 10 puntos una sola vez.")
