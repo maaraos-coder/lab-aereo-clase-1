@@ -233,22 +233,77 @@ elif page.startswith("1 ·"):
     quiz("foam", "Se instala espuma en el muro porque se oyen los vecinos. ¿Cuál es el error?", ["La espuma es demasiado delgada", "Se está tratando absorción cuando el problema es aislamiento", "Falta pintar la espuma"], "Se está tratando absorción cuando el problema es aislamiento", "La espuma puede reducir el eco dentro de la sala, pero normalmente aporta muy poco aislamiento entre recintos.")
 
 elif page.startswith("2 ·"):
-    module_head("MÓDULO 2 · EXPERIMENTA", "Transmisión sonora", "Relaciona el nivel emisor, el índice de reducción sonora y la fracción de energía que atraviesa la partición.")
-    c1,c2=st.columns([.8,1.2])
+    module_head("MÓDULO 2 · EXPERIMENTA", "Transmisión sonora", "Observa cómo una partición reduce el sonido que pasa desde el recinto emisor al receptor y relaciona decibeles con energía transmitida.")
+
+    st.markdown("### 1. Define la condición sonora")
+    c1, c2, c3 = st.columns(3)
     with c1:
-        l1=st.slider("Nivel en recinto emisor L₁ (dB)",50,110,85)
-        r=st.slider("Índice de reducción R (dB)",10,70,40)
-        freq=st.select_slider("Frecuencia de observación (Hz)",options=list(FREQS),value=500)
-        l2=l1-r; t=tau(r)
-        st.markdown(f'<div class="result"><small>NIVEL RECEPTOR SIMPLIFICADO</small><br><b>{l2:.1f} dB</b><br><small>L₂ = L₁ − R</small></div>',unsafe_allow_html=True)
-        st.metric("Coeficiente de transmisión τ", f"{t:.2e}")
-        st.caption("Relación didáctica simplificada; en mediciones normalizadas intervienen área, absorción y condiciones de campo.")
+        l1 = st.slider("Nivel en el recinto emisor, L₁ (dB)", 50, 110, 85)
     with c2:
-        fig=go.Figure(go.Sankey(node=dict(label=[f"Incidente\n{l1} dB","Reflejada / disipada",f"Transmitida\n{l2} dB"],color=["#0875d1","#aec3d6","#17c3e6"]),link=dict(source=[0,0],target=[1,2],value=[max(1-t,0),max(t,.00001)],color=["#bfd0dd","#17c3e6"])))
-        fig.update_layout(height=330,margin=dict(l=10,r=10,t=20,b=10),paper_bgcolor="white")
-        st.plotly_chart(fig,use_container_width=True)
-        denom=1/t
-        st.markdown(f'<div class="concept">Con <b>R = {r} dB</b>, atraviesa cerca de <b>1 parte de cada {denom:,.0f}</b> de la energía sonora incidente.</div>',unsafe_allow_html=True)
+        r = st.slider(
+            "Índice de reducción sonora, R (dB)", 10, 70, 40,
+            help="Capacidad de la partición para reducir la transmisión en la banda seleccionada.",
+        )
+    with c3:
+        freq = st.select_slider(
+            "Banda de frecuencia analizada (Hz)",
+            options=list(FREQS), value=500,
+            help="R se interpreta como el valor de la partición en esta banda.",
+        )
+
+    l2 = l1 - r
+    t = tau(r)
+    transmitted_percent = t * 100
+    denom = 1 / t
+    wave_marks = max(1, min(5, int(round(6 - r / 14))))
+
+    st.markdown("### 2. Observa la transmisión entre los recintos")
+    st.markdown(
+        f'''<div style="display:grid;grid-template-columns:1fr 72px 1fr;min-height:285px;border:1px solid #c9d8e7;border-radius:18px;overflow:hidden;margin:.8rem 0 1rem">
+        <div class="demo-room"><span class="room-label">RECINTO EMISOR</span><span class="source-icon">🔊</span>
+        <span style="position:absolute;right:5%;top:45%;font-size:2.3rem;color:#0875d1;font-weight:900">)))))</span>
+        <span style="position:absolute;bottom:14px;background:#fff;border-radius:9px;padding:.4rem .65rem;font-size:.76rem;font-weight:800">L₁ = {l1} dB · {freq} Hz</span></div>
+        <div class="partition"><span class="partition-tag">R = {r} dB</span></div>
+        <div class="demo-room"><span class="room-label">RECINTO RECEPTOR</span>
+        <span style="position:absolute;left:6%;top:45%;font-size:{1.0 + 1.5 * (70-r)/60:.2f}rem;color:#17a9c3;font-weight:900">{")" * wave_marks}</span>
+        <span class="receiver-icon">👂</span>
+        <span style="position:absolute;bottom:14px;background:#fff;border-radius:9px;padding:.4rem .65rem;font-size:.76rem;font-weight:800">L₂ = {l2} dB · {freq} Hz</span></div>
+        </div>''',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### 3. Interpreta el resultado")
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        st.markdown(
+            f'''<div class="result-card iso"><div class="result-label">Nivel transmitido simplificado</div>
+            <div class="result-value">L₂ = {l2} dB</div>
+            <div class="result-note">L₂ = L₁ − R = {l1} − {r}. El muro reduce {r} dB el nivel que llega al receptor.</div></div>''',
+            unsafe_allow_html=True,
+        )
+    with m2:
+        st.markdown(
+            f'''<div class="result-card rt"><div class="result-label">Coeficiente de transmisión</div>
+            <div class="result-value">τ = {t:.2e}</div>
+            <div class="result-note">Fracción de energía que atraviesa la partición: τ = 10<sup>−R/10</sup>.</div></div>''',
+            unsafe_allow_html=True,
+        )
+    with m3:
+        st.markdown(
+            f'''<div class="result-card"><div class="result-label">Energía transmitida</div>
+            <div class="result-value">{transmitted_percent:.6g} %</div>
+            <div style="height:12px;border-radius:20px;background:#e6edf4;overflow:hidden;margin:.6rem 0"><div style="height:100%;width:{max(.2, transmitted_percent):.3f}%;background:linear-gradient(90deg,#0875d1,#17c3e6)"></div></div>
+            <div class="result-note">Aproximadamente 1 parte de cada {denom:,.0f} de la energía incidente.</div></div>''',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown(
+        f'''<div class="concept"><b>Lectura del experimento:</b> para la banda de {freq} Hz, una partición con
+        R = {r} dB deja pasar aproximadamente {transmitted_percent:.6g} % de la energía incidente.
+        Aumenta R en 10 dB y observa que esa energía se divide por diez.</div>''',
+        unsafe_allow_html=True,
+    )
+    st.caption("Modelo conceptual simplificado: L₂ = L₁ − R. En una medición normalizada también se consideran el área de la partición y la absorción equivalente del recinto receptor.")
     quiz("tau", "Si R aumenta 10 dB, ¿qué ocurre con la energía transmitida?", ["Se reduce a la mitad", "Se reduce a una décima parte", "No cambia"], "Se reduce a una décima parte", "Cada aumento de 10 dB en R reduce τ por un factor 10.")
 
 elif page.startswith("3 ·"):
