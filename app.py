@@ -2,6 +2,7 @@ import math
 import random
 import base64
 import hashlib
+import hmac
 import json
 import smtplib
 import sqlite3
@@ -325,9 +326,9 @@ def send_evaluation_email(pdf_bytes, filename):
             smtp.login(sender, app_password)
         except smtplib.SMTPAuthenticationError as error:
             raise RuntimeError(
-                "Google rechazó el acceso. Genera una nueva contraseña de aplicación "
-                "para labdiplomadouc@gmail.com y reemplaza gmail.app_password en "
-                "Settings → Secrets. La contraseña normal de Gmail no funciona."
+                "Google rechazó el acceso de la cuenta emisora. El docente debe "
+                "revisar la contraseña de aplicación configurada en los secretos "
+                "privados de la plataforma."
             ) from error
         smtp.send_message(message)
 
@@ -484,6 +485,32 @@ with st.sidebar:
     pages = ["Inicio", "1 · Aislamiento vs. absorción", "2 · Transmisión sonora", "3 · Ley de masa", "4 · Absorción del recinto", "5 · Elementos compuestos", "6 · Decisión técnico-económica", "Evaluación final"]
     page = st.radio("Ruta de aprendizaje", pages, label_visibility="collapsed")
     st.markdown("---")
+    with st.expander("🔐 Acceso docente"):
+        if st.session_state.get("teacher_mode", False):
+            st.success("Vista docente activa")
+            if st.button("Cerrar vista docente", use_container_width=True):
+                st.session_state.teacher_mode = False
+                st.rerun()
+        else:
+            with st.form("teacher_login", clear_on_submit=True):
+                teacher_password = st.text_input("Clave docente", type="password")
+                teacher_login = st.form_submit_button(
+                    "Ingresar", use_container_width=True
+                )
+            if teacher_login:
+                try:
+                    expected_password = str(st.secrets["teacher"]["password"])
+                except (KeyError, FileNotFoundError):
+                    expected_password = ""
+                if expected_password and hmac.compare_digest(
+                    teacher_password, expected_password
+                ):
+                    st.session_state.teacher_mode = True
+                    st.rerun()
+                elif not expected_password:
+                    st.error("El acceso docente aún no está configurado.")
+                else:
+                    st.error("Clave incorrecta.")
     if st.session_state.get("final_submitted"):
         practical_points = st.session_state.get("final_practical_result", {}).get("points", 0)
         total_points = st.session_state.final_score + practical_points
@@ -1691,7 +1718,92 @@ else:
         unsafe_allow_html=True,
     )
 
-    if not st.session_state.get("final_exam_started", False) and not st.session_state.get("final_submitted", False):
+    if st.session_state.get("teacher_mode", False):
+        st.success(
+            "Vista docente: puedes revisar toda la evaluación sin iniciar, "
+            "responder ni consumir un intento."
+        )
+        teacher_tab_questions, teacher_tab_practical = st.tabs(
+            ["30 preguntas", "Desafío práctico"]
+        )
+        with teacher_tab_questions:
+            question_number = st.selectbox(
+                "Pregunta que deseas revisar",
+                range(len(FINAL_QUESTIONS)),
+                format_func=lambda index: (
+                    f"{index + 1}. {FINAL_QUESTIONS[index][0]} · "
+                    f"{FINAL_QUESTIONS[index][1][:75]}"
+                ),
+                key="teacher_question_number",
+            )
+            section, question, options, correct, explanation = FINAL_QUESTIONS[
+                question_number
+            ]
+            st.markdown(
+                f"""
+                <div class="exam-shell">
+                  <span class="topic-chip">{section}</span>
+                  <div class="exam-kicker">Pregunta {question_number + 1} de {len(FINAL_QUESTIONS)}</div>
+                  <div class="exam-title">{question}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            for option_index, option in enumerate(options):
+                marker = "✅" if option_index == correct else "○"
+                st.markdown(f"**{marker} {chr(65 + option_index)}.** {option}")
+            st.markdown(
+                f'<div class="feedback-ok"><b>Solución docente</b><br>'
+                f'<b>{options[correct]}</b><br><br>{explanation}</div>',
+                unsafe_allow_html=True,
+            )
+            st.caption(
+                "Los controles de esta vista no se guardan en la evaluación ni "
+                "modifican los intentos de los estudiantes."
+            )
+
+        with teacher_tab_practical:
+            st.markdown("### Simulador libre del caso final")
+            st.caption(
+                "Prueba materiales y coberturas para verificar el desafío. "
+                "Esta simulación no genera puntaje ni entrega."
+            )
+            teacher_solution = {}
+            teacher_cols = st.columns(2)
+            for idx, (surface, area) in enumerate(PRACTICAL_SURFACES.items()):
+                with teacher_cols[idx % 2]:
+                    st.markdown(f"#### {surface} · {area:.0f} m²")
+                    teacher_material = st.selectbox(
+                        f"Material · {surface}",
+                        list(PRACTICAL_MATERIALS),
+                        key=f"teacher_material_{surface}",
+                    )
+                    teacher_coverage = st.slider(
+                        f"Cobertura · {surface}",
+                        0, 100, 0, 10,
+                        key=f"teacher_coverage_{surface}",
+                    )
+                    teacher_solution[surface] = {
+                        "material": teacher_material,
+                        "coverage": teacher_coverage,
+                    }
+            teacher_result = evaluate_practical(teacher_solution)
+            t1, t2, t3, t4 = st.columns(4)
+            t1.metric("T₆₀", f'{teacher_result["t60"]:.2f} s')
+            t2.metric("Costo", f'${teacher_result["cost"]:,.0f}')
+            t3.metric("Área tratada", f'{teacher_result["treated_area"]:.1f} m²')
+            t4.metric("Puntaje que obtendría", f'{teacher_result["points"]}/10')
+            if teacher_result["target_ok"] and teacher_result["budget_ok"]:
+                st.success(
+                    "La configuración cumple el objetivo acústico y el presupuesto."
+                )
+            else:
+                st.warning(
+                    "La configuración todavía no cumple simultáneamente "
+                    "T₆₀ ≤ 0,65 s y costo ≤ $2.500.000."
+                )
+
+    elif not st.session_state.get("final_exam_started", False) and not st.session_state.get("final_submitted", False):
         st.markdown(
             """
             <div class="exam-shell">
@@ -2042,7 +2154,7 @@ else:
                     )
 
         st.caption(
-            f"El informe se enviará desde la cuenta del laboratorio a **{TEACHER_EMAIL}**. "
+            "El informe se enviará automáticamente al docente. "
             "Solo se permite un envío por intento."
         )
         st.download_button(
