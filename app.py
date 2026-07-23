@@ -167,7 +167,6 @@ FINAL_QUESTIONS = [
     ("Decisión técnico-económica", "Antes de comparar el ROI de alternativas, se debe comprobar:", ["Que todas tengan el mismo color", "Que cumplan el objetivo acústico", "Que tengan igual inversión inicial", "Que no requieran mantenimiento"], 1, "Una solución rentable pero técnicamente insuficiente no debe recomendarse."),
     ("Decisión técnico-económica", "El punto de equilibrio ocurre cuando:", ["El beneficio acumulado iguala los costos acumulados", "R es igual a α", "El costo por dB es máximo", "Termina la vida útil"], 0, "En ese instante el flujo neto acumulado llega a cero."),
     ("Decisión técnico-económica", "¿Cuál es una comparación válida entre alternativas?", ["Sellado, placas y lana como si fueran siempre proyectos independientes", "Tres sistemas completos y técnicamente distintos para resolver el mismo problema", "Una solución real contra dos que no cumplen", "Solo el precio de compra"], 1, "Cada alternativa debe ser un paquete coherente que compita por resolver el mismo objetivo."),
-    ("Decisión técnico-económica", "La alternativa de mayor ROI:", ["Siempre es la recomendada", "Puede no ser la mejor integral si tiene poco margen, riesgo o menor vida útil", "No necesita cumplir acústicamente", "Es necesariamente la más cara"], 1, "La decisión integral también considera suficiencia, margen, payback, vida útil y riesgo."),
 ]
 
 PRACTICAL_MATERIALS = {
@@ -187,6 +186,9 @@ PRACTICAL_SURFACES = {
 ATTEMPTS_DB = Path(__file__).with_name("evaluation_attempts.sqlite3")
 TEACHER_EMAIL = "maaraos@gmail.com"
 SENDER_EMAIL = "labdiplomadouc@gmail.com"
+CONCEPTUAL_POINTS = len(FINAL_QUESTIONS)
+PRACTICAL_POINTS = 11
+TOTAL_EVALUATION_POINTS = CONCEPTUAL_POINTS + PRACTICAL_POINTS
 
 
 def _attempt_connection():
@@ -267,6 +269,34 @@ def load_attempt(token=None, identifier=None):
     return state
 
 
+def delete_attempt(identifier):
+    """Elimina únicamente el intento asociado a una identificación confirmada."""
+    if not identifier:
+        return False
+    with _attempt_connection() as connection:
+        cursor = connection.execute(
+            "DELETE FROM evaluation_attempts WHERE identifier_hash=?",
+            (_identifier_hash(identifier),),
+        )
+    return cursor.rowcount > 0
+
+
+def clear_attempt_session():
+    """Devuelve la sesión actual al estado previo al inicio de la evaluación."""
+    attempt_keys = {
+        "final_exam_started", "final_submitted", "final_student",
+        "final_identifier", "final_date", "final_current", "final_answers",
+        "final_option_orders", "final_practical_stage",
+        "final_practical_result", "final_practical_draft", "final_score",
+        "final_email_sent", "final_email_sent_at", "final_attempt_token",
+        "confirm_final_practical",
+    }
+    for key in list(st.session_state):
+        if key in attempt_keys or key.startswith("interactive_final_q_") or key.startswith("practical_"):
+            del st.session_state[key]
+    st.query_params.pop("intento", None)
+
+
 def restore_attempt(state):
     for key, value in state.items():
         st.session_state[key] = value
@@ -310,9 +340,9 @@ def send_evaluation_email(pdf_bytes, filename):
         f"Estudiante: {student}\n"
         f"Identificación: {identifier}\n"
         f"Fecha: {st.session_state.final_date}\n"
-        f"Resultado conceptual: {score}/30\n"
-        f"Desafío práctico: {practical['points']}/10\n"
-        f"Resultado global: {total}/40\n\n"
+        f"Preguntas 1 a 29: {score}/{CONCEPTUAL_POINTS}\n"
+        f"Pregunta 30 práctica: {practical['points']}/{PRACTICAL_POINTS}\n"
+        f"Resultado global: {total}/{TOTAL_EVALUATION_POINTS}\n\n"
         "Enviado automáticamente desde LAB AÉREO."
     )
     message.add_attachment(
@@ -365,14 +395,14 @@ def evaluate_practical(solution):
     t60 = 0.161 * volume / max(absorption, 0.01)
     target_ok = t60 <= 0.65
     budget_ok = cost <= 2500000
-    points = (4 if target_ok else 2 if t60 <= 0.80 else 0)
+    points = (5 if target_ok else 2 if t60 <= 0.80 else 0)
     points += 2 if budget_ok else 0
     points += 2 if active_surfaces >= 2 else 1 if active_surfaces == 1 else 0
     if target_ok and budget_ok:
         points += 2 if cost <= 2000000 else 1
     status = (
-        "Solución óptima" if points >= 9 else
-        "Solución adecuada" if points >= 7 else
+        "Solución óptima" if points >= 10 else
+        "Solución adecuada" if points >= 8 else
         "Solución parcialmente adecuada" if points >= 5 else
         "Solución insuficiente"
     )
@@ -398,8 +428,8 @@ def make_evaluation_pdf(student, identifier, course_date, answers, score, practi
         ("B", 11, f"Estudiante: {student}"),
         ("R", 10, f"Identificación: {identifier}"),
         ("R", 10, f"Fecha: {course_date}"),
-        ("B", 13, f"Resultado conceptual: {score}/30 respuestas correctas"),
-        ("B", 13, f"Resultado global: {score + (practical['points'] if practical else 0)}/40 puntos"),
+        ("B", 13, f"Preguntas 1 a 29: {score}/{CONCEPTUAL_POINTS} puntos"),
+        ("B", 13, f"Resultado global: {score + (practical['points'] if practical else 0)}/{TOTAL_EVALUATION_POINTS} puntos"),
         ("R", 10, ""),
         ("B", 11, "DESEMPEÑO POR CONTENIDO"),
     ]
@@ -408,8 +438,8 @@ def make_evaluation_pdf(student, identifier, course_date, answers, score, practi
     if practical:
         lines.extend([
             ("R", 8, ""),
-            ("B", 11, "DESAFÍO PRÁCTICO · DISEÑO DEL RECINTO"),
-            ("R", 9, f"Resultado: {practical['points']}/10 · {practical['status']}"),
+            ("B", 11, "PREGUNTA 30 · CASO PRÁCTICO DE DISEÑO"),
+            ("R", 9, f"Resultado: {practical['points']}/{PRACTICAL_POINTS} · {practical['status']}"),
             ("R", 9, f"T60 obtenido: {practical['t60']:.2f} s · objetivo: ≤ 0,65 s"),
             ("R", 9, f"Costo: ${practical['cost']:,.0f} · presupuesto: $2.500.000"),
             ("R", 9, f"Área tratada: {practical['treated_area']:.1f} m2"),
@@ -514,8 +544,8 @@ with st.sidebar:
     if st.session_state.get("final_submitted"):
         practical_points = st.session_state.get("final_practical_result", {}).get("points", 0)
         total_points = st.session_state.final_score + practical_points
-        st.markdown(f"**Evaluación final**  \n### {total_points}/40")
-        st.progress(total_points / 40)
+        st.markdown(f"**Evaluación final**  \n### {total_points}/{TOTAL_EVALUATION_POINTS}")
+        st.progress(total_points / TOTAL_EVALUATION_POINTS)
     else:
         st.caption("La evaluación final permite un único envío por sesión.")
     st.caption("Docente: Marco Araos Barría")
@@ -1694,7 +1724,7 @@ else:
     module_head(
         "EVALUACIÓN · CIERRE DEL CURSO",
         "Evaluación final interactiva",
-        "30 desafíos breves para integrar los contenidos del Curso 1. Se presenta una pregunta por vez y cada respuesta queda bloqueada después de confirmarla.",
+        "30 preguntas para integrar los contenidos del Curso 1: 29 casos breves y una pregunta práctica final de mayor ponderación.",
     )
 
     st.markdown(
@@ -1723,8 +1753,8 @@ else:
             "Vista docente: puedes revisar toda la evaluación sin iniciar, "
             "responder ni consumir un intento."
         )
-        teacher_tab_questions, teacher_tab_practical = st.tabs(
-            ["30 preguntas", "Desafío práctico"]
+        teacher_tab_questions, teacher_tab_practical, teacher_tab_attempts = st.tabs(
+            ["Preguntas 1 a 29", "Pregunta 30 · Práctica", "Gestión de intentos"]
         )
         with teacher_tab_questions:
             question_number = st.selectbox(
@@ -1792,7 +1822,7 @@ else:
             t1.metric("T₆₀", f'{teacher_result["t60"]:.2f} s')
             t2.metric("Costo", f'${teacher_result["cost"]:,.0f}')
             t3.metric("Área tratada", f'{teacher_result["treated_area"]:.1f} m²')
-            t4.metric("Puntaje que obtendría", f'{teacher_result["points"]}/10')
+            t4.metric("Puntaje que obtendría", f'{teacher_result["points"]}/{PRACTICAL_POINTS}')
             if teacher_result["target_ok"] and teacher_result["budget_ok"]:
                 st.success(
                     "La configuración cumple el objetivo acústico y el presupuesto."
@@ -1803,13 +1833,49 @@ else:
                     "T₆₀ ≤ 0,65 s y costo ≤ $2.500.000."
                 )
 
+        with teacher_tab_attempts:
+            st.markdown("### Reiniciar una evaluación")
+            st.warning(
+                "Esta acción elimina únicamente el intento de la identificación indicada. "
+                "El estudiante podrá comenzar nuevamente desde la pregunta 1."
+            )
+            current_identifier = st.session_state.get("final_identifier", "")
+            with st.form("teacher_reset_attempt"):
+                reset_identifier = st.text_input(
+                    "RUT o identificación del intento",
+                    value=current_identifier,
+                )
+                confirm_reset = st.checkbox(
+                    "Confirmo que deseo borrar este intento y habilitar una evaluación nueva."
+                )
+                reset_attempt = st.form_submit_button(
+                    "Reiniciar evaluación",
+                    use_container_width=True,
+                )
+            if reset_attempt:
+                if not reset_identifier.strip():
+                    st.error("Ingresa el RUT o identificación.")
+                elif not confirm_reset:
+                    st.error("Debes confirmar el reinicio.")
+                elif delete_attempt(reset_identifier.strip()):
+                    if (
+                        current_identifier
+                        and _identifier_hash(current_identifier)
+                        == _identifier_hash(reset_identifier.strip())
+                    ):
+                        clear_attempt_session()
+                    st.success("Intento eliminado. La evaluación quedó disponible como no realizada.")
+                    st.rerun()
+                else:
+                    st.info("No existe un intento guardado para esa identificación.")
+
     elif not st.session_state.get("final_exam_started", False) and not st.session_state.get("final_submitted", False):
         st.markdown(
             """
             <div class="exam-shell">
               <div class="exam-kicker">Antes de comenzar</div>
               <div class="exam-title">Así funciona esta evaluación</div>
-              <div class="exam-meta">30 preguntas breves + 1 desafío práctico de diseño · 40 puntos</div>
+              <div class="exam-meta">30 preguntas · 29 teóricas + 1 práctica de diseño · 40 puntos</div>
               <div class="exam-rule"><b>Intento único por pregunta:</b> selecciona una alternativa y luego presiona
               <b>Confirmar respuesta</b>. Después de confirmarla no podrás cambiarla ni volver atrás.</div>
               Recibirás retroalimentación inmediata. El cierre será un recinto interactivo donde deberás diseñar
@@ -1869,7 +1935,7 @@ else:
         and st.session_state.get("final_practical_stage", False)
         and not st.session_state.get("final_submitted", False)
     ):
-        st.markdown("**Etapa final · Desafío práctico**")
+        st.markdown(f"**Pregunta 30 de 30 · Caso práctico · {PRACTICAL_POINTS} puntos**")
         st.progress(1.0)
         st.markdown(
             """
@@ -1961,7 +2027,7 @@ else:
             if result["target_ok"] and result["budget_ok"]:
                 st.success(
                     f'✅ {result["status"]}: alcanzaste el objetivo acústico dentro del presupuesto. '
-                    f'Puntaje del desafío: {result["points"]}/10.'
+                    f'Puntaje de la pregunta 30: {result["points"]}/{PRACTICAL_POINTS}.'
                 )
             else:
                 missing = []
@@ -1972,10 +2038,10 @@ else:
                 st.error(
                     f'❌ {result["status"]}. Debías {" y ".join(missing)}. '
                     f'Una solución correcta debe cumplir simultáneamente T₆₀ ≤ 0,65 s y costo ≤ $2.500.000. '
-                    f'Puntaje: {result["points"]}/10.'
+                    f'Puntaje: {result["points"]}/{PRACTICAL_POINTS}.'
                 )
             st.caption(
-                "Criterio: desempeño acústico 4 pt · presupuesto 2 pt · distribución en superficies "
+                "Criterio: desempeño acústico 5 pt · presupuesto 2 pt · distribución en superficies "
                 "2 pt · eficiencia económica 2 pt."
             )
             if st.button("Finalizar evaluación y generar PDF", type="primary", use_container_width=True):
@@ -2065,8 +2131,8 @@ else:
                     save_attempt()
                     st.rerun()
             else:
-                st.success("Completaste las 30 preguntas. Falta aplicar lo aprendido en un recinto real.")
-                if st.button("Ir al desafío práctico →", type="primary", use_container_width=True):
+                st.success("Completaste las preguntas 1 a 29. Ahora viene la pregunta 30, el caso práctico de mayor puntaje.")
+                if st.button("Ir a la pregunta 30 →", type="primary", use_container_width=True):
                     st.session_state.final_practical_stage = True
                     save_attempt()
                     st.rerun()
@@ -2075,12 +2141,12 @@ else:
         score = st.session_state.final_score
         practical = st.session_state.get("final_practical_result") or {"points": 0}
         total_score = score + practical["points"]
-        percent = total_score / 40 * 100
+        percent = total_score / TOTAL_EVALUATION_POINTS * 100
         level = "Logro destacado" if percent >= 85 else "Logro satisfactorio" if percent >= 70 else "En desarrollo" if percent >= 60 else "Requiere reforzamiento"
-        st.markdown(f'<div class="result"><small>RESULTADO DEFINITIVO</small><br><b>{total_score}/40 puntos · {percent:.1f}%</b><br><small>{level}</small></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="result"><small>RESULTADO DEFINITIVO</small><br><b>{total_score}/{TOTAL_EVALUATION_POINTS} puntos · {percent:.1f}%</b><br><small>{level}</small></div>', unsafe_allow_html=True)
         a, b, c = st.columns(3)
-        a.metric("Parte conceptual", f"{score}/30")
-        b.metric("Desafío práctico", f'{practical["points"]}/10')
+        a.metric("Preguntas 1 a 29", f"{score}/{CONCEPTUAL_POINTS}")
+        b.metric("Pregunta 30 práctica", f'{practical["points"]}/{PRACTICAL_POINTS}')
         c.metric("Resultado global", f"{percent:.1f}%")
         st.warning("Evaluación finalizada. Las respuestas y el diseño práctico están bloqueados.")
 
