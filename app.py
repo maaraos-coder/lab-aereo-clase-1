@@ -1,8 +1,14 @@
 import math
 import random
 import base64
+import hashlib
+import json
+import smtplib
+import sqlite3
 import textwrap
+import uuid
 from datetime import datetime
+from email.message import EmailMessage
 from io import BytesIO
 from pathlib import Path
 
@@ -163,7 +169,202 @@ FINAL_QUESTIONS = [
     ("Decisión técnico-económica", "La alternativa de mayor ROI:", ["Siempre es la recomendada", "Puede no ser la mejor integral si tiene poco margen, riesgo o menor vida útil", "No necesita cumplir acústicamente", "Es necesariamente la más cara"], 1, "La decisión integral también considera suficiencia, margen, payback, vida útil y riesgo."),
 ]
 
-def make_evaluation_pdf(student, identifier, course_date, answers, score):
+PRACTICAL_MATERIALS = {
+    "Sin tratamiento": {"alpha": 0.05, "cost": 0},
+    "Panel de lana mineral 50 mm": {"alpha": 0.75, "cost": 30000},
+    "Panel de fibra de alta absorción": {"alpha": 0.85, "cost": 38000},
+    "Panel de madera perforada": {"alpha": 0.55, "cost": 45000},
+}
+
+PRACTICAL_SURFACES = {
+    "Cielo": 48.0,
+    "Muro frontal": 24.0,
+    "Muro posterior": 24.0,
+    "Muros laterales": 36.0,
+}
+
+ATTEMPTS_DB = Path(__file__).with_name("evaluation_attempts.sqlite3")
+TEACHER_EMAIL = "maaraos@gmail.com"
+SENDER_EMAIL = "labdiplomadouc@gmail.com"
+
+
+def _attempt_connection():
+    connection = sqlite3.connect(ATTEMPTS_DB, timeout=15)
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS evaluation_attempts (
+            identifier_hash TEXT PRIMARY KEY,
+            attempt_token TEXT UNIQUE NOT NULL,
+            state_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    return connection
+
+
+def _identifier_hash(identifier):
+    normalized = "".join(ch.lower() for ch in identifier if ch.isalnum())
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _attempt_state():
+    keys = (
+        "final_exam_started", "final_submitted", "final_student",
+        "final_identifier", "final_date", "final_current", "final_answers",
+        "final_option_orders", "final_practical_stage",
+        "final_practical_result", "final_practical_draft", "final_score",
+        "final_email_sent", "final_email_sent_at",
+    )
+    return {key: st.session_state.get(key) for key in keys}
+
+
+def save_attempt():
+    identifier = st.session_state.get("final_identifier")
+    token = st.session_state.get("final_attempt_token")
+    if not identifier or not token:
+        return
+    payload = json.dumps(_attempt_state(), ensure_ascii=False)
+    with _attempt_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO evaluation_attempts
+                (identifier_hash, attempt_token, state_json, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(identifier_hash) DO UPDATE SET
+                attempt_token=excluded.attempt_token,
+                state_json=excluded.state_json,
+                updated_at=excluded.updated_at
+            """,
+            (
+                _identifier_hash(identifier),
+                token,
+                payload,
+                datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+
+
+def load_attempt(token=None, identifier=None):
+    if not token and not identifier:
+        return None
+    with _attempt_connection() as connection:
+        if token:
+            row = connection.execute(
+                "SELECT attempt_token, state_json FROM evaluation_attempts WHERE attempt_token=?",
+                (token,),
+            ).fetchone()
+        else:
+            row = connection.execute(
+                "SELECT attempt_token, state_json FROM evaluation_attempts WHERE identifier_hash=?",
+                (_identifier_hash(identifier),),
+            ).fetchone()
+    if not row:
+        return None
+    state = json.loads(row[1])
+    state["final_attempt_token"] = row[0]
+    return state
+
+
+def restore_attempt(state):
+    for key, value in state.items():
+        st.session_state[key] = value
+    st.query_params["intento"] = state["final_attempt_token"]
+
+
+def send_evaluation_email(pdf_bytes, filename):
+    """Envía el informe mediante Gmail usando secretos de Streamlit."""
+    try:
+        gmail_secrets = st.secrets["gmail"]
+        sender = gmail_secrets.get("email", SENDER_EMAIL)
+        app_password = gmail_secrets["app_password"]
+    except (KeyError, FileNotFoundError):
+        raise RuntimeError(
+            "Falta configurar gmail.email y gmail.app_password en los secretos de Streamlit."
+        )
+
+    student = st.session_state.final_student
+    identifier = st.session_state.final_identifier
+    score = st.session_state.final_score
+    practical = st.session_state.get("final_practical_result") or {"points": 0}
+    total = score + practical["points"]
+
+    message = EmailMessage()
+    message["From"] = sender
+    message["To"] = TEACHER_EMAIL
+    message["Subject"] = f"Evaluación LAB AÉREO · {student} · {total}/40"
+    message.set_content(
+        "Se adjunta el informe de la evaluación final.\n\n"
+        f"Estudiante: {student}\n"
+        f"Identificación: {identifier}\n"
+        f"Fecha: {st.session_state.final_date}\n"
+        f"Resultado conceptual: {score}/30\n"
+        f"Desafío práctico: {practical['points']}/10\n"
+        f"Resultado global: {total}/40\n\n"
+        "Enviado automáticamente desde LAB AÉREO."
+    )
+    message.add_attachment(
+        pdf_bytes,
+        maintype="application",
+        subtype="pdf",
+        filename=filename,
+    )
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=25) as smtp:
+        smtp.login(sender, app_password)
+        smtp.send_message(message)
+
+
+if not st.session_state.get("final_attempt_restored"):
+    attempt_token = st.query_params.get("intento")
+    saved_attempt = load_attempt(token=attempt_token) if attempt_token else None
+    if saved_attempt:
+        restore_attempt(saved_attempt)
+    st.session_state.final_attempt_restored = True
+
+def evaluate_practical(solution):
+    """Evalúa el diseño final en un recinto de 8 × 6 × 3 m a 500 Hz."""
+    volume = 144.0
+    floor_absorption = 48.0 * 0.08
+    absorption = floor_absorption
+    cost = 0.0
+    treated_area = 0.0
+    active_surfaces = 0
+    details = []
+    for surface, area in PRACTICAL_SURFACES.items():
+        material = solution[surface]["material"]
+        coverage = solution[surface]["coverage"] / 100
+        treated = area * coverage if material != "Sin tratamiento" else 0.0
+        untreated = area - treated
+        alpha = PRACTICAL_MATERIALS[material]["alpha"]
+        absorption += untreated * 0.05 + treated * alpha
+        surface_cost = treated * PRACTICAL_MATERIALS[material]["cost"]
+        cost += surface_cost
+        treated_area += treated
+        if treated > 0.1:
+            active_surfaces += 1
+        details.append((surface, material, treated, surface_cost))
+    t60 = 0.161 * volume / max(absorption, 0.01)
+    target_ok = t60 <= 0.65
+    budget_ok = cost <= 2500000
+    points = (4 if target_ok else 2 if t60 <= 0.80 else 0)
+    points += 2 if budget_ok else 0
+    points += 2 if active_surfaces >= 2 else 1 if active_surfaces == 1 else 0
+    if target_ok and budget_ok:
+        points += 2 if cost <= 2000000 else 1
+    status = (
+        "Solución óptima" if points >= 9 else
+        "Solución adecuada" if points >= 7 else
+        "Solución parcialmente adecuada" if points >= 5 else
+        "Solución insuficiente"
+    )
+    return {
+        "absorption": absorption, "t60": t60, "cost": cost,
+        "treated_area": treated_area, "active_surfaces": active_surfaces,
+        "target_ok": target_ok, "budget_ok": budget_ok,
+        "points": points, "status": status, "details": details,
+    }
+
+def make_evaluation_pdf(student, identifier, course_date, answers, score, practical=None):
     """Genera un PDF simple, multipágina y sin dependencias externas."""
     section_summary = []
     for section_name in dict.fromkeys(item[0] for item in FINAL_QUESTIONS):
@@ -178,12 +379,24 @@ def make_evaluation_pdf(student, identifier, course_date, answers, score):
         ("B", 11, f"Estudiante: {student}"),
         ("R", 10, f"Identificación: {identifier}"),
         ("R", 10, f"Fecha: {course_date}"),
-        ("B", 13, f"Resultado final: {score}/30 respuestas correctas · {score/30*100:.1f}%"),
+        ("B", 13, f"Resultado conceptual: {score}/30 respuestas correctas"),
+        ("B", 13, f"Resultado global: {score + (practical['points'] if practical else 0)}/40 puntos"),
         ("R", 10, ""),
         ("B", 11, "DESEMPEÑO POR CONTENIDO"),
     ]
     for section_name, hits, total in section_summary:
         lines.append(("R", 9, f"{section_name}: {hits}/{total} · {hits/total*100:.0f}%"))
+    if practical:
+        lines.extend([
+            ("R", 8, ""),
+            ("B", 11, "DESAFÍO PRÁCTICO · DISEÑO DEL RECINTO"),
+            ("R", 9, f"Resultado: {practical['points']}/10 · {practical['status']}"),
+            ("R", 9, f"T60 obtenido: {practical['t60']:.2f} s · objetivo: ≤ 0,65 s"),
+            ("R", 9, f"Costo: ${practical['cost']:,.0f} · presupuesto: $2.500.000"),
+            ("R", 9, f"Área tratada: {practical['treated_area']:.1f} m2"),
+        ])
+        for surface, material, area, cost in practical["details"]:
+            lines.append(("R", 8, f"{surface}: {material} · {area:.1f} m2 · ${cost:,.0f}"))
     lines.extend([
         ("R", 8, ""),
         ("B", 11, "REVISIÓN DE RESPUESTAS"),
@@ -254,8 +467,10 @@ with st.sidebar:
     page = st.radio("Ruta de aprendizaje", pages, label_visibility="collapsed")
     st.markdown("---")
     if st.session_state.get("final_submitted"):
-        st.markdown(f"**Evaluación final**  \n### {st.session_state.final_score}/30")
-        st.progress(st.session_state.final_score / 30)
+        practical_points = st.session_state.get("final_practical_result", {}).get("points", 0)
+        total_points = st.session_state.final_score + practical_points
+        st.markdown(f"**Evaluación final**  \n### {total_points}/40")
+        st.progress(total_points / 40)
     else:
         st.caption("La evaluación final permite un único envío por sesión.")
     st.caption("Docente: Marco Araos Barría")
@@ -1401,11 +1616,11 @@ else:
             <div class="exam-shell">
               <div class="exam-kicker">Antes de comenzar</div>
               <div class="exam-title">Así funciona esta evaluación</div>
-              <div class="exam-meta">Una pregunta por pantalla · 4 alternativas · 1 punto por respuesta correcta</div>
+              <div class="exam-meta">30 preguntas breves + 1 desafío práctico de diseño · 40 puntos</div>
               <div class="exam-rule"><b>Intento único por pregunta:</b> selecciona una alternativa y luego presiona
               <b>Confirmar respuesta</b>. Después de confirmarla no podrás cambiarla ni volver atrás.</div>
-              Recibirás retroalimentación inmediata y al finalizar podrás descargar un PDF con tu identificación,
-              puntaje, desempeño por contenido y revisión completa.
+              Recibirás retroalimentación inmediata. El cierre será un recinto interactivo donde deberás diseñar
+              una solución de absorción con objetivo y presupuesto. El PDF registrará todo el intento.
             </div>
             """,
             unsafe_allow_html=True,
@@ -1424,21 +1639,168 @@ else:
             elif not accept:
                 st.error("Confirma que comprendiste la modalidad de intento único.")
             else:
-                option_orders = []
-                for _, _, options, _, _ in FINAL_QUESTIONS:
-                    order = list(range(len(options)))
-                    random.shuffle(order)
-                    option_orders.append(order)
-                st.session_state.final_exam_started = True
-                st.session_state.final_student = student.strip()
-                st.session_state.final_identifier = identifier.strip()
-                st.session_state.final_date = course_date.strftime("%d-%m-%Y")
-                st.session_state.final_current = 0
-                st.session_state.final_answers = []
-                st.session_state.final_option_orders = option_orders
+                previous_attempt = load_attempt(identifier=identifier.strip())
+                if previous_attempt:
+                    restore_attempt(previous_attempt)
+                    if previous_attempt.get("final_submitted"):
+                        st.info("Esta identificación ya posee una evaluación finalizada. Se abrirá el resultado bloqueado.")
+                    else:
+                        st.info("Encontramos un intento en curso. Continuarás exactamente donde quedaste.")
+                else:
+                    option_orders = []
+                    for _, _, options, _, _ in FINAL_QUESTIONS:
+                        order = list(range(len(options)))
+                        random.shuffle(order)
+                        option_orders.append(order)
+                    st.session_state.final_exam_started = True
+                    st.session_state.final_submitted = False
+                    st.session_state.final_student = student.strip()
+                    st.session_state.final_identifier = identifier.strip()
+                    st.session_state.final_date = course_date.strftime("%d-%m-%Y")
+                    st.session_state.final_current = 0
+                    st.session_state.final_answers = []
+                    st.session_state.final_option_orders = option_orders
+                    st.session_state.final_practical_stage = False
+                    st.session_state.final_practical_result = None
+                    st.session_state.final_practical_draft = {}
+                    st.session_state.final_score = 0
+                    st.session_state.final_email_sent = False
+                    st.session_state.final_email_sent_at = None
+                    st.session_state.final_attempt_token = uuid.uuid4().hex
+                    st.query_params["intento"] = st.session_state.final_attempt_token
+                    save_attempt()
                 st.rerun()
 
-    elif st.session_state.get("final_exam_started", False) and not st.session_state.get("final_submitted", False):
+    elif (
+        st.session_state.get("final_exam_started", False)
+        and st.session_state.get("final_practical_stage", False)
+        and not st.session_state.get("final_submitted", False)
+    ):
+        st.markdown("**Etapa final · Desafío práctico**")
+        st.progress(1.0)
+        st.markdown(
+            """
+            <div class="exam-shell">
+              <span class="topic-chip">Diseño acústico aplicado</span>
+              <div class="exam-kicker">Recinto multipropósito · 8 × 6 × 3 m · banda de 500 Hz</div>
+              <div class="exam-title">Consigue T₆₀ ≤ 0,65 s sin superar $2.500.000</div>
+              <div class="exam-meta">Instala materiales en el cielo y los muros. Puedes probar combinaciones
+              libremente; solo la entrega definitiva quedará registrada y bloqueada.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        locked = st.session_state.final_practical_result is not None
+        solution = {}
+        material_names = list(PRACTICAL_MATERIALS)
+        surface_cols = st.columns(2)
+        for idx, (surface, area) in enumerate(PRACTICAL_SURFACES.items()):
+            with surface_cols[idx % 2]:
+                st.markdown(f"#### {surface} · {area:.0f} m²")
+                material = st.selectbox(
+                    f"Material para {surface.lower()}",
+                    material_names,
+                    key=f"practical_material_{surface}",
+                    disabled=locked,
+                )
+                coverage = st.slider(
+                    f"Cobertura en {surface.lower()}",
+                    0, 100, 0, 10,
+                    key=f"practical_coverage_{surface}",
+                    disabled=locked,
+                )
+                solution[surface] = {"material": material, "coverage": coverage}
+
+        if not locked and solution != st.session_state.get("final_practical_draft"):
+            st.session_state.final_practical_draft = solution
+            save_attempt()
+
+        preview = st.session_state.final_practical_result or evaluate_practical(solution)
+        treated = {item[0]: item[2] for item in preview["details"]}
+        ceiling_fill = min(100, treated["Cielo"] / PRACTICAL_SURFACES["Cielo"] * 100)
+        wall_fill = min(
+            100,
+            (treated["Muro frontal"] + treated["Muro posterior"] + treated["Muros laterales"])
+            / 84 * 100,
+        )
+        st.markdown(
+            f"""
+            <div style="position:relative;height:300px;border:5px solid #14243a;border-radius:18px;
+            background:linear-gradient(to top,#d9c3a5 0 18%,#f7f4ee 18%);overflow:hidden;margin:18px 0">
+              <div style="position:absolute;left:0;top:0;width:{ceiling_fill:.0f}%;height:28px;
+              background:#18a7c9"></div>
+              <div style="position:absolute;left:0;bottom:18%;width:{wall_fill:.0f}%;height:42%;
+              background:repeating-linear-gradient(90deg,#f5b400 0 42px,#ffd96a 42px 47px);
+              border-radius:0 10px 0 0"></div>
+              <div style="position:absolute;right:7%;bottom:18%;font-size:4rem">🧑‍🏫</div>
+              <div style="position:absolute;left:4%;top:42px;color:#14243a;font-weight:800">
+              Cielo tratado: {ceiling_fill:.0f}%</div>
+              <div style="position:absolute;left:4%;bottom:23%;color:#14243a;font-weight:800">
+              Muros tratados: {wall_fill:.0f}%</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Absorción equivalente", f'{preview["absorption"]:.1f} m² sabin')
+        m2.metric("T₆₀ estimado", f'{preview["t60"]:.2f} s',
+                  "Cumple" if preview["target_ok"] else "No cumple")
+        m3.metric("Costo estimado", f'${preview["cost"]:,.0f}',
+                  "Dentro del presupuesto" if preview["budget_ok"] else "Excede presupuesto")
+        m4.metric("Área tratada", f'{preview["treated_area"]:.1f} m²')
+
+        if not locked:
+            st.info("Prueba distintas combinaciones. Los indicadores son una vista previa y aún no afectan tu puntaje.")
+            confirm_practical = st.checkbox(
+                "Confirmo que esta será mi solución definitiva.",
+                key="confirm_final_practical",
+            )
+            if st.button("Entregar diseño definitivo", type="primary", use_container_width=True):
+                if not confirm_practical:
+                    st.warning("Confirma la entrega definitiva antes de continuar.")
+                else:
+                    st.session_state.final_practical_result = evaluate_practical(solution)
+                    save_attempt()
+                    st.rerun()
+        else:
+            result = st.session_state.final_practical_result
+            if result["target_ok"] and result["budget_ok"]:
+                st.success(
+                    f'✅ {result["status"]}: alcanzaste el objetivo acústico dentro del presupuesto. '
+                    f'Puntaje del desafío: {result["points"]}/10.'
+                )
+            else:
+                missing = []
+                if not result["target_ok"]:
+                    missing.append("aumentar la absorción para reducir T₆₀")
+                if not result["budget_ok"]:
+                    missing.append("reducir área o escoger un material más eficiente")
+                st.error(
+                    f'❌ {result["status"]}. Debías {" y ".join(missing)}. '
+                    f'Una solución correcta debe cumplir simultáneamente T₆₀ ≤ 0,65 s y costo ≤ $2.500.000. '
+                    f'Puntaje: {result["points"]}/10.'
+                )
+            st.caption(
+                "Criterio: desempeño acústico 4 pt · presupuesto 2 pt · distribución en superficies "
+                "2 pt · eficiencia económica 2 pt."
+            )
+            if st.button("Finalizar evaluación y generar PDF", type="primary", use_container_width=True):
+                score = sum(
+                    answer == FINAL_QUESTIONS[i][3]
+                    for i, answer in enumerate(st.session_state.final_answers)
+                )
+                st.session_state.final_score = score
+                st.session_state.final_submitted = True
+                st.session_state.final_exam_started = False
+                save_attempt()
+                st.rerun()
+
+    elif (
+        st.session_state.get("final_exam_started", False)
+        and not st.session_state.get("final_practical_stage", False)
+        and not st.session_state.get("final_submitted", False)
+    ):
         current = st.session_state.final_current
         section, question, options, correct, explanation = FINAL_QUESTIONS[current]
         order = st.session_state.final_option_orders[current]
@@ -1487,6 +1849,7 @@ else:
                     st.warning("Selecciona una alternativa antes de confirmar.")
                 else:
                     st.session_state.final_answers.append(order[choice])
+                    save_attempt()
                     st.rerun()
             st.caption("La selección todavía puede cambiar. Quedará bloqueada únicamente al confirmar.")
         else:
@@ -1506,29 +1869,27 @@ else:
             if current < len(FINAL_QUESTIONS) - 1:
                 if st.button("Siguiente pregunta →", type="primary", use_container_width=True):
                     st.session_state.final_current += 1
+                    save_attempt()
                     st.rerun()
             else:
-                st.success("Has respondido las 30 preguntas. Ya puedes cerrar y generar tu informe.")
-                if st.button("Finalizar evaluación y generar resultado", type="primary", use_container_width=True):
-                    score = sum(
-                        answer == FINAL_QUESTIONS[i][3]
-                        for i, answer in enumerate(st.session_state.final_answers)
-                    )
-                    st.session_state.final_score = score
-                    st.session_state.final_submitted = True
-                    st.session_state.final_exam_started = False
+                st.success("Completaste las 30 preguntas. Falta aplicar lo aprendido en un recinto real.")
+                if st.button("Ir al desafío práctico →", type="primary", use_container_width=True):
+                    st.session_state.final_practical_stage = True
+                    save_attempt()
                     st.rerun()
 
     else:
         score = st.session_state.final_score
-        percent = score / 30 * 100
+        practical = st.session_state.get("final_practical_result") or {"points": 0}
+        total_score = score + practical["points"]
+        percent = total_score / 40 * 100
         level = "Logro destacado" if percent >= 85 else "Logro satisfactorio" if percent >= 70 else "En desarrollo" if percent >= 60 else "Requiere reforzamiento"
-        st.markdown(f'<div class="result"><small>RESULTADO DEFINITIVO</small><br><b>{score}/30 puntos · {percent:.1f}%</b><br><small>{level}</small></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="result"><small>RESULTADO DEFINITIVO</small><br><b>{total_score}/40 puntos · {percent:.1f}%</b><br><small>{level}</small></div>', unsafe_allow_html=True)
         a, b, c = st.columns(3)
-        a.metric("Respuestas correctas", f"{score}")
-        b.metric("Respuestas incorrectas", f"{30-score}")
-        c.metric("Porcentaje", f"{percent:.1f}%")
-        st.warning("Evaluación finalizada. Las 30 respuestas de este intento están bloqueadas.")
+        a.metric("Parte conceptual", f"{score}/30")
+        b.metric("Desafío práctico", f'{practical["points"]}/10')
+        c.metric("Resultado global", f"{percent:.1f}%")
+        st.warning("Evaluación finalizada. Las respuestas y el diseño práctico están bloqueados.")
 
         sections = list(dict.fromkeys(question[0] for question in FINAL_QUESTIONS))
         section_results = []
@@ -1569,14 +1930,45 @@ else:
             st.session_state.final_date,
             st.session_state.final_answers,
             score,
+            st.session_state.get("final_practical_result"),
         )
         safe_name = "".join(ch if ch.isalnum() else "_" for ch in st.session_state.final_student).strip("_")
+        pdf_filename = f"Evaluacion_Aislamiento_Aereo_{safe_name}.pdf"
+
+        if st.session_state.get("final_email_sent"):
+            sent_at = st.session_state.get("final_email_sent_at", "")
+            st.success(
+                f"Informe enviado correctamente a **{TEACHER_EMAIL}**"
+                + (f" · {sent_at}" if sent_at else "")
+            )
+        else:
+            if st.button(
+                "📧 Enviar resultado al docente",
+                type="primary",
+                use_container_width=True,
+            ):
+                try:
+                    with st.spinner("Enviando informe..."):
+                        send_evaluation_email(pdf, pdf_filename)
+                    st.session_state.final_email_sent = True
+                    st.session_state.final_email_sent_at = datetime.now().strftime("%d-%m-%Y %H:%M")
+                    save_attempt()
+                    st.rerun()
+                except Exception as error:
+                    st.error(
+                        "No fue posible enviar el informe. Revisa la configuración de Gmail "
+                        f"en Streamlit Cloud. Detalle: {error}"
+                    )
+
+        st.caption(
+            f"El informe se enviará desde la cuenta del laboratorio a **{TEACHER_EMAIL}**. "
+            "Solo se permite un envío por intento."
+        )
         st.download_button(
-            "Descargar informe de evaluación en PDF",
+            "Descargar copia del informe en PDF",
             data=pdf,
-            file_name=f"Evaluacion_Aislamiento_Aereo_{safe_name}.pdf",
+            file_name=pdf_filename,
             mime="application/pdf",
-            type="primary",
             use_container_width=True,
         )
         st.markdown("### Revisión de respuestas")
