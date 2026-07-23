@@ -935,6 +935,11 @@ elif page.startswith("6 ·"):
             analysis["Inversión inicial (CLP)"] / annual_net,
             np.inf,
         )
+        analysis["Punto de equilibrio"] = np.where(
+            analysis["Payback (años)"] <= analysis["Años evaluados"],
+            analysis["Payback (años)"].map(lambda value: f"{value:.1f} años"),
+            "Fuera del horizonte",
+        )
         analysis["Costo ciclo por dB (CLP/dB)"] = np.where(
             analysis["Atenuación (dB)"] > 0,
             analysis["Costo total (CLP)"] / analysis["Atenuación (dB)"],
@@ -962,11 +967,29 @@ elif page.startswith("6 ·"):
             unsafe_allow_html=True,
         )
 
+        st.markdown(
+            r'''<div class="card">
+            <div class="eyebrow">RECUPERACIÓN DE LA INVERSIÓN</div>
+            <h3 style="margin-bottom:.4rem">Fórmula del punto de equilibrio</h3>
+            <div style="font-size:1.18rem;font-weight:800;color:#0f9d78">
+            t<sub>equilibrio</sub> =
+            Inversión inicial / (Beneficio anual − Mantenimiento anual)
+            </div>
+            <p style="margin-bottom:.25rem">
+            En ese instante, el beneficio acumulado iguala al costo acumulado y el flujo neto
+            llega a $0. Si el beneficio anual no supera el mantenimiento, la inversión no alcanza
+            el punto de equilibrio con estos supuestos.
+            </p>
+            </div>''',
+            unsafe_allow_html=True,
+        )
+
         display = analysis[
             [
                 "Solución", "Atenuación (dB)", "Cumple objetivo", "Años evaluados",
                 "Costo total (CLP)", "Beneficio acumulado (CLP)", "Beneficio neto (CLP)",
-                "ROI (%)", "Payback (años)", "Costo ciclo por dB (CLP/dB)",
+                "ROI (%)", "Payback (años)", "Punto de equilibrio",
+                "Costo ciclo por dB (CLP/dB)",
             ]
         ].copy()
         display["Payback (años)"] = display["Payback (años)"].replace(np.inf, np.nan)
@@ -995,25 +1018,55 @@ elif page.startswith("6 ·"):
                 unsafe_allow_html=True,
             )
         else:
-            economically_positive = feasible[feasible["Beneficio neto (CLP)"] >= 0]
-            if not economically_positive.empty:
-                best = economically_positive.loc[economically_positive["Costo total (CLP)"].idxmin()]
-                criterion = "menor costo total entre las alternativas que cumplen y generan beneficio neto no negativo"
-            else:
-                best = feasible.loc[feasible["Costo total (CLP)"].idxmin()]
-                criterion = "menor costo total entre las alternativas que cumplen, aunque ninguna recupera la inversión"
+            best_roi = feasible.loc[feasible["ROI (%)"].idxmax()]
+            lowest_cost = feasible.loc[feasible["Costo total (CLP)"].idxmin()]
 
-            st.markdown("### Recomendación")
-            r1, r2, r3, r4 = st.columns(4)
-            r1.metric("Alternativa", str(best["Solución"]))
-            r2.metric("Atenuación", f'{best["Atenuación (dB)"]:.1f} dB')
-            r3.metric("ROI", f'{best["ROI (%)"]:.1f} %')
-            payback_text = "No recupera" if not np.isfinite(best["Payback (años)"]) else f'{best["Payback (años)"]:.1f} años'
-            r4.metric("Payback", payback_text)
+            integral = feasible.copy()
+            attenuation_span = max(float(integral["Atenuación (dB)"].max() - target), 1.0)
+            roi_min, roi_max = integral["ROI (%)"].min(), integral["ROI (%)"].max()
+            roi_span = max(float(roi_max - roi_min), 1.0)
+            cost_min, cost_max = integral["Costo total (CLP)"].min(), integral["Costo total (CLP)"].max()
+            cost_span = max(float(cost_max - cost_min), 1.0)
+            integral["_score"] = (
+                0.35 * ((integral["ROI (%)"] - roi_min) / roi_span)
+                + 0.25 * ((integral["Atenuación (dB)"] - target).clip(lower=0) / attenuation_span)
+                + 0.20 * (1 - (integral["Costo total (CLP)"] - cost_min) / cost_span)
+                + 0.20 * (integral["Recuperable en horizonte"] == "Sí").astype(float)
+            )
+            best = integral.loc[integral["_score"].idxmax()]
+
+            st.markdown("### Tres decisiones posibles")
+            r1, r2, r3 = st.columns(3)
+            with r1:
+                st.markdown(
+                    f'''<div class="result-card iso"><div class="result-label">MEJOR ROI</div>
+                    <div class="result-value" style="font-size:1.25rem">{best_roi["Solución"]}</div>
+                    <div class="result-note">ROI: <b>{best_roi["ROI (%)"]:.1f} %</b><br>
+                    Equilibrio: <b>{best_roi["Punto de equilibrio"]}</b></div></div>''',
+                    unsafe_allow_html=True,
+                )
+            with r2:
+                st.markdown(
+                    f'''<div class="result-card rt"><div class="result-label">MENOR COSTO QUE CUMPLE</div>
+                    <div class="result-value" style="font-size:1.25rem">{lowest_cost["Solución"]}</div>
+                    <div class="result-note">Costo del ciclo: <b>${lowest_cost["Costo total (CLP)"]:,.0f}</b><br>
+                    Atenuación: <b>{lowest_cost["Atenuación (dB)"]:.1f} dB</b></div></div>''',
+                    unsafe_allow_html=True,
+                )
+            with r3:
+                st.markdown(
+                    f'''<div class="result-card" style="border-top:5px solid #ef8b2c">
+                    <div class="result-label">MEJOR EQUILIBRIO INTEGRAL</div>
+                    <div class="result-value" style="font-size:1.25rem">{best["Solución"]}</div>
+                    <div class="result-note">ROI: <b>{best["ROI (%)"]:.1f} %</b><br>
+                    Margen acústico: <b>{best["Atenuación (dB)"] - target:.1f} dB</b></div></div>''',
+                    unsafe_allow_html=True,
+                )
             st.markdown(
                 f'<div class="good"><b>Alternativa recomendada: {best["Solución"]}.</b> '
-                f'Criterio aplicado: {criterion}. La decisión definitiva debe considerar también '
-                'factibilidad constructiva, riesgo, durabilidad y verificación acústica del diseño.</div>',
+                'El índice integral pondera ROI, costo total, margen sobre el objetivo y recuperación '
+                'dentro del horizonte. Es una ayuda didáctica: la decisión definitiva debe considerar '
+                'factibilidad constructiva, riesgo, durabilidad y verificación acústica.</div>',
                 unsafe_allow_html=True,
             )
 
@@ -1079,6 +1132,74 @@ elif page.startswith("6 ·"):
                 margin=dict(l=20, r=20, t=55, b=20),
             )
             st.plotly_chart(fig_decision, use_container_width=True)
+
+        st.markdown("### Punto de equilibrio de cada alternativa")
+        years = np.linspace(0, horizon, horizon * 12 + 1)
+        fig_break_even = go.Figure()
+        palette = ["#0875d1", "#0f9d78", "#ef8b2c", "#7b61c9", "#d1495b", "#1597a5"]
+        for idx, (_, row) in enumerate(analysis.iterrows()):
+            row_years = years[years <= row["Años evaluados"]]
+            net_flow = (
+                (row["Beneficio anual (CLP)"] - row["Mantenimiento anual (CLP)"]) * row_years
+                - row["Inversión inicial (CLP)"]
+            )
+            fig_break_even.add_trace(
+                go.Scatter(
+                    x=row_years,
+                    y=net_flow,
+                    mode="lines",
+                    name=str(row["Solución"]),
+                    line=dict(width=3, color=palette[idx % len(palette)]),
+                    hovertemplate=(
+                        "<b>%{fullData.name}</b><br>Año %{x:.1f}"
+                        "<br>Flujo neto: $%{y:,.0f}<extra></extra>"
+                    ),
+                )
+            )
+            if (
+                np.isfinite(row["Payback (años)"])
+                and row["Payback (años)"] <= row["Años evaluados"]
+            ):
+                fig_break_even.add_trace(
+                    go.Scatter(
+                        x=[row["Payback (años)"]],
+                        y=[0],
+                        mode="markers",
+                        marker=dict(
+                            size=11,
+                            color=palette[idx % len(palette)],
+                            line=dict(color="white", width=2),
+                        ),
+                        name=f'Equilibrio · {row["Solución"]}',
+                        showlegend=False,
+                        hovertemplate=(
+                            f'<b>{row["Solución"]}</b><br>Punto de equilibrio: '
+                            f'{row["Payback (años)"]:.1f} años<extra></extra>'
+                        ),
+                    )
+                )
+        fig_break_even.add_hline(
+            y=0,
+            line_dash="dash",
+            line_color="#14243a",
+            annotation_text="Costo recuperado · flujo neto = $0",
+        )
+        fig_break_even.update_layout(
+            height=470,
+            title="Evolución del flujo neto acumulado",
+            xaxis_title="Años desde la inversión",
+            yaxis_title="Beneficio acumulado menos costos (CLP)",
+            paper_bgcolor="white",
+            plot_bgcolor="white",
+            hovermode="x unified",
+            margin=dict(l=20, r=20, t=60, b=20),
+        )
+        st.plotly_chart(fig_break_even, use_container_width=True)
+        st.caption(
+            "Cada curva comienza bajo $0 por la inversión inicial. El cruce con la línea horizontal "
+            "marca el punto de equilibrio. Una curva que no cruza dentro del horizonte no recupera "
+            "la inversión durante el periodo analizado."
+        )
 
         st.markdown(
             '''<div class="warn"><b>Alcance del análisis:</b> el ROI no transforma automáticamente
