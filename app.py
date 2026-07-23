@@ -307,21 +307,119 @@ elif page.startswith("2 ·"):
     quiz("tau", "Si R aumenta 10 dB, ¿qué ocurre con la energía transmitida?", ["Se reduce a la mitad", "Se reduce a una décima parte", "No cambia"], "Se reduce a una décima parte", "Cada aumento de 10 dB en R reduce τ por un factor 10.")
 
 elif page.startswith("3 ·"):
-    module_head("MÓDULO 3 · EXPLORA", "Ley de masa", "Observa cómo la masa superficial y la frecuencia influyen en el aislamiento ideal de un elemento simple.")
-    c1,c2=st.columns([.8,1.4])
+    module_head(
+        "MÓDULO 3 · EXPLORA",
+        "Laboratorio de la ley de masa",
+        "Construye un elemento simple y homogéneo. Modifica su material, espesor y frecuencia para descubrir por qué una partición más pesada ofrece mayor oposición al paso del sonido.",
+    )
+
+    st.markdown("### 1. Construye el elemento")
+    c1, c2, c3 = st.columns(3)
     with c1:
-        mat=st.selectbox("Material",list(MATERIALS)+["Personalizado"])
-        density=st.number_input("Densidad (kg/m³)",100,10000,MATERIALS.get(mat,1000),50,disabled=mat!="Personalizado") if mat=="Personalizado" else MATERIALS[mat]
-        thick=st.slider("Espesor (mm)",3.0,200.0,12.5,.5)
-        mass=density*thick/1000
-        st.metric("Masa superficial m′",f"{mass:.1f} kg/m²")
-        st.markdown(r"$$R=20\log_{10}(m'f)-47$$")
-        st.warning("Modelo ideal didáctico. No representa resonancias, coincidencia, uniones ni transmisión flanqueante.")
+        mat = st.selectbox("Material", list(MATERIALS) + ["Personalizado"])
     with c2:
-        curve=np.array([r_mass(mass,f) for f in FREQS]); doubled=np.array([r_mass(mass*2,f) for f in FREQS])
-        st.plotly_chart(plot_line(FREQS,[curve,doubled],["Masa actual","Masa duplicada"],"R estimado (dB)","Efecto de duplicar la masa"),use_container_width=True)
-        delta=np.mean(doubled-curve)
-        a,b,c=st.columns(3);a.metric("R a 500 Hz",f"{r_mass(mass,500):.1f} dB");b.metric("Al duplicar masa",f"+{delta:.1f} dB");c.metric("R a 1 kHz",f"{r_mass(mass,1000):.1f} dB")
+        if mat == "Personalizado":
+            density = st.number_input("Densidad ρ (kg/m³)", 100, 10000, 1000, 50)
+        else:
+            density = MATERIALS[mat]
+            st.number_input("Densidad ρ (kg/m³)", value=density, disabled=True)
+    with c3:
+        thick = st.slider("Espesor e (mm)", 3.0, 200.0, 12.5, .5)
+
+    mass = density * thick / 1000
+    selected_freq = st.select_slider(
+        "Frecuencia de análisis (Hz)",
+        options=list(FREQS),
+        value=500,
+        help="La ley de masa predice un aislamiento distinto para cada banda de frecuencia.",
+    )
+    current_r = r_mass(mass, selected_freq)
+    double_mass_r = r_mass(mass * 2, selected_freq)
+    double_freq_r = r_mass(mass, selected_freq * 2)
+    mass_gain = double_mass_r - current_r
+    freq_gain = double_freq_r - current_r
+    wall_width = min(96, max(14, 14 + thick / 2.5))
+    wave_after = max(1, min(5, int(round(6 - current_r / 13))))
+
+    st.markdown("### 2. Observa cómo actúa la masa")
+    st.markdown(
+        f'''<div style="display:grid;grid-template-columns:1fr 150px 1fr;min-height:285px;border:1px solid #c9d8e7;border-radius:18px;overflow:hidden;margin:.8rem 0 1rem;background:#f7fbff">
+        <div class="demo-room">
+          <span class="room-label">SONIDO INCIDENTE</span>
+          <span class="source-icon">🔊</span>
+          <span style="position:absolute;right:5%;top:44%;font-size:2.4rem;color:#0875d1;font-weight:900">)))))</span>
+          <span style="position:absolute;bottom:14px;background:#fff;border-radius:9px;padding:.4rem .65rem;font-size:.76rem;font-weight:800">{selected_freq} Hz</span>
+        </div>
+        <div style="position:relative;display:flex;align-items:center;justify-content:center;background:#eaf1f7">
+          <div style="width:{wall_width:.0f}px;height:88%;border:5px solid #64788b;border-radius:5px;background:repeating-linear-gradient(90deg,#91a3b3 0,#91a3b3 10px,#b9c5cf 10px,#b9c5cf 20px);box-shadow:0 6px 18px #183b5d35"></div>
+          <span style="position:absolute;top:13px;background:#07172b;color:#fff;border-radius:20px;padding:.35rem .65rem;font-size:.72rem;font-weight:800">{mat}</span>
+          <span style="position:absolute;bottom:13px;background:#fff;border:1px solid #c9d8e7;border-radius:9px;padding:.4rem .55rem;font-size:.72rem;font-weight:800">{thick:g} mm · {mass:.1f} kg/m²</span>
+        </div>
+        <div class="demo-room">
+          <span class="room-label">SONIDO TRANSMITIDO</span>
+          <span style="position:absolute;left:7%;top:44%;font-size:{1.0 + 1.3 * max(0, 65-current_r)/65:.2f}rem;color:#17a9c3;font-weight:900">{")" * wave_after}</span>
+          <span class="receiver-icon">👂</span>
+          <span style="position:absolute;bottom:14px;background:#fff;border-radius:9px;padding:.4rem .65rem;font-size:.76rem;font-weight:800">R ≈ {current_r:.1f} dB</span>
+        </div>
+        </div>''',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### 3. Compara las duplicaciones")
+    a, b, c = st.columns(3)
+    with a:
+        st.markdown(
+            f'''<div class="result-card iso"><div class="result-label">Solución construida</div>
+            <div class="result-value">{current_r:.1f} dB</div>
+            <div class="result-note">m′ = ρ · e = {density} × {thick/1000:.4f} = <b>{mass:.1f} kg/m²</b><br>R estimado a {selected_freq} Hz.</div></div>''',
+            unsafe_allow_html=True,
+        )
+    with b:
+        st.markdown(
+            f'''<div class="result-card"><div class="result-label">Duplicar masa superficial</div>
+            <div class="result-value">{double_mass_r:.1f} dB</div>
+            <span class="result-change goodchange">+{mass_gain:.1f} dB</span>
+            <div class="result-note">La masa pasa de {mass:.1f} a {mass*2:.1f} kg/m². Con el mismo material equivale a duplicar el espesor.</div></div>''',
+            unsafe_allow_html=True,
+        )
+    with c:
+        st.markdown(
+            f'''<div class="result-card rt"><div class="result-label">Duplicar frecuencia</div>
+            <div class="result-value">{double_freq_r:.1f} dB</div>
+            <span class="result-change goodchange">+{freq_gain:.1f} dB</span>
+            <div class="result-note">La frecuencia pasa de {selected_freq} a {selected_freq*2} Hz sin modificar el muro.</div></div>''',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("### 4. Lee la curva por frecuencia")
+    curve = np.array([r_mass(mass, f) for f in FREQS])
+    doubled = np.array([r_mass(mass * 2, f) for f in FREQS])
+    fig = plot_line(
+        FREQS,
+        [curve, doubled],
+        [f"Solución actual · {mass:.1f} kg/m²", f"Masa duplicada · {mass*2:.1f} kg/m²"],
+        "R estimado (dB)",
+        "Separación constante de aproximadamente 6 dB",
+    )
+    fig.add_vline(x=selected_freq, line_width=2, line_dash="dot", line_color="#ef8b2c")
+    fig.add_annotation(
+        x=selected_freq,
+        y=current_r,
+        text=f"{selected_freq} Hz · {current_r:.1f} dB",
+        showarrow=True,
+        arrowhead=2,
+        bgcolor="white",
+        bordercolor="#ef8b2c",
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown(
+        f'''<div class="concept"><b>Lectura del experimento:</b> en la ecuación
+        R = 20 log₁₀(m′f) − 47, duplicar m′ o duplicar f multiplica el producto m′f por dos.
+        Por eso ambos cambios producen 20 log₁₀(2) = <b>6,0 dB</b> de aumento ideal.</div>''',
+        unsafe_allow_html=True,
+    )
+    st.warning("Límite del modelo: la ley de masa describe la región ideal de un elemento simple, homogéneo y estanco. No representa rigidez, resonancias, frecuencia crítica o coincidencia, pérdidas por uniones, rendijas ni transmisión flanqueante. Tampoco debe aplicarse directamente a un tabique doble como si fuera una sola hoja.")
     quiz("mass", "Según la ley de masa ideal, ¿cuánto aumenta R al duplicar la masa superficial?", ["Aproximadamente 3 dB", "Aproximadamente 6 dB", "Aproximadamente 10 dB"], "Aproximadamente 6 dB", "20·log₁₀(2) ≈ 6 dB. En una construcción real puede diferir.")
 
 elif page.startswith("4 ·"):
