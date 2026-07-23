@@ -154,7 +154,7 @@ if page == "Inicio":
     st.info("En este curso nos concentraremos principalmente en la trayectoria: particiones verticales y horizontales frente al ruido transmitido por vía aérea.")
 
 elif page.startswith("1 ·"):
-    module_head("MÓDULO 1 · DISTINGUE", "Aislamiento aéreo vs. absorción acústica", "Interviene dos recintos contiguos y comprueba que controlar las reflexiones interiores no equivale a impedir la transmisión del sonido.")
+    module_head("MÓDULO 1 · DISTINGUE", "Aislamiento aéreo vs. absorción acústica", "Interviene dos recintos contiguos y compara, dentro del recinto receptor, el efecto del aislamiento frente al efecto de la absorción acústica.")
 
     st.markdown("### 1. Elige qué elementos instalar")
     controls_a, controls_b = st.columns(2)
@@ -170,7 +170,7 @@ elif page.startswith("1 ·"):
         absorber = st.selectbox(
             "Tratamiento absorbente",
             ["Sin absorbentes", "Paneles absorbentes murales", "Paneles murales + nube de cielo"],
-            help="Estos elementos actúan principalmente sobre las reflexiones dentro del recinto emisor.",
+            help="Estos elementos actúan sobre las reflexiones y la reverberación dentro del recinto receptor.",
         )
 
     isolation_gain = {
@@ -183,9 +183,11 @@ elif page.startswith("1 ·"):
         "Paneles absorbentes murales": 0.55,
         "Paneles murales + nube de cielo": 0.75,
     }[absorber]
-    base_rt, base_r = 1.80, 30
+    base_rt, base_r, source_level = 1.80, 30, 75
     final_rt = base_rt * (1 - rt_reduction)
     final_r = base_r + isolation_gain
+    base_receiver_level = source_level - base_r
+    final_receiver_level = source_level - final_r
 
     isolation_class = " double" if isolation == "Sistema doble desacoplado" else ""
     isolation_visual = "" if isolation == "Sin intervención" else f'<div class="isolation-layer{isolation_class}"></div>'
@@ -195,36 +197,36 @@ elif page.startswith("1 ·"):
     st.markdown("### 2. Observa dónde actúa cada solución")
     st.markdown(
         f'''<div class="acoustic-demo"><div class="acoustic-scene">
-        <div class="demo-room"><span class="room-label">RECINTO EMISOR</span>{wall_absorbers}{ceiling_absorber}<span class="source-icon">🔊</span><span class="sound-wave">)))</span></div>
+        <div class="demo-room"><span class="room-label">RECINTO EMISOR</span><span class="source-icon">🔊</span><span class="sound-wave">)))</span></div>
         <div class="partition">{isolation_visual}<span class="partition-tag">MURO DIVISORIO</span></div>
-        <div class="demo-room"><span class="room-label">RECINTO RECEPTOR</span><span class="receiver-icon">👂</span></div>
+        <div class="demo-room">{wall_absorbers}{ceiling_absorber}<span class="room-label">RECINTO RECEPTOR · ZONA DE COMPARACIÓN</span><span class="receiver-icon">👂</span></div>
         </div></div>''',
         unsafe_allow_html=True,
     )
 
-    st.markdown("### 3. Compara el resultado")
+    st.markdown("### 3. Compara ambos efectos en el recinto receptor")
     r1, r2 = st.columns(2)
     with r1:
         st.markdown(
-            f'''<div class="result-card rt"><div class="result-label">Cambio de reverberación · recinto emisor</div>
+            f'''<div class="result-card rt"><div class="result-label">Absorción acústica · recinto receptor</div>
             <div class="result-value">T₆₀ {final_rt:.2f} s</div><span class="result-change goodchange">{final_rt-base_rt:+.2f} s</span>
-            <div class="result-note">Valor inicial: {base_rt:.2f} s · Los absorbentes reducen las reflexiones y el decaimiento sonoro dentro del recinto.</div></div>''',
+            <div class="result-note">Valor inicial: {base_rt:.2f} s · Los absorbentes reducen las reflexiones y el tiempo de reverberación dentro del recinto receptor.</div></div>''',
             unsafe_allow_html=True,
         )
     with r2:
         st.markdown(
-            f'''<div class="result-card iso"><div class="result-label">Cambio de aislamiento · muro divisorio</div>
-            <div class="result-value">R = {final_r:.0f} dB</div><span class="result-change goodchange">+{isolation_gain:.0f} dB</span>
-            <div class="result-note">Valor inicial: R = {base_r} dB · Aumentar masa y desacoplar la partición reduce el sonido transmitido al recinto receptor.</div></div>''',
+            f'''<div class="result-card iso"><div class="result-label">Aislamiento acústico · efecto en el recinto receptor</div>
+            <div class="result-value">{final_receiver_level:.0f} dB recibidos</div><span class="result-change goodchange">{final_receiver_level-base_receiver_level:+.0f} dB</span>
+            <div class="result-note">Nivel emisor didáctico: {source_level} dB · El muro pasa de R = {base_r} dB a R = {final_r:.0f} dB, reduciendo el nivel transmitido desde {base_receiver_level:.0f} a {final_receiver_level:.0f} dB en el receptor.</div></div>''',
             unsafe_allow_html=True,
         )
 
     if absorber != "Sin absorbentes" and isolation == "Sin intervención":
-        st.markdown('<div class="warn"><b>Observación clave:</b> el recinto emisor ahora tiene menos reverberación, pero el aislamiento entre ambos recintos permanece en 30 dB.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="warn"><b>Observación clave:</b> disminuyó la reverberación dentro del recinto receptor, pero no cambió el nivel sonoro transmitido a través del muro.</div>', unsafe_allow_html=True)
     elif isolation != "Sin intervención" and absorber == "Sin absorbentes":
-        st.markdown('<div class="concept"><b>Observación clave:</b> mejoró el aislamiento hacia el recinto receptor, pero la reverberación del recinto emisor no cambió.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="concept"><b>Observación clave:</b> disminuyó el nivel transmitido que llega al recinto receptor, pero su tiempo de reverberación no cambió.</div>', unsafe_allow_html=True)
     elif isolation != "Sin intervención" and absorber != "Sin absorbentes":
-        st.markdown('<div class="good"><b>Dos objetivos, dos soluciones:</b> la partición mejora el aislamiento y los absorbentes acondicionan acústicamente el recinto.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="good"><b>Dos efectos en el mismo recinto receptor:</b> la partición reduce el sonido que ingresa y los absorbentes reducen la reverberación una vez que el sonido está dentro.</div>', unsafe_allow_html=True)
     else:
         st.markdown('<div class="concept"><b>Prueba el laboratorio:</b> instala primero absorbentes y luego una solución en el muro divisorio. Observa que cada intervención modifica una tarjeta diferente.</div>', unsafe_allow_html=True)
     st.markdown("### Comprueba")
