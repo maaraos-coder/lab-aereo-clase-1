@@ -585,12 +585,22 @@ elif page.startswith("4 ·"):
     st.markdown("### 3. Observa cómo cambia el mismo recinto")
     room_col, values_col = st.columns([1.35, 1])
     with room_col:
+        room_html = (
+            f'<div class="abs-room-card">'
+            f'<div class="abs-room-title">Recinto receptor · {selected_abs_freq} Hz</div>'
+            f'<div class="abs-room">'
+            f'<span class="abs-room-badge">{room_label}</span>'
+            f'<span class="abs-back"></span>'
+            f'<span class="abs-side-l"></span>'
+            f'<span class="abs-side-r"></span>'
+            f'<span class="abs-floor"></span>'
+            f'{floor_overlay}{back_panels}{side_panels}{cloud_html}'
+            f'<span class="abs-person">👂</span>'
+            f'<span class="abs-echo e1">{echo_visible}</span>'
+            f'</div></div>'
+        )
         st.markdown(
-            f'''<div class="abs-room-card"><div class="abs-room-title">Recinto receptor · {selected_abs_freq} Hz</div>
-            <div class="abs-room"><span class="abs-room-badge">{room_label}</span><span class="abs-back"></span>
-            <span class="abs-side-l"></span><span class="abs-side-r"></span><span class="abs-floor"></span>
-            {floor_overlay}{back_panels}{side_panels}{cloud_html}
-            <span class="abs-person">👂</span><span class="abs-echo e1">{echo_visible}</span></div></div>''',
+            room_html,
             unsafe_allow_html=True,
         )
     with values_col:
