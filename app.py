@@ -169,19 +169,28 @@ FINAL_QUESTIONS = [
     ("Decisión técnico-económica", "¿Cuál es una comparación válida entre alternativas?", ["Sellado, placas y lana como si fueran siempre proyectos independientes", "Tres sistemas completos y técnicamente distintos para resolver el mismo problema", "Una solución real contra dos que no cumplen", "Solo el precio de compra"], 1, "Cada alternativa debe ser un paquete coherente que compita por resolver el mismo objetivo."),
 ]
 
+PRACTICAL_FREQS = [100, 125, 160, 200, 250, 315, 400, 500, 630, 800,
+                   1000, 1250, 1600, 2000, 2500, 3150]
 PRACTICAL_MATERIALS = {
-    "Sin tratamiento": {"alpha": 0.05, "cost": 0},
-    "Panel de lana mineral 50 mm": {"alpha": 0.75, "cost": 30000},
-    "Panel de fibra de alta absorción": {"alpha": 0.85, "cost": 38000},
-    "Panel de madera perforada": {"alpha": 0.55, "cost": 45000},
+    "Yeso-cartón": {"density": 800, "min_mm": 10, "max_mm": 50, "default_mm": 15},
+    "Madera MDF": {"density": 750, "min_mm": 10, "max_mm": 60, "default_mm": 25},
+    "Vidrio": {"density": 2500, "min_mm": 4, "max_mm": 20, "default_mm": 8},
+    "Acero": {"density": 7850, "min_mm": 1, "max_mm": 12, "default_mm": 3},
+    "Hormigón": {"density": 2400, "min_mm": 50, "max_mm": 250, "default_mm": 100},
 }
-
-PRACTICAL_SURFACES = {
-    "Cielo": 48.0,
-    "Muro frontal": 24.0,
-    "Muro posterior": 24.0,
-    "Muros laterales": 36.0,
+PRACTICAL_DOORS = {
+    "Puerta liviana hueca": {
+        "curve": [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 24, 25, 25]
+    },
+    "Puerta de madera maciza con sellos": {
+        "curve": [20, 21, 22, 23, 24, 25, 27, 28, 29, 30, 31, 32, 33, 34, 34, 35]
+    },
+    "Puerta acústica": {
+        "curve": [29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 42, 43]
+    },
 }
+PRACTICAL_REFERENCE_CURVE = [33, 36, 39, 42, 45, 48, 51, 52, 53, 54, 55, 56, 56, 56, 56, 56]
+PRACTICAL_TARGET = 35
 
 ATTEMPTS_DB = Path(__file__).with_name("evaluation_attempts.sqlite3")
 TEACHER_EMAIL = "maaraos@gmail.com"
@@ -370,48 +379,181 @@ if not st.session_state.get("final_attempt_restored"):
         restore_attempt(saved_attempt)
     st.session_state.final_attempt_restored = True
 
+def _single_number_from_curve(curve):
+    """Cálculo interno del índice único; el procedimiento se verá en cursos posteriores."""
+    valid_shifts = []
+    for shift in range(-50, 51):
+        reference = [value + shift for value in PRACTICAL_REFERENCE_CURVE]
+        unfavorable = sum(max(0.0, ref - measured) for ref, measured in zip(reference, curve))
+        if unfavorable <= 32:
+            valid_shifts.append(shift)
+    shift = max(valid_shifts) if valid_shifts else -50
+    return PRACTICAL_REFERENCE_CURVE[7] + shift
+
+
 def evaluate_practical(solution):
-    """Evalúa el diseño final en un recinto de 8 × 6 × 3 m a 500 Hz."""
-    volume = 144.0
-    floor_absorption = 48.0 * 0.08
-    absorption = floor_absorption
-    cost = 0.0
-    treated_area = 0.0
-    active_surfaces = 0
-    details = []
-    for surface, area in PRACTICAL_SURFACES.items():
-        material = solution[surface]["material"]
-        coverage = solution[surface]["coverage"] / 100
-        treated = area * coverage if material != "Sin tratamiento" else 0.0
-        untreated = area - treated
-        alpha = PRACTICAL_MATERIALS[material]["alpha"]
-        absorption += untreated * 0.05 + treated * alpha
-        surface_cost = treated * PRACTICAL_MATERIALS[material]["cost"]
-        cost += surface_cost
-        treated_area += treated
-        if treated > 0.1:
-            active_surfaces += 1
-        details.append((surface, material, treated, surface_cost))
-    t60 = 0.161 * volume / max(absorption, 0.01)
-    target_ok = t60 <= 0.65
-    budget_ok = cost <= 2500000
-    points = (5 if target_ok else 2 if t60 <= 0.80 else 0)
-    points += 2 if budget_ok else 0
-    points += 2 if active_surfaces >= 2 else 1 if active_surfaces == 1 else 0
-    if target_ok and budget_ok:
-        points += 2 if cost <= 2000000 else 1
+    """Evalúa por bandas un muro simple con puerta como cerramiento compuesto."""
+    material = solution["material"]
+    thickness_mm = float(solution["thickness_mm"])
+    wall_width = float(solution["wall_width"])
+    wall_height = float(solution["wall_height"])
+    door_width = float(solution["door_width"])
+    door_height = float(solution["door_height"])
+    density = PRACTICAL_MATERIALS[material]["density"]
+    surface_mass = density * thickness_mm / 1000
+    total_area = wall_width * wall_height
+    door_area = min(door_width * door_height, total_area * 0.45)
+    opaque_area = max(total_area - door_area, 0.1)
+    wall_curve = [max(0.0, 20 * math.log10(max(surface_mass * f, 1.0)) - 47)
+                  for f in PRACTICAL_FREQS]
+    door_curve = list(PRACTICAL_DOORS[solution["door_type"]]["curve"])
+    compound_curve = []
+    door_shares = []
+    for wall_r, door_r in zip(wall_curve, door_curve):
+        wall_power = opaque_area * 10 ** (-wall_r / 10)
+        door_power = door_area * 10 ** (-door_r / 10)
+        total_power = wall_power + door_power
+        compound_curve.append(-10 * math.log10(total_power / total_area))
+        door_shares.append(100 * door_power / max(total_power, 1e-15))
+    wall_index = _single_number_from_curve(wall_curve)
+    door_index = _single_number_from_curve(door_curve)
+    compound_index = _single_number_from_curve(compound_curve)
+    dominant = "La puerta" if sum(door_shares) / len(door_shares) >= 50 else "El muro"
+    target_ok = compound_index >= PRACTICAL_TARGET
+    diagnosis_ok = solution.get("dominant_answer") == dominant
+    trend_ok = solution.get("trend_answer") == "El aislamiento aumenta al aumentar la frecuencia"
+    margin = compound_index - PRACTICAL_TARGET
+    points = (5 if target_ok else 3 if compound_index >= PRACTICAL_TARGET - 3 else 1)
+    points += 3 if diagnosis_ok else 0
+    points += 2 if trend_ok else 0
+    points += 1 if margin >= 2 else 0
+    points = min(points, PRACTICAL_POINTS)
     status = (
-        "Solución óptima" if points >= 10 else
-        "Solución adecuada" if points >= 8 else
-        "Solución parcialmente adecuada" if points >= 5 else
-        "Solución insuficiente"
+        "Desempeño destacado" if points >= 10 else
+        "Desempeño satisfactorio" if points >= 8 else
+        "En desarrollo" if points >= 5 else
+        "Requiere reforzamiento"
     )
     return {
-        "absorption": absorption, "t60": t60, "cost": cost,
-        "treated_area": treated_area, "active_surfaces": active_surfaces,
-        "target_ok": target_ok, "budget_ok": budget_ok,
-        "points": points, "status": status, "details": details,
+        "material": material, "thickness_mm": thickness_mm, "density": density,
+        "surface_mass": surface_mass, "wall_width": wall_width, "wall_height": wall_height,
+        "total_area": total_area, "opaque_area": opaque_area,
+        "door_type": solution["door_type"], "door_width": door_width,
+        "door_height": door_height, "door_area": door_area,
+        "wall_curve": wall_curve, "door_curve": door_curve,
+        "compound_curve": compound_curve, "door_shares": door_shares,
+        "wall_index": wall_index, "door_index": door_index,
+        "compound_index": compound_index, "dominant": dominant,
+        "diagnosis_answer": solution.get("dominant_answer"),
+        "trend_answer": solution.get("trend_answer"),
+        "diagnosis_ok": diagnosis_ok, "trend_ok": trend_ok,
+        "target_ok": target_ok, "margin": margin,
+        "points": points, "status": status,
     }
+
+
+def practical_controls(prefix, disabled=False):
+    """Controles compartidos por la evaluación y la vista docente."""
+    left, right = st.columns(2)
+    with left:
+        st.markdown("#### Elemento opaco")
+        material = st.selectbox(
+            "Material del muro o panel", list(PRACTICAL_MATERIALS),
+            key=f"{prefix}_material", disabled=disabled,
+        )
+        data = PRACTICAL_MATERIALS[material]
+        thickness = st.slider(
+            "Espesor (mm)", data["min_mm"], data["max_mm"], data["default_mm"],
+            key=f"{prefix}_thickness", disabled=disabled,
+        )
+        wall_width = st.slider(
+            "Ancho total del cerramiento (m)", 3.0, 8.0, 5.0, 0.1,
+            key=f"{prefix}_wall_width", disabled=disabled,
+        )
+        wall_height = st.slider(
+            "Altura total del cerramiento (m)", 2.2, 4.0, 2.8, 0.1,
+            key=f"{prefix}_wall_height", disabled=disabled,
+        )
+    with right:
+        st.markdown("#### Puerta incorporada")
+        door_type = st.selectbox(
+            "Tipo de puerta", list(PRACTICAL_DOORS),
+            key=f"{prefix}_door_type", disabled=disabled,
+        )
+        door_width = st.slider(
+            "Ancho de la puerta (m)", 0.7, 2.0, 0.9, 0.1,
+            key=f"{prefix}_door_width", disabled=disabled,
+        )
+        door_height = st.slider(
+            "Altura de la puerta (m)", 1.8, 2.5, 2.0, 0.1,
+            key=f"{prefix}_door_height", disabled=disabled,
+        )
+        dominant_answer = st.selectbox(
+            "¿Qué elemento domina la transmisión del conjunto?",
+            ["Selecciona una respuesta", "El muro", "La puerta"],
+            key=f"{prefix}_dominant", disabled=disabled,
+        )
+        trend_answer = st.selectbox(
+            "¿Qué tendencia general observas en la curva del muro?",
+            ["Selecciona una respuesta",
+             "El aislamiento aumenta al aumentar la frecuencia",
+             "El aislamiento disminuye al aumentar la frecuencia",
+             "El aislamiento permanece constante"],
+            key=f"{prefix}_trend", disabled=disabled,
+        )
+    return {
+        "material": material, "thickness_mm": thickness,
+        "wall_width": wall_width, "wall_height": wall_height,
+        "door_type": door_type, "door_width": door_width, "door_height": door_height,
+        "dominant_answer": dominant_answer, "trend_answer": trend_answer,
+    }
+
+
+def render_practical_result(result, show_score=False):
+    """Visualización interactiva del cerramiento y sus resultados por bandas."""
+    door_percent = min(38, max(10, result["door_area"] / result["total_area"] * 100))
+    sound_after = max(8, min(95, 100 - result["compound_index"] * 1.8))
+    st.markdown(
+        f"""
+        <div style="display:grid;grid-template-columns:1fr 130px 1fr;align-items:center;
+        min-height:250px;border-radius:20px;padding:20px;background:linear-gradient(135deg,#eef7ff,#fff8e7);
+        border:1px solid #d7e3ee;overflow:hidden">
+          <div style="text-align:center"><div style="font-size:3.6rem">🔊</div>
+          <b>Recinto emisor</b><br><span style="color:#64748b">energía incidente</span></div>
+          <div style="height:220px;background:#8e9dad;border:5px solid #536272;border-radius:8px;
+          position:relative;box-shadow:0 7px 18px rgba(20,36,58,.18)">
+            <div style="position:absolute;right:8px;bottom:0;width:{door_percent:.0f}%;min-width:52px;
+            height:66%;background:#8b5e3c;border:4px solid #593b28;border-bottom:0"></div>
+            <div style="position:absolute;left:7px;top:7px;color:white;font-size:.72rem;font-weight:800">
+            {result['material']}<br>{result['thickness_mm']:.0f} mm</div>
+          </div>
+          <div style="text-align:center;opacity:{max(.25, sound_after/100):.2f}">
+          <div style="font-size:{1.6 + sound_after/35:.1f}rem">〰️</div>
+          <b>Recinto receptor</b><br><span style="color:#64748b">{result['compound_index']} dB estimados</span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.plotly_chart(
+        plot_line(
+            PRACTICAL_FREQS,
+            [result["wall_curve"], result["door_curve"], result["compound_curve"]],
+            ["Muro o panel", "Puerta", "Cerramiento compuesto"],
+            "R o TL estimado (dB)",
+            "Aislamiento por bandas de tercio de octava",
+        ),
+        use_container_width=True,
+    )
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Masa superficial", f'{result["surface_mass"]:.1f} kg/m²')
+    m2.metric("Índice del muro", f'{result["wall_index"]} dB')
+    m3.metric("Índice de la puerta", f'{result["door_index"]} dB')
+    m4.metric(
+        "Índice único compuesto", f'{result["compound_index"]} dB',
+        f'{result["margin"]:+.0f} dB respecto del objetivo',
+    )
+    if show_score:
+        st.metric("Puntaje de la configuración", f'{result["points"]}/{PRACTICAL_POINTS}')
 
 def make_evaluation_pdf(student, identifier, course_date, answers, score, practical=None):
     """Genera un PDF simple, multipágina y sin dependencias externas."""
@@ -438,14 +580,21 @@ def make_evaluation_pdf(student, identifier, course_date, answers, score, practi
     if practical:
         lines.extend([
             ("R", 8, ""),
-            ("B", 11, "PREGUNTA 30 · CASO PRÁCTICO DE DISEÑO"),
+            ("B", 11, "PREGUNTA 30 · CERRAMIENTO COMPUESTO POR FRECUENCIAS"),
             ("R", 9, f"Resultado: {practical['points']}/{PRACTICAL_POINTS} · {practical['status']}"),
-            ("R", 9, f"T60 obtenido: {practical['t60']:.2f} s · objetivo: ≤ 0,65 s"),
-            ("R", 9, f"Costo: ${practical['cost']:,.0f} · presupuesto: $2.500.000"),
-            ("R", 9, f"Área tratada: {practical['treated_area']:.1f} m2"),
+            ("R", 9, f"Muro: {practical['material']} · {practical['thickness_mm']:.0f} mm · masa superficial {practical['surface_mass']:.1f} kg/m2"),
+            ("R", 9, f"Puerta: {practical['door_type']} · {practical['door_area']:.2f} m2"),
+            ("R", 9, f"Área total: {practical['total_area']:.2f} m2 · área opaca: {practical['opaque_area']:.2f} m2"),
+            ("R", 9, f"Índice único estimado: muro {practical['wall_index']} dB · puerta {practical['door_index']} dB · compuesto {practical['compound_index']} dB"),
+            ("R", 9, f"Objetivo educativo: {PRACTICAL_TARGET} dB · componente dominante: {practical['dominant']}"),
+            ("R", 9, f"Diagnóstico del estudiante: {practical['diagnosis_answer']}"),
+            ("R", 9, f"Interpretación de la curva: {practical['trend_answer']}"),
         ])
-        for surface, material, area, cost in practical["details"]:
-            lines.append(("R", 8, f"{surface}: {material} · {area:.1f} m2 · ${cost:,.0f}"))
+        lines.append(("R", 8, "Bandas (Hz) · R muro / R puerta / R compuesto (dB)"))
+        for frequency, wall_r, door_r, compound_r in zip(
+            PRACTICAL_FREQS, practical["wall_curve"], practical["door_curve"], practical["compound_curve"]
+        ):
+            lines.append(("R", 8, f"{frequency} · {wall_r:.1f} / {door_r:.1f} / {compound_r:.1f}"))
     lines.extend([
         ("R", 8, ""),
         ("B", 11, "REVISIÓN DE RESPUESTAS"),
@@ -1793,82 +1942,23 @@ else:
             )
 
         with teacher_tab_practical:
-            st.markdown("### Simulador libre del caso final")
-            st.caption(
-                "Prueba materiales y coberturas para verificar el desafío. "
-                "Esta simulación no genera puntaje ni entrega."
-            )
-            teacher_solution = {}
-            teacher_cols = st.columns(2)
-            for idx, (surface, area) in enumerate(PRACTICAL_SURFACES.items()):
-                with teacher_cols[idx % 2]:
-                    st.markdown(f"#### {surface} · {area:.0f} m²")
-                    teacher_material = st.selectbox(
-                        f"Material · {surface}",
-                        list(PRACTICAL_MATERIALS),
-                        key=f"teacher_material_{surface}",
-                    )
-                    teacher_coverage = st.slider(
-                        f"Cobertura · {surface}",
-                        0, 100, 0, 10,
-                        key=f"teacher_coverage_{surface}",
-                    )
-                    teacher_solution[surface] = {
-                        "material": teacher_material,
-                        "coverage": teacher_coverage,
-                    }
-            teacher_result = evaluate_practical(teacher_solution)
-            teacher_treated = {
-                item[0]: item[2] for item in teacher_result["details"]
-            }
-            teacher_ceiling_fill = min(
-                100,
-                teacher_treated["Cielo"] / PRACTICAL_SURFACES["Cielo"] * 100,
-            )
-            teacher_wall_fill = min(
-                100,
-                (
-                    teacher_treated["Muro frontal"]
-                    + teacher_treated["Muro posterior"]
-                    + teacher_treated["Muros laterales"]
-                )
-                / 84
-                * 100,
-            )
+            st.markdown("### Pregunta 30 de 30 · Caso práctico de aislamiento al ruido aéreo")
             st.markdown(
-                f"""
-                <div style="position:relative;height:300px;border:5px solid #14243a;border-radius:18px;
-                background:linear-gradient(to top,#d9c3a5 0 18%,#f7f4ee 18%);
-                overflow:hidden;margin:18px 0">
-                  <div style="position:absolute;left:0;top:0;width:{teacher_ceiling_fill:.0f}%;
-                  height:28px;background:#18a7c9;transition:width .45s ease"></div>
-                  <div style="position:absolute;left:0;bottom:18%;width:{teacher_wall_fill:.0f}%;
-                  height:42%;background:repeating-linear-gradient(
-                  90deg,#f5b400 0 42px,#ffd96a 42px 47px);
-                  border-radius:0 10px 0 0;transition:width .45s ease"></div>
-                  <div style="position:absolute;right:7%;bottom:18%;font-size:4rem">🧑‍🏫</div>
-                  <div style="position:absolute;left:4%;top:42px;color:#14243a;font-weight:800">
-                  Cielo tratado: {teacher_ceiling_fill:.0f}%</div>
-                  <div style="position:absolute;left:4%;bottom:23%;color:#14243a;font-weight:800">
-                  Muros tratados: {teacher_wall_fill:.0f}%</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+                f"Configura un muro simple con puerta, analiza su comportamiento entre "
+                f"100 y 3150 Hz y comprueba si el cerramiento compuesto alcanza "
+                f"el objetivo de **{PRACTICAL_TARGET} dB**."
             )
-            t1, t2, t3, t4 = st.columns(4)
-            t1.metric("T₆₀", f'{teacher_result["t60"]:.2f} s')
-            t2.metric("Costo", f'${teacher_result["cost"]:,.0f}')
-            t3.metric("Área tratada", f'{teacher_result["treated_area"]:.1f} m²')
-            t4.metric("Puntaje que obtendría", f'{teacher_result["points"]}/{PRACTICAL_POINTS}')
-            if teacher_result["target_ok"] and teacher_result["budget_ok"]:
-                st.success(
-                    "La configuración cumple el objetivo acústico y el presupuesto."
-                )
+            teacher_solution = practical_controls("teacher_practical")
+            teacher_result = evaluate_practical(teacher_solution)
+            render_practical_result(teacher_result, show_score=True)
+            if teacher_result["target_ok"]:
+                st.success(f'La configuración alcanza el objetivo de {PRACTICAL_TARGET} dB.')
             else:
-                st.warning(
-                    "La configuración todavía no cumple simultáneamente "
-                    "T₆₀ ≤ 0,65 s y costo ≤ $2.500.000."
-                )
+                st.warning(f'La configuración aún no alcanza el objetivo de {PRACTICAL_TARGET} dB.')
+            st.caption(
+                "El índice único se calcula automáticamente con fines educativos. "
+                "El método para obtenerlo se estudiará más adelante."
+            )
 
         with teacher_tab_attempts:
             st.markdown("### Reiniciar una evaluación")
@@ -1915,8 +2005,9 @@ else:
               <div class="exam-meta">30 preguntas · 29 teóricas + 1 práctica de diseño · 40 puntos</div>
               <div class="exam-rule"><b>Intento único por pregunta:</b> selecciona una alternativa y luego presiona
               <b>Confirmar respuesta</b>. Después de confirmarla no podrás cambiarla ni volver atrás.</div>
-              Recibirás retroalimentación inmediata. El cierre será un recinto interactivo donde deberás diseñar
-              una solución de absorción con objetivo y presupuesto. El PDF registrará todo el intento.
+              Recibirás retroalimentación inmediata. El cierre será un cerramiento interactivo: aplicarás la
+              ley de masa por frecuencias e incorporarás una puerta para analizar el aislamiento compuesto.
+              El PDF registrará todo el intento.
             </div>
             """,
             unsafe_allow_html=True,
@@ -1972,82 +2063,40 @@ else:
         and st.session_state.get("final_practical_stage", False)
         and not st.session_state.get("final_submitted", False)
     ):
-        st.markdown(f"**Pregunta 30 de 30 · Caso práctico · {PRACTICAL_POINTS} puntos**")
+        st.markdown(f"**Pregunta 30 de 30 · Caso práctico de aislamiento al ruido aéreo · {PRACTICAL_POINTS} puntos**")
         st.progress(1.0)
         st.markdown(
-            """
+            f"""
             <div class="exam-shell">
-              <span class="topic-chip">Diseño acústico aplicado</span>
-              <div class="exam-kicker">Recinto multipropósito · 8 × 6 × 3 m · banda de 500 Hz</div>
-              <div class="exam-title">Consigue T₆₀ ≤ 0,65 s sin superar $2.500.000</div>
-              <div class="exam-meta">Instala materiales en el cielo y los muros. Puedes probar combinaciones
-              libremente; solo la entrega definitiva quedará registrada y bloqueada.</div>
+              <span class="topic-chip">Ley de masa · Cerramiento compuesto</span>
+              <div class="exam-kicker">Análisis entre 100 y 3150 Hz en tercios de octava</div>
+              <div class="exam-title">Diseña un cerramiento que alcance un índice único estimado de {PRACTICAL_TARGET} dB</div>
+              <div class="exam-meta">Selecciona material y espesor, incorpora una puerta y observa cómo cambia
+              el aislamiento por frecuencia. Después interpreta el elemento débil y entrega una única solución.</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
         locked = st.session_state.final_practical_result is not None
-        solution = {}
-        material_names = list(PRACTICAL_MATERIALS)
-        surface_cols = st.columns(2)
-        for idx, (surface, area) in enumerate(PRACTICAL_SURFACES.items()):
-            with surface_cols[idx % 2]:
-                st.markdown(f"#### {surface} · {area:.0f} m²")
-                material = st.selectbox(
-                    f"Material para {surface.lower()}",
-                    material_names,
-                    key=f"practical_material_{surface}",
-                    disabled=locked,
-                )
-                coverage = st.slider(
-                    f"Cobertura en {surface.lower()}",
-                    0, 100, 0, 10,
-                    key=f"practical_coverage_{surface}",
-                    disabled=locked,
-                )
-                solution[surface] = {"material": material, "coverage": coverage}
+        solution = practical_controls("practical_final", disabled=locked)
 
         if not locked and solution != st.session_state.get("final_practical_draft"):
             st.session_state.final_practical_draft = solution
             save_attempt()
 
         preview = st.session_state.final_practical_result or evaluate_practical(solution)
-        treated = {item[0]: item[2] for item in preview["details"]}
-        ceiling_fill = min(100, treated["Cielo"] / PRACTICAL_SURFACES["Cielo"] * 100)
-        wall_fill = min(
-            100,
-            (treated["Muro frontal"] + treated["Muro posterior"] + treated["Muros laterales"])
-            / 84 * 100,
+        render_practical_result(preview)
+        st.caption(
+            "El índice único se obtiene automáticamente a partir de toda la curva. "
+            "No corresponde a un promedio aritmético; su procedimiento se estudiará más adelante."
         )
-        st.markdown(
-            f"""
-            <div style="position:relative;height:300px;border:5px solid #14243a;border-radius:18px;
-            background:linear-gradient(to top,#d9c3a5 0 18%,#f7f4ee 18%);overflow:hidden;margin:18px 0">
-              <div style="position:absolute;left:0;top:0;width:{ceiling_fill:.0f}%;height:28px;
-              background:#18a7c9"></div>
-              <div style="position:absolute;left:0;bottom:18%;width:{wall_fill:.0f}%;height:42%;
-              background:repeating-linear-gradient(90deg,#f5b400 0 42px,#ffd96a 42px 47px);
-              border-radius:0 10px 0 0"></div>
-              <div style="position:absolute;right:7%;bottom:18%;font-size:4rem">🧑‍🏫</div>
-              <div style="position:absolute;left:4%;top:42px;color:#14243a;font-weight:800">
-              Cielo tratado: {ceiling_fill:.0f}%</div>
-              <div style="position:absolute;left:4%;bottom:23%;color:#14243a;font-weight:800">
-              Muros tratados: {wall_fill:.0f}%</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Absorción equivalente", f'{preview["absorption"]:.1f} m² sabin')
-        m2.metric("T₆₀ estimado", f'{preview["t60"]:.2f} s',
-                  "Cumple" if preview["target_ok"] else "No cumple")
-        m3.metric("Costo estimado", f'${preview["cost"]:,.0f}',
-                  "Dentro del presupuesto" if preview["budget_ok"] else "Excede presupuesto")
-        m4.metric("Área tratada", f'{preview["treated_area"]:.1f} m²')
 
         if not locked:
-            st.info("Prueba distintas combinaciones. Los indicadores son una vista previa y aún no afectan tu puntaje.")
+            st.info(
+                "Prueba distintas combinaciones antes de entregar. Observa especialmente cuánto cambia "
+                "la curva compuesta al modificar la puerta, el espesor y la masa superficial."
+            )
             confirm_practical = st.checkbox(
                 "Confirmo que esta será mi solución definitiva.",
                 key="confirm_final_practical",
@@ -2061,25 +2110,20 @@ else:
                     st.rerun()
         else:
             result = st.session_state.final_practical_result
-            if result["target_ok"] and result["budget_ok"]:
+            if result["target_ok"]:
                 st.success(
-                    f'✅ {result["status"]}: alcanzaste el objetivo acústico dentro del presupuesto. '
+                    f'✅ {result["status"]}: alcanzaste el objetivo de {PRACTICAL_TARGET} dB. '
                     f'Puntaje de la pregunta 30: {result["points"]}/{PRACTICAL_POINTS}.'
                 )
             else:
-                missing = []
-                if not result["target_ok"]:
-                    missing.append("aumentar la absorción para reducir T₆₀")
-                if not result["budget_ok"]:
-                    missing.append("reducir área o escoger un material más eficiente")
                 st.error(
-                    f'❌ {result["status"]}. Debías {" y ".join(missing)}. '
-                    f'Una solución correcta debe cumplir simultáneamente T₆₀ ≤ 0,65 s y costo ≤ $2.500.000. '
+                    f'❌ {result["status"]}. El cerramiento obtuvo {result["compound_index"]} dB '
+                    f'y el objetivo era {PRACTICAL_TARGET} dB. '
                     f'Puntaje: {result["points"]}/{PRACTICAL_POINTS}.'
                 )
             st.caption(
-                "Criterio: desempeño acústico 5 pt · presupuesto 2 pt · distribución en superficies "
-                "2 pt · eficiencia económica 2 pt."
+                "Criterio: cumplimiento del objetivo 5 pt · identificación del elemento dominante "
+                "3 pt · interpretación por frecuencia 2 pt · margen de seguridad 1 pt."
             )
             if st.button("Finalizar evaluación y generar PDF", type="primary", use_container_width=True):
                 score = sum(
