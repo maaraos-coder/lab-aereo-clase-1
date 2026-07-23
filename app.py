@@ -47,9 +47,10 @@ h1,h2,h3{color:var(--ink);letter-spacing:-.03em}.eyebrow{font-size:.74rem;font-w
 .good{background:#e9f8f3;border:1px solid #afe2d2;color:#12644f;border-radius:13px;padding:.9rem 1rem}.warn{background:#fff5e8;border:1px solid #ffd5a6;color:#794411;border-radius:13px;padding:.9rem 1rem}
 .room{min-height:230px;border-radius:18px;border:8px solid #d6e0e9;background:linear-gradient(180deg,#e8f6ff 0 72%,#d5c4a7 72%);position:relative;padding:1rem;text-align:center;overflow:hidden}.sound{font-size:2.5rem;margin-top:45px}.wall{height:230px;border-radius:14px;display:grid;place-items:center;background:repeating-linear-gradient(90deg,#8fa3b8 0,#8fa3b8 10px,#aebdca 10px,#aebdca 20px);color:white;font-weight:800}
 .acoustic-demo{background:#fff;border:1px solid var(--line);border-radius:20px;padding:1.1rem;box-shadow:0 7px 25px #173b6810;margin:.75rem 0 1rem}.acoustic-scene{display:grid;grid-template-columns:1fr 62px 1fr;min-height:310px;overflow:hidden;border:1px solid #c9d8e7;border-radius:16px;background:#eaf5fc}.demo-room{position:relative;overflow:hidden;background:linear-gradient(180deg,#dff2ff 0 75%,#cdbb9d 75%);display:flex;align-items:center;justify-content:center}.demo-room:first-child{border-right:5px solid #8295a8}.demo-room:last-child{border-left:5px solid #8295a8}.room-label{position:absolute;left:14px;top:12px;z-index:5;background:#ffffffdf;border:1px solid #d8e5ef;border-radius:8px;padding:.35rem .55rem;font-size:.72rem;font-weight:800;color:#40536a}.source-icon,.receiver-icon{font-size:3.2rem;z-index:3}.sound-wave{position:absolute;left:55%;top:47%;font-size:2rem;color:#0b78d1;font-weight:800;letter-spacing:.1rem}.partition{position:relative;background:repeating-linear-gradient(90deg,#899bad 0,#899bad 8px,#aab8c4 8px,#aab8c4 16px);display:flex;align-items:center;justify-content:center}.isolation-layer{position:absolute;inset:13px 7px;border:5px solid #1076c8;border-radius:5px;background:repeating-linear-gradient(0deg,#dbf0ff 0,#dbf0ff 14px,#76b7e8 14px,#76b7e8 18px);box-shadow:inset 0 0 0 3px #fff}.isolation-layer.double{border-width:7px;border-color:#075a9c;background:repeating-linear-gradient(0deg,#cbe9ff 0,#cbe9ff 10px,#278bcf 10px,#278bcf 14px)}.partition-tag{position:relative;z-index:3;writing-mode:vertical-rl;transform:rotate(180deg);background:#07172bdc;color:#fff;border-radius:7px;padding:.55rem .3rem;font-size:.68rem;font-weight:800}.absorber{position:absolute;width:78px;height:34px;border-radius:5px;background:repeating-linear-gradient(135deg,#0fb6c9 0,#0fb6c9 6px,#77dfe9 6px,#77dfe9 12px);border:3px solid white;box-shadow:0 2px 8px #123b6840}.absorber.a1{left:8%;top:25%}.absorber.a2{left:8%;top:48%}.absorber.a3{right:7%;top:18%}.absorber.a4{right:7%;top:52%}.ceiling-cloud{position:absolute;left:24%;right:24%;top:8%;height:15px;border-radius:5px;background:#14b8c8;border:3px solid white}.result-card{height:100%;border-radius:17px;padding:1.15rem 1.25rem;background:#fff;border:1px solid var(--line);box-shadow:0 7px 25px #173b6810}.result-card.rt{border-top:5px solid #15a9ba}.result-card.iso{border-top:5px solid #0875d1}.result-label{font-size:.72rem;font-weight:800;letter-spacing:.08em;color:#60718a;text-transform:uppercase}.result-value{font-size:2rem;font-weight:800;color:#14243a;margin:.2rem 0}.result-change{display:inline-block;border-radius:20px;padding:.25rem .55rem;font-size:.78rem;font-weight:800}.result-change.goodchange{background:#e7f8f4;color:#08775d}.result-note{color:#60718a;font-size:.82rem;margin-top:.55rem}
+.abs-room-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:1rem;box-shadow:0 7px 25px #173b6810}.abs-room-title{font-size:.75rem;font-weight:800;letter-spacing:.08em;color:#60718a;text-transform:uppercase;margin-bottom:.65rem}.abs-room{height:270px;position:relative;overflow:hidden;border:1px solid #bed0df;border-radius:14px;background:linear-gradient(145deg,#e7f5ff 0 63%,#c6af8c 63%)}.abs-back{position:absolute;left:15%;right:15%;top:12%;bottom:24%;border:4px solid #a5b8c8;background:#dff0f9}.abs-side-l,.abs-side-r{position:absolute;top:8%;bottom:18%;width:18%;background:#cfdfeb}.abs-side-l{left:0;clip-path:polygon(0 0,100% 12%,100% 88%,0 100%)}.abs-side-r{right:0;clip-path:polygon(0 12%,100% 0,100% 100%,0 88%)}.abs-floor{position:absolute;left:0;right:0;bottom:0;height:26%;background:repeating-linear-gradient(90deg,#b99d75 0,#b99d75 22px,#c9b18e 22px,#c9b18e 44px);clip-path:polygon(15% 0,85% 0,100% 100%,0 100%)}.abs-person{position:absolute;z-index:4;left:47%;bottom:15%;font-size:2.7rem}.abs-panel{position:absolute;z-index:3;width:18%;height:20%;border:3px solid #fff;border-radius:5px;background:repeating-linear-gradient(135deg,#0aaec2 0,#0aaec2 7px,#72dce7 7px,#72dce7 14px);box-shadow:0 3px 8px #123b6840}.abs-panel.p1{left:22%;top:24%}.abs-panel.p2{right:22%;top:24%}.abs-panel.p3{left:22%;top:50%}.abs-panel.p4{right:22%;top:50%}.abs-panel.side1{left:2%;top:32%;transform:skewY(-8deg)}.abs-panel.side2{right:2%;top:32%;transform:skewY(8deg)}.abs-cloud{position:absolute;z-index:4;left:32%;right:32%;top:7%;height:12px;border:3px solid #fff;border-radius:5px;background:#0aaec2;box-shadow:0 5px 8px #123b6835}.abs-echo{position:absolute;z-index:2;color:#0b78d1;font-size:1.2rem;font-weight:800}.abs-echo.e1{left:25%;bottom:29%}.abs-echo.e2{right:22%;bottom:38%}.abs-room-badge{position:absolute;z-index:6;left:10px;top:10px;background:#07172bdd;color:#fff;border-radius:8px;padding:.35rem .55rem;font-size:.68rem;font-weight:800}.abs-summary{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-top:.8rem}.abs-mini{border-radius:12px;background:#f4f8fc;border:1px solid #dce6f2;padding:.75rem}.abs-mini b{display:block;font-size:1.25rem;color:#14243a}.abs-mini span{font-size:.72rem;color:#60718a}
 .footer{color:#718198;font-size:.75rem;text-align:center;border-top:1px solid #dbe5ef;margin-top:2rem;padding:1rem}
 div[data-testid="stMetric"]{background:white;border:1px solid var(--line);border-radius:15px;padding:1rem}button[kind="primary"]{background:#0875d1!important;border-radius:11px!important}
-@media(max-width:720px){.institutional{align-items:flex-start;gap:1rem;padding:1rem}.institutional-left{gap:.75rem}.institutional-left img{width:56px;height:72px}.institutional-copy{padding-left:.75rem}.institutional-title{font-size:.88rem}.institutional-sub{font-size:.75rem}.institutional-right img{width:110px}.hero{padding:1.5rem}.hero h1{font-size:1.8rem}.acoustic-scene{grid-template-columns:1fr 42px 1fr;min-height:245px}.absorber{width:48px;height:26px}.source-icon,.receiver-icon{font-size:2.4rem}.sound-wave{display:none}}
+@media(max-width:720px){.institutional{align-items:flex-start;gap:1rem;padding:1rem}.institutional-left{gap:.75rem}.institutional-left img{width:56px;height:72px}.institutional-copy{padding-left:.75rem}.institutional-title{font-size:.88rem}.institutional-sub{font-size:.75rem}.institutional-right img{width:110px}.hero{padding:1.5rem}.hero h1{font-size:1.8rem}.acoustic-scene{grid-template-columns:1fr 42px 1fr;min-height:245px}.absorber{width:48px;height:26px}.source-icon,.receiver-icon{font-size:2.4rem}.sound-wave{display:none}.abs-room{height:225px}.abs-summary{grid-template-columns:1fr}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -63,6 +64,16 @@ ABS = {
     "Panel de lana mineral": .85, "Cielo acústico": .75,
 }
 FREQS = np.array([125, 250, 500, 1000, 2000, 4000])
+ABS_FREQ = {
+    "Hormigón pintado": [0.01, 0.01, 0.02, 0.02, 0.02, 0.03],
+    "Vidrio": [0.18, 0.06, 0.04, 0.03, 0.02, 0.02],
+    "Yeso-cartón": [0.29, 0.10, 0.05, 0.04, 0.07, 0.09],
+    "Madera": [0.15, 0.11, 0.10, 0.07, 0.06, 0.07],
+    "Alfombra": [0.08, 0.24, 0.57, 0.69, 0.71, 0.73],
+    "Cortina pesada": [0.14, 0.35, 0.55, 0.72, 0.70, 0.65],
+    "Panel de lana mineral": [0.25, 0.55, 0.85, 0.95, 0.95, 0.90],
+    "Cielo acústico": [0.35, 0.60, 0.80, 0.85, 0.85, 0.80],
+}
 
 if "score" not in st.session_state: st.session_state.score = 0
 if "answered" not in st.session_state: st.session_state.answered = set()
@@ -423,20 +434,183 @@ elif page.startswith("3 ·"):
     quiz("mass", "Según la ley de masa ideal, ¿cuánto aumenta R al duplicar la masa superficial?", ["Aproximadamente 3 dB", "Aproximadamente 6 dB", "Aproximadamente 10 dB"], "Aproximadamente 6 dB", "20·log₁₀(2) ≈ 6 dB. En una construcción real puede diferir.")
 
 elif page.startswith("4 ·"):
-    module_head("MÓDULO 4 · CONSTRUYE", "Absorción del recinto", "Dimensiona una sala, asigna materiales y calcula su absorción equivalente y tiempo de reverberación estimado.")
-    c1,c2=st.columns([.8,1.3])
-    with c1:
-        L=st.number_input("Largo (m)",2.0,30.0,6.0,.5); W=st.number_input("Ancho (m)",2.0,20.0,5.0,.5); H=st.number_input("Alto (m)",2.0,8.0,2.8,.1)
-        floor=st.selectbox("Piso",list(ABS),index=4); ceiling=st.selectbox("Cielo",list(ABS),index=7); walls=st.selectbox("Muros",list(ABS),index=2)
-        s_floor=L*W; s_walls=2*(L+W)*H
-        parts=[("Piso",s_floor,ABS[floor]),("Cielo",s_floor,ABS[ceiling]),("Muros",s_walls,ABS[walls])]
-        A=sum(s*a for _,s,a in parts); V=L*W*H; rt=.161*V/A
-    with c2:
-        df=pd.DataFrame(parts,columns=["Superficie","Área (m²)","α"]);df["Absorción (sabines)"]=df["Área (m²)"]*df["α"]
-        st.dataframe(df.style.format({"Área (m²)":"{:.1f}","α":"{:.2f}","Absorción (sabines)":"{:.1f}"}),use_container_width=True,hide_index=True)
-        a,b,c=st.columns(3);a.metric("Volumen",f"{V:.1f} m³");b.metric("Absorción total",f"{A:.1f} sabines");c.metric("T₆₀ Sabine",f"{rt:.2f} s")
-        fig=go.Figure(go.Bar(x=df["Superficie"],y=df["Absorción (sabines)"],marker_color=["#0875d1","#17c3e6","#ef8b2c"],text=df["Absorción (sabines)"].round(1),textposition="outside"));fig.update_layout(height=300,margin=dict(l=20,r=20,t=20,b=20),yaxis_title="Sabines",paper_bgcolor="white",plot_bgcolor="white");st.plotly_chart(fig,use_container_width=True)
-    st.markdown('<div class="concept"><b>Interpretación:</b> aumentar A reduce el tiempo de reverberación, pero no implica automáticamente aumentar el aislamiento hacia otro recinto.</div>',unsafe_allow_html=True)
+    module_head(
+        "MÓDULO 4 · ACONDICIONA",
+        "Absorción acústica del recinto",
+        "Interviene el recinto receptor y observa cómo el coeficiente de absorción, el área tratada y la frecuencia modifican la absorción equivalente y el tiempo de reverberación.",
+    )
+
+    st.markdown("### 1. Define el recinto receptor y la banda de análisis")
+    d1, d2, d3, d4 = st.columns(4)
+    with d1:
+        L = st.number_input("Largo (m)", 2.0, 30.0, 6.0, .5, key="abs_l")
+    with d2:
+        W = st.number_input("Ancho (m)", 2.0, 20.0, 5.0, .5, key="abs_w")
+    with d3:
+        H = st.number_input("Altura (m)", 2.0, 8.0, 2.8, .1, key="abs_h")
+    with d4:
+        selected_abs_freq = st.selectbox(
+            "Banda de frecuencia (Hz)",
+            list(FREQS),
+            index=2,
+            key="abs_freq",
+            help="Los coeficientes α cambian con la frecuencia. La comparación se realiza en una banda de octava.",
+        )
+
+    freq_index = list(FREQS).index(selected_abs_freq)
+    s_floor = L * W
+    s_ceiling = s_floor
+    s_walls = 2 * (L + W) * H
+    volume = L * W * H
+
+    st.markdown("### 2. Configura el estado inicial y agrega tratamiento")
+    base_col, treatment_col = st.columns(2)
+    with base_col:
+        st.markdown("#### Estado inicial del recinto")
+        floor_material = st.selectbox("Material del piso", list(ABS_FREQ), index=0, key="abs_floor")
+        wall_material = st.selectbox("Material de los muros", list(ABS_FREQ), index=2, key="abs_walls")
+        ceiling_material = st.selectbox("Material del cielo", list(ABS_FREQ), index=2, key="abs_ceiling")
+    with treatment_col:
+        st.markdown("#### Tratamiento absorbente")
+        panel_material = st.selectbox(
+            "Material absorbente",
+            ["Panel de lana mineral", "Cortina pesada", "Cielo acústico"],
+            key="abs_panel_material",
+        )
+        wall_coverage = st.slider(
+            "Cobertura de muros con absorbente", 0, 60, 20, 5,
+            format="%d %%", key="abs_wall_coverage",
+        )
+        cloud_coverage = st.slider(
+            "Cobertura del cielo con nube acústica", 0, 100, 30, 5,
+            format="%d %%", key="abs_cloud_coverage",
+        )
+
+    alpha_floor = ABS_FREQ[floor_material][freq_index]
+    alpha_wall = ABS_FREQ[wall_material][freq_index]
+    alpha_ceiling = ABS_FREQ[ceiling_material][freq_index]
+    alpha_panel = ABS_FREQ[panel_material][freq_index]
+    treated_wall_area = s_walls * wall_coverage / 100
+    treated_cloud_area = s_ceiling * cloud_coverage / 100
+
+    base_parts = [
+        ("Piso", s_floor, alpha_floor),
+        ("Muros", s_walls, alpha_wall),
+        ("Cielo", s_ceiling, alpha_ceiling),
+    ]
+    treated_parts = [
+        ("Piso existente", s_floor, alpha_floor),
+        ("Muros sin tratar", s_walls - treated_wall_area, alpha_wall),
+        ("Paneles murales", treated_wall_area, alpha_panel),
+        ("Cielo sin tratar", s_ceiling - treated_cloud_area, alpha_ceiling),
+        ("Nube acústica", treated_cloud_area, alpha_panel),
+    ]
+    base_a = sum(area * alpha for _, area, alpha in base_parts)
+    treated_a = sum(area * alpha for _, area, alpha in treated_parts)
+    base_rt = .161 * volume / max(base_a, .01)
+    treated_rt = .161 * volume / max(treated_a, .01)
+    rt_change = treated_rt - base_rt
+    a_change = treated_a - base_a
+
+    panel_count = 0 if wall_coverage == 0 else min(4, max(1, math.ceil(wall_coverage / 15)))
+    panel_html = "".join(
+        f'<span class="abs-panel {panel_class}"></span>'
+        for panel_class in ["p1", "p2", "p3", "p4"][:panel_count]
+    )
+    if wall_coverage >= 45:
+        panel_html += '<span class="abs-panel side1"></span><span class="abs-panel side2"></span>'
+    cloud_html = '<span class="abs-cloud"></span>' if cloud_coverage > 0 else ""
+    echo_after = ")))" if treated_rt > 1.2 else ")" if treated_rt < .6 else "))"
+
+    st.markdown("### 3. Observa el recinto antes y después")
+    before_room, after_room = st.columns(2)
+    with before_room:
+        st.markdown(
+            f'''<div class="abs-room-card"><div class="abs-room-title">Estado inicial · {selected_abs_freq} Hz</div>
+            <div class="abs-room"><span class="abs-room-badge">SIN TRATAMIENTO</span><span class="abs-back"></span>
+            <span class="abs-side-l"></span><span class="abs-side-r"></span><span class="abs-floor"></span>
+            <span class="abs-person">👂</span><span class="abs-echo e1">))))</span><span class="abs-echo e2">)))</span></div>
+            <div class="abs-summary"><div class="abs-mini"><span>ABSORCIÓN EQUIVALENTE</span><b>{base_a:.1f} sabines</b></div>
+            <div class="abs-mini"><span>TIEMPO DE REVERBERACIÓN</span><b>{base_rt:.2f} s</b></div></div></div>''',
+            unsafe_allow_html=True,
+        )
+    with after_room:
+        st.markdown(
+            f'''<div class="abs-room-card"><div class="abs-room-title">Estado tratado · {selected_abs_freq} Hz</div>
+            <div class="abs-room"><span class="abs-room-badge">RECINTO RECEPTOR TRATADO</span><span class="abs-back"></span>
+            <span class="abs-side-l"></span><span class="abs-side-r"></span><span class="abs-floor"></span>
+            {panel_html}{cloud_html}<span class="abs-person">👂</span><span class="abs-echo e1">{echo_after}</span></div>
+            <div class="abs-summary"><div class="abs-mini"><span>ABSORCIÓN EQUIVALENTE</span><b>{treated_a:.1f} sabines</b></div>
+            <div class="abs-mini"><span>TIEMPO DE REVERBERACIÓN</span><b>{treated_rt:.2f} s</b></div></div></div>''',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("### 4. Compara el efecto del tratamiento")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Volumen", f"{volume:.1f} m³")
+    m2.metric("Área tratada", f"{treated_wall_area + treated_cloud_area:.1f} m²")
+    m3.metric("Cambio de absorción", f"{a_change:+.1f} sabines")
+    m4.metric("Cambio de T₆₀", f"{rt_change:+.2f} s")
+
+    contribution_df = pd.DataFrame(treated_parts, columns=["Superficie", "Área (m²)", "α"])
+    contribution_df["Absorción (sabines)"] = contribution_df["Área (m²)"] * contribution_df["α"]
+    chart_col, table_col = st.columns([1.15, 1])
+    with chart_col:
+        fig = go.Figure(go.Bar(
+            x=contribution_df["Superficie"],
+            y=contribution_df["Absorción (sabines)"],
+            marker_color=["#8fa3b8", "#a8b8c6", "#0aaec2", "#c2ced8", "#0875d1"],
+            text=contribution_df["Absorción (sabines)"].round(1),
+            textposition="outside",
+        ))
+        fig.update_layout(
+            title=f"Aporte de cada superficie a {selected_abs_freq} Hz",
+            height=350, margin=dict(l=20, r=20, t=55, b=20),
+            yaxis_title="Absorción equivalente (sabines)",
+            paper_bgcolor="white", plot_bgcolor="white",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    with table_col:
+        st.dataframe(
+            contribution_df.style.format({
+                "Área (m²)": "{:.1f}", "α": "{:.2f}", "Absorción (sabines)": "{:.1f}",
+            }),
+            use_container_width=True, hide_index=True,
+        )
+        st.caption(
+            f"En {selected_abs_freq} Hz: α del tratamiento = {alpha_panel:.2f}. "
+            "Un sabin equivale a 1 m² de superficie perfectamente absorbente."
+        )
+
+    if a_change <= .01:
+        st.markdown(
+            '<div class="warn"><b>Aún no hay una intervención efectiva.</b> Aumenta la cobertura o selecciona un material con mayor α en la banda analizada.</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        reduction_pct = max(0, (1 - treated_rt / base_rt) * 100)
+        st.markdown(
+            f'''<div class="good"><b>Lectura del experimento:</b> el tratamiento agrega
+            {a_change:.1f} sabines y reduce el T₆₀ en {reduction_pct:.0f} % a {selected_abs_freq} Hz.
+            La absorción controla la energía reflejada dentro del recinto receptor; este cálculo no representa
+            un aumento del aislamiento del muro divisorio.</div>''',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown(
+        r'''<div class="concept"><b>Modelo utilizado:</b>
+        A = Σ Sᵢαᵢ y T₆₀ = 0,161 V/A.
+        La ecuación de Sabine supone un campo suficientemente difuso y absorción distribuida.
+        En recintos muy absorbentes, geometrías especiales o distribución no uniforme, la estimación puede perder precisión.</div>''',
+        unsafe_allow_html=True,
+    )
+    quiz(
+        "absorption_room",
+        "Si el volumen permanece constante y duplicamos la absorción equivalente A, ¿qué ocurre con T₆₀ según Sabine?",
+        ["Se duplica", "Se reduce aproximadamente a la mitad", "No cambia"],
+        "Se reduce aproximadamente a la mitad",
+        "Como T₆₀ = 0,161·V/A, el tiempo es inversamente proporcional a la absorción equivalente.",
+    )
 
 elif page.startswith("5 ·"):
     module_head("MÓDULO 5 · COMBINA", "Elementos compuestos", "Descubre por qué una pequeña superficie débil puede controlar el desempeño de toda una partición.")
