@@ -43,21 +43,63 @@ grid-template-columns:48px 1fr;gap:.8rem;align-items:start;box-shadow:0 7px 20px
 .question-label{font-size:.76rem;letter-spacing:.12em;font-weight:900;color:#0871bd}.question-text{font-size:1.18rem;font-weight:850;color:#102b49;margin-top:.35rem}
 .scene-pro{position:relative;min-height:300px;border-radius:22px;overflow:hidden;border:1px solid #bdd4e8;
 background:linear-gradient(#dff3ff 0 61%,#d8dde2 61%);margin:1rem 0;box-shadow:0 12px 30px #17324d16}
-.machine,.person,.barrier,.waves,.distance-label{position:absolute}.machine{left:8%;bottom:18%;font-size:4rem;z-index:3}
-.machine-box{position:absolute;left:5%;bottom:13%;width:125px;height:125px;border:7px solid #ef8b2c;border-radius:12px;background:#ffedd9aa;z-index:2}
-.mounts{position:absolute;left:8%;bottom:13%;font-size:1.5rem;letter-spacing:18px;z-index:4}
-.person{right:9%;bottom:18%;font-size:4.2rem;z-index:3}.headphones{position:absolute;right:9%;bottom:32%;font-size:3rem;z-index:4}
-.receiver-cabin{position:absolute;right:5%;bottom:12%;width:125px;height:145px;border:6px solid #1976b9;border-radius:12px;background:#dff3ff66;z-index:2}
+.machine,.person,.barrier,.waves,.distance-label{position:absolute}.machine{left:8%;bottom:18%;font-size:4rem;z-index:3;transition:left .45s ease}
+.machine-box{position:absolute;left:5%;bottom:13%;width:125px;height:125px;border:7px solid #ef8b2c;border-radius:12px;background:#ffedd9aa;z-index:2;transition:left .45s ease}
+.mounts{position:absolute;left:8%;bottom:13%;font-size:1.5rem;letter-spacing:18px;z-index:4;transition:left .45s ease}
+.person{right:9%;bottom:18%;font-size:4.2rem;z-index:3;transition:right .45s ease}.headphones{position:absolute;right:9%;bottom:32%;font-size:3rem;z-index:4;transition:right .45s ease}
+.receiver-cabin{position:absolute;right:5%;bottom:12%;width:125px;height:145px;border:6px solid #1976b9;border-radius:12px;background:#dff3ff66;z-index:2;transition:right .45s ease}
+.receiver-facade{position:absolute;right:3%;bottom:8%;width:155px;height:175px;background:#e9edf2;border:8px solid #657789;border-radius:5px;z-index:1;transition:right .45s ease}
+.receiver-facade:before{content:"";position:absolute;left:20px;top:20px;width:92px;height:92px;background:linear-gradient(135deg,#bfe9ff,#effaff);border:9px double #176fa8;box-shadow:inset 0 0 0 2px #fff}
+.receiver-facade:after{content:"FACHADA AISLANTE";position:absolute;left:12px;right:12px;bottom:9px;text-align:center;font-size:.63rem;font-weight:900;color:#32465a}
+.scene-pro.distance-on .machine{left:3%}.scene-pro.distance-on .machine-box{left:1%}.scene-pro.distance-on .mounts{left:4%}
+.scene-pro.distance-on .person{right:3%}.scene-pro.distance-on .headphones{right:3%}.scene-pro.distance-on .receiver-cabin{right:1%}.scene-pro.distance-on .receiver-facade{right:0}
 .barrier{left:48%;bottom:13%;width:30px;height:155px;background:repeating-linear-gradient(90deg,#27394c,#27394c 8px,#50677c 8px,#50677c 14px);z-index:4}
 .waves{left:24%;right:25%;top:38%;font-size:2rem;letter-spacing:.5rem;color:#0a80ce;white-space:nowrap;overflow:hidden}
 .distance-label{left:36%;bottom:5%;font-size:.8rem;font-weight:800;color:#40536b}
 .scene-caption{position:absolute;left:1rem;top:1rem;background:#07172be8;color:white;padding:.5rem .8rem;border-radius:10px;font-weight:800}
 .section-band{display:flex;align-items:center;gap:.8rem;margin:1.45rem 0 .6rem}.section-band span{font-size:1.5rem}.section-band h3{margin:0;color:#0a2d52}
 .matter-wrap{background:white;border:1px solid var(--line);border-radius:18px;padding:.3rem 1.25rem 1rem}
+.matter-heading{display:flex;align-items:center;gap:.85rem;margin:1.35rem 0 .75rem}
+.matter-heading-icon{display:flex;width:46px;height:46px;align-items:center;justify-content:center;border-radius:14px;
+background:linear-gradient(135deg,#0967d2,#17b9db);color:white;font-size:1.35rem;box-shadow:0 8px 20px #0967d233}
+.matter-heading h2{font-size:1.4rem;color:#092342;margin:0}.matter-heading p{margin:.12rem 0 0;color:var(--muted);font-size:.9rem}
+.didactic-card-title{display:flex;gap:.55rem;align-items:center;color:#092d53;font-size:1.03rem;font-weight:900;
+margin:0 0 .55rem}.didactic-card-title span{display:flex;width:29px;height:29px;border-radius:9px;align-items:center;
+justify-content:center;background:#e7f4ff;font-size:.9rem}
+.didactic-duration{display:inline-flex;align-items:center;gap:.4rem;background:#eaf9f4;color:#08765d;border:1px solid #bde9db;
+border-radius:999px;padding:.36rem .7rem;font-size:.78rem;font-weight:850;margin-bottom:.7rem}
+.didactic-note{background:linear-gradient(135deg,#eef7ff,#fff);border:1px solid #c7e0f3;border-radius:14px;
+padding:.8rem .9rem;color:#334b64;font-size:.88rem;margin:.45rem 0}
+.teacher-only{background:linear-gradient(135deg,#241548,#493285);color:white;border-radius:18px;padding:1rem 1.2rem;
+margin:1.2rem 0 .6rem;box-shadow:0 10px 28px #25164a22;border:1px solid #9d87d755}
+.teacher-only b{font-size:1.02rem}.teacher-only span{display:block;color:#ddd4f6;font-size:.86rem;margin-top:.22rem}
+.st-key-academic_card{height:100%}
 div[data-testid="stMetric"]{background:white;border:1px solid var(--line);padding:.7rem 1rem;border-radius:14px}
 .scene{display:grid;grid-template-columns:1fr 80px 1fr;min-height:230px;border:1px solid #bcd0e4;border-radius:18px;overflow:hidden;background:white}
 .room{display:flex;align-items:center;justify-content:center;font-size:3rem;position:relative;background:linear-gradient(#edf7ff,#fff)}
 .wall{background:#25374a;display:flex;align-items:center;justify-content:center;color:white;font-size:.72rem;writing-mode:vertical-rl;font-weight:800}
+.two-room-lab{display:grid;grid-template-columns:1fr 74px 1fr;min-height:330px;border:1px solid #b8cfe3;
+border-radius:22px;overflow:hidden;background:white;box-shadow:0 12px 30px #17324d16;margin:1rem 0}
+.lab-room{position:relative;overflow:hidden;background:linear-gradient(#eaf7ff 0 72%,#d9c8aa 72%);padding:1rem}
+.lab-room.receiver{background:linear-gradient(#f1f8fc 0 72%,#d9c8aa 72%)}
+.room-name{position:absolute;top:14px;left:14px;background:#07172be8;color:white;padding:.45rem .7rem;
+border-radius:9px;font-size:.75rem;font-weight:900;letter-spacing:.05em;z-index:5}
+.speaker-visual{position:absolute;left:14%;bottom:17%;font-size:4.3rem}.listener-visual{position:absolute;right:13%;bottom:17%;font-size:4.1rem}
+.incident-wave{position:absolute;left:38%;top:42%;font-size:2.1rem;color:#0877c5;letter-spacing:.2rem;font-weight:900}
+.transmitted-wave{position:absolute;left:12%;top:42%;font-size:2rem;color:#0877c5;font-weight:900}
+.lab-panel{position:relative;display:flex;align-items:center;justify-content:center;color:white;text-align:center;
+font-size:.69rem;font-weight:900;padding:.35rem;writing-mode:vertical-rl;transform:rotate(180deg)}
+.lab-panel.light{background:repeating-linear-gradient(90deg,#8795a4,#8795a4 9px,#aeb9c4 9px,#aeb9c4 16px)}
+.lab-panel.masonry{background:repeating-linear-gradient(0deg,#974f3e,#974f3e 22px,#d5a18d 23px,#d5a18d 26px)}
+.lab-panel.double{background:linear-gradient(90deg,#263849 0 25%,#dce8f2 25% 75%,#263849 75% 100%)}
+.absorber{position:absolute;background:repeating-linear-gradient(135deg,#15a6b8,#15a6b8 8px,#79d6df 8px,#79d6df 16px);
+border:4px solid #087585;border-radius:6px;box-shadow:0 4px 10px #083f4b28}
+.absorber.a1{left:9%;top:20%;width:72px;height:32px}.absorber.a2{right:9%;top:20%;width:72px;height:32px}
+.absorber.a3{left:35%;top:20%;width:72px;height:32px}.absorber.ceiling{left:20%;right:20%;top:8%;width:auto;height:20px}
+.echo-wave{position:absolute;color:#7c94a9;font-size:1.25rem;opacity:.8}.echo-wave.e1{left:18%;top:38%}.echo-wave.e2{right:22%;top:31%}.echo-wave.e3{left:38%;bottom:16%}
+.concept-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin:1rem 0}
+.concept-result{background:white;border:1px solid var(--line);border-radius:15px;padding:1rem;text-align:center}
+.concept-result b{display:block;color:#0a2d52;font-size:1.18rem;margin:.25rem 0}.concept-result span{font-size:.79rem;color:var(--muted)}
 .small{font-size:.85rem}.route{font-size:.8rem;padding:.25rem 0;color:#d7ecff}
 .institutional{display:flex;align-items:center;justify-content:space-between;gap:2rem;
 background:#fff;border:1px solid var(--line);border-radius:20px;padding:1rem 1.5rem;
@@ -80,6 +122,10 @@ margin:.25rem 0 1rem;box-shadow:0 7px 25px #173b6810;overflow:hidden}
   .hero{padding:1.35rem}.hero h1{font-size:1.75rem}
   .scene-pro{min-height:260px}.machine{left:4%;font-size:3.2rem}.person{right:4%;font-size:3.4rem}
   .machine-box{left:2%;width:95px}.receiver-cabin{right:2%;width:95px}.waves{left:24%;right:22%;font-size:1.35rem}
+  .receiver-facade{width:112px;height:150px}.receiver-facade:before{left:12px;width:66px;height:78px}
+  .two-room-lab{grid-template-columns:1fr 46px 1fr;min-height:270px}.speaker-visual,.listener-visual{font-size:3rem}
+  .incident-wave,.transmitted-wave{font-size:1.25rem}.absorber{transform:scale(.75)}
+  .concept-grid{grid-template-columns:1fr}
 }
 </style>
 """, unsafe_allow_html=True)
@@ -89,6 +135,19 @@ ACADEMIC_CONTENT = {0: '## Etapa 0 · Introducción y ruta de la clase\n\nDuraci
 ACADEMIC_CONTENT[10] = ACADEMIC_CONTENT[10].replace(
     "Evaluación final del Curso 1",
     "Evaluación final · Aislamiento a Ruido Aéreo",
+)
+
+# Precisión conceptual de la Etapa 1: la distancia es una condición geométrica
+# independiente, mientras que la barrera actúa directamente en la trayectoria.
+ACADEMIC_CONTENT[1] = ACADEMIC_CONTENT[1].replace(
+    "| Trayectoria | Barreras, cerramientos, silenciadores, aumento de distancia, sellado y tratamiento de ductos |",
+    "| Trayectoria | Barrera acústica interpuesta en el camino de propagación |",
+).replace(
+    "| Receptor | Cabina acústica, fachada aislante, redistribución del espacio, alejamiento o protección auditiva |",
+    "| Receptor | Protección auditiva, cabina acústica o mejora del aislamiento de fachada |",
+).replace(
+    "Trayectoria: aparece una barrera o cerramiento; las ondas se bloquean, desvían y atenúan.",
+    "Trayectoria: aparece una barrera acústica; las ondas se bloquean, desvían y atenúan.",
 )
 
 STAGES = [
@@ -110,7 +169,7 @@ STAGE_GUIDE = {
    "🎯","AL FINAL","Sabrás qué aprenderás, cómo experimentarás y cómo se evaluará tu avance.",
    "⏱️","RECORRIDO","10 etapas progresivas, actividades formativas y una evaluación integradora."),
 1:("🏭","COMPRENDERÁS","Fuente, trayectoria y receptor; propagación aérea, estructural, directa e indirecta.",
-   "🧪","EXPERIMENTARÁS","Encapsulado, barrera, distancia, cabina y protección auditiva sobre una escena dinámica.",
+   "🧪","EXPERIMENTARÁS","Encapsulado, barrera, separación física, cabina, fachada y protección auditiva sobre una escena dinámica.",
    "✅","APLICARÁS","La intervención correcta según el lugar donde nace, viaja o se recibe el ruido."),
 2:("🧱","DIFERENCIARÁS","Aislamiento, absorción, reverberación e inteligibilidad sin confundir sus funciones.",
    "🔊","OBSERVARÁS","Qué energía se refleja, absorbe y transmite entre dos recintos.",
@@ -194,26 +253,126 @@ def institutional_header():
         unsafe_allow_html=True,
     )
 
+def _academic_blocks(content):
+    """Transform the approved Word text into short, readable teaching cards."""
+    hidden_phrases=(
+        "Puede presentarse","No colocaría","Imagen interactiva propuesta",
+        "Visual interactivo principal","Propongo una","La aplicación mostrará",
+        "La aplicación podrá","La animación debe","Funcionamiento de la aplicación",
+        "También cambiaría","Esta modificación mejora"
+    )
+    paragraphs=[
+        p.strip() for p in content.split("\n\n") if p.strip()
+        and not any(phrase.lower() in p.lower() for phrase in hidden_phrases)
+    ]
+    duration=""
+    useful=[]
+    for paragraph in paragraphs:
+        if paragraph.startswith("## Etapa"):
+            continue
+        if paragraph.lower().startswith(("duración propuesta:", "tiempo:")) and not duration:
+            duration=paragraph
+            continue
+        useful.append(paragraph)
+
+    heading_pattern=re.compile(
+        r"^(?:\d+\.\s+|#{1,4}\s+|Ejercicio(?:\s+\d+)?|Ejemplo(?:\s+sencillo)?|"
+        r"Problema|Caso\s+[A-Z0-9]|Idea central|Resultado final|Distribución temática)",
+        re.IGNORECASE,
+    )
+    blocks=[]
+    title=""
+    body=[]
+
+    def flush():
+        nonlocal title,body
+        if title or body:
+            blocks.append((title or f"Concepto técnico {len(blocks)+1}", "\n\n".join(body)))
+        title,body="",[]
+
+    for paragraph in useful:
+        first_line=paragraph.splitlines()[0].strip()
+        is_short_heading=len(paragraph)<95 and not paragraph.rstrip().endswith((".",":",";"))
+        if heading_pattern.match(first_line) or is_short_heading:
+            flush()
+            title=re.sub(r"^#{1,4}\s*","",paragraph).strip()
+        else:
+            body.append(paragraph)
+            if sum(len(p) for p in body)>1250:
+                flush()
+    flush()
+    return duration,[(t,b) for t,b in blocks if t or b]
+
+def _student_card_body(body):
+    """Keep the learner-facing card focused while preserving complete tables."""
+    if not body:
+        return ""
+    if "| ---" in body:
+        return body
+    paragraphs=[p for p in body.split("\n\n") if p.strip()]
+    selected=[]
+    length=0
+    for paragraph in paragraphs:
+        if length+len(paragraph)>720 and selected:
+            break
+        selected.append(paragraph)
+        length+=len(paragraph)
+    summary="\n\n".join(selected)
+    if len(selected)<len(paragraphs):
+        summary+="\n\n> **Idea para recordar:** identifica el fenómeno, la variable que cambia y el efecto esperado antes de aplicar una fórmula."
+    return summary
+
 def full_matter(stage_number):
-    """Keep the approved source available without turning the lesson into a pasted document."""
-    content = ACADEMIC_CONTENT.get(stage_number, "").strip()
-    if content:
-        content=content.replace("Evaluación final del Curso 1","Evaluación final del curso Aislamiento a Ruido Aéreo")
-        hidden_phrases=(
-            "Puede presentarse","No colocaría","Imagen interactiva propuesta",
-            "Visual interactivo principal","Propongo una","La aplicación mostrará",
-            "La aplicación podrá","La animación debe","Funcionamiento de la aplicación",
-            "También cambiaría","Esta modificación mejora"
+    """Show learner cards and a genuinely role-protected teacher deep dive."""
+    content=ACADEMIC_CONTENT.get(stage_number,"").strip()
+    if not content:
+        return
+    content=content.replace(
+        "Evaluación final del Curso 1",
+        "Evaluación final del curso Aislamiento a Ruido Aéreo",
+    )
+    duration,blocks=_academic_blocks(content)
+    st.markdown(
+        '<div class="matter-heading"><div class="matter-heading-icon">📚</div><div>'
+        '<h2>Materia esencial de la etapa</h2>'
+        '<p>Conceptos técnicos explicados en fichas breves antes de experimentar y responder.</p>'
+        '</div></div>',
+        unsafe_allow_html=True,
+    )
+    if duration:
+        st.markdown(
+            f'<div class="didactic-duration">⏱️ {duration.replace("Duración propuesta:","Duración estimada:")}</div>',
+            unsafe_allow_html=True,
         )
-        paragraphs=[
-            p for p in content.split("\n\n")
-            if not any(phrase.lower() in p.lower() for phrase in hidden_phrases)
-        ]
-        content="\n\n".join(paragraphs)
-        with st.expander("📚 Abrir desarrollo técnico completo", expanded=False):
-            st.markdown('<div class="matter-wrap">',unsafe_allow_html=True)
-            st.markdown(content)
-            st.markdown('</div>',unsafe_allow_html=True)
+    icons=("💡","🔎","🎯","🧱","📐","🔊","🧠","✅")
+    columns=st.columns(2)
+    for index,(title,body) in enumerate(blocks):
+        with columns[index%2]:
+            with st.container(border=True):
+                icon=icons[index%len(icons)]
+                st.markdown(
+                    f'<div class="didactic-card-title"><span>{icon}</span>{title}</div>',
+                    unsafe_allow_html=True,
+                )
+                if body:
+                    st.markdown(_student_card_body(body))
+
+    if st.session_state.get("role")=="Docente":
+        st.markdown(
+            '<div class="teacher-only"><b>🔐 Profundización técnica exclusiva para el docente</b>'
+            '<span>Fundamentos completos, matices de interpretación y material de apoyo para desarrollar la explicación en clase.</span></div>',
+            unsafe_allow_html=True,
+        )
+        with st.expander("Abrir guía técnica docente",expanded=False):
+            st.info(
+                "Esta sección solo se genera para el perfil Docente. No aparece ni queda disponible "
+                "en la interfaz del alumno."
+            )
+            for index,(title,body) in enumerate(blocks):
+                st.markdown(f"### {index+1}. {title}")
+                if body:
+                    st.markdown(body)
+                st.divider()
 
 def lesson(title, text):
     st.markdown(f'<div class="lesson"><div class="overview-title">CONCEPTO CLAVE</div><h3>{title}</h3><span class="muted">{text}</span></div>',unsafe_allow_html=True)
@@ -232,6 +391,30 @@ def check(key,q,options,correct,explanation):
         if choice==correct: st.success(f"Correcto. {explanation}")
         elif choice is None: st.warning("Selecciona una respuesta.")
         else: st.error(f"No es correcto. {explanation}")
+
+def development_answer(key,q,guide):
+    """Visible written response with explicit submission and formative guidance."""
+    st.markdown(
+        f'<div class="question-box"><div class="question-label">EJERCICIO DE DESARROLLO</div>'
+        f'<div class="question-text">{q}</div></div>',
+        unsafe_allow_html=True,
+    )
+    answer=st.text_area(
+        "Escribe tu respuesta y justificación",
+        key=key,
+        placeholder="Explica tu decisión utilizando los conceptos estudiados…",
+    )
+    if st.button("Enviar desarrollo",key=f"b_{key}"):
+        if len(answer.strip())<20:
+            st.warning("Desarrolla un poco más tu respuesta antes de enviarla.")
+        else:
+            st.session_state[f"sent_{key}"]=True
+            st.success("Respuesta enviada. Compárala con la pauta formativa.")
+    if st.session_state.get(f"sent_{key}"):
+        st.markdown(
+            f'<div class="good"><b>Pauta de comparación:</b> {guide}</div>',
+            unsafe_allow_html=True,
+        )
 
 def line_chart(x, series, title, ytitle):
     fig=go.Figure()
@@ -260,24 +443,32 @@ def stage1():
     st.markdown('<div class="section-band"><span>🎛️</span><h3>Laboratorio visual: interviene la escena</h3></div>',unsafe_allow_html=True)
     c1,c2,c3=st.columns(3)
     source=c1.selectbox("🏭 En la fuente",["Sin intervención","Encerrar la fuente","Soportes antivibratorios","Equipo de menor emisión"])
-    path=c2.selectbox("〰️ En la trayectoria",["Sin intervención","Barrera acústica","Sellado de fugas","Aumentar distancia"])
+    path=c2.selectbox("〰️ En la trayectoria",["Sin intervención","Barrera acústica"])
     receiver=c3.selectbox("👤 En el receptor",["Sin intervención","Protección auditiva","Cabina acústica","Mejorar fachada"])
+    distance=st.select_slider(
+        "📏 Separación física entre la fuente y el receptor",
+        options=["Distancia inicial","Distancia aumentada"],
+        help="La distancia no es una barrera ni una intervención en la trayectoria: es una condición geométrica del problema.",
+    )
     gains={"Sin intervención":0,"Encerrar la fuente":10,"Soportes antivibratorios":5,"Equipo de menor emisión":12,
-           "Barrera acústica":12,"Sellado de fugas":6,"Aumentar distancia":5,
+           "Barrera acústica":12,
            "Protección auditiva":10,"Cabina acústica":15,"Mejorar fachada":11}
-    total=gains[source]+gains[path]+gains[receiver]
+    distance_gain=5 if distance=="Distancia aumentada" else 0
+    total=gains[source]+gains[path]+gains[receiver]+distance_gain
     enclosure='<div class="machine-box"></div>' if source=="Encerrar la fuente" else ""
     mounts='<div class="mounts">▰ ▰</div>' if source=="Soportes antivibratorios" else ""
     barrier='<div class="barrier"></div>' if path=="Barrera acústica" else ""
-    cabin='<div class="receiver-cabin"></div>' if receiver in ["Cabina acústica","Mejorar fachada"] else ""
+    cabin='<div class="receiver-cabin"></div>' if receiver=="Cabina acústica" else ""
+    facade='<div class="receiver-facade"></div>' if receiver=="Mejorar fachada" else ""
     phones='<div class="headphones">🎧</div>' if receiver=="Protección auditiva" else ""
     wave_count=max(1,6-round(total/7))
     waves=")"*wave_count
-    distance="Distancia aumentada: fuente y receptor más separados" if path=="Aumentar distancia" else "Trayectoria directa de propagación"
+    distance_class=" distance-on" if distance=="Distancia aumentada" else ""
+    distance_label="Fuente y receptor más separados" if distance=="Distancia aumentada" else "Distancia inicial"
     st.markdown(
-        f'<div class="scene-pro"><div class="scene-caption">Nivel visual estimado: {85-total} dB</div>'
+        f'<div class="scene-pro{distance_class}"><div class="scene-caption">Nivel visual estimado: {85-total} dB</div>'
         f'{enclosure}{mounts}<div class="machine">⚙️</div><div class="waves">))) {waves}</div>{barrier}'
-        f'{cabin}{phones}<div class="person">🧑</div><div class="distance-label">↔ {distance}</div></div>',
+        f'{cabin}{facade}{phones}<div class="person">🧑</div><div class="distance-label">↔ {distance_label}</div></div>',
         unsafe_allow_html=True,
     )
     a,b,c=st.columns(3);a.metric("Nivel inicial","85 dB");b.metric("Reducción estimada",f"{total} dB");c.metric("Nivel resultante",f"{85-total} dB")
@@ -285,20 +476,99 @@ def stage1():
     check("e1","Una máquina afecta una oficina contigua. ¿Dónde actúa el muro separador?",["Fuente","Trayectoria","Receptor"],"Trayectoria","El muro se interpone en el camino de propagación.")
 
 def stage2():
-    header("ETAPA 2 · MATERIA + COMPARADOR","Aislamiento no es absorción",
-           "Ambos conceptos controlan sonido, pero modifican fenómenos distintos.")
+    header("ETAPA 2 · LABORATORIO DE DOS RECINTOS","Aislamiento no es absorción",
+           "Cambia el panel separador y acondiciona el recinto receptor para observar qué magnitud modifica cada decisión.")
     full_matter(2)
     lesson("Aislamiento acústico","Reduce la energía que atraviesa un elemento entre recintos. Se mejora con masa, estanqueidad, desacoplamiento y control de vías indirectas.")
     lesson("Absorción acústica","Reduce reflexiones dentro del mismo recinto. Se expresa mediante α entre 0 y 1 y modifica reverberación e inteligibilidad.")
-    iso=st.slider("Mejora de aislamiento del muro (dB)",0,20,0)
-    alpha=st.slider("Coeficiente de absorción del tratamiento, α",0.0,1.0,.10,.05)
-    area=st.slider("Superficie tratada (m²)",0,80,0)
-    V=150; Abase=25; A=Abase+alpha*area; rt=.161*V/A
-    a,b=st.columns(2)
-    a.metric("Nivel transmitido",f"{45-iso:.0f} dB",delta=f"{-iso} dB")
-    b.metric("T₆₀ del receptor",f"{rt:.2f} s",delta=f"{rt-.161*V/Abase:+.2f} s")
-    st.markdown('<div class="good">El tratamiento absorbente modifica T₆₀, pero no aumenta automáticamente el aislamiento del muro. La mejora del muro reduce transmisión, pero no corrige por sí sola el eco.</div>',unsafe_allow_html=True)
-    check("e2","Pegar espuma liviana al muro medianero cuando se escucha al vecino actúa principalmente sobre:",["La absorción del recinto","La masa del muro","La transmisión flanqueante"],"La absorción del recinto","La espuma puede reducir reflexiones, pero suele aportar muy poco aislamiento.")
+    st.markdown('<div class="section-band"><span>🧪</span><h3>Ejemplo didáctico: recinto emisor → panel → recinto receptor</h3></div>',unsafe_allow_html=True)
+    c1,c2,c3=st.columns(3)
+    panel=c1.selectbox(
+        "🧱 Panel separador",
+        ["Panel liviano simple","Muro de albañilería","Tabique doble desacoplado"],
+        help="Este control modifica la transmisión entre los dos recintos.",
+    )
+    material=c2.selectbox(
+        "🟦 Material absorbente en el receptor",
+        ["Sin tratamiento","Panel poroso α = 0,40","Lana mineral revestida α = 0,75","Panel de alto desempeño α = 0,90"],
+        help="Este material controla las reflexiones dentro del recinto receptor.",
+    )
+    area=c3.slider("📐 Superficie absorbente instalada (m²)",0,60,0,5)
+
+    panel_data={
+        "Panel liviano simple":(30,"light"),
+        "Muro de albañilería":(45,"masonry"),
+        "Tabique doble desacoplado":(55,"double"),
+    }
+    alpha_data={
+        "Sin tratamiento":0.0,
+        "Panel poroso α = 0,40":0.40,
+        "Lana mineral revestida α = 0,75":0.75,
+        "Panel de alto desempeño α = 0,90":0.90,
+    }
+    R,panel_class=panel_data[panel]
+    alpha=alpha_data[material]
+    V=120.0
+    A0=18.0
+    A=A0+alpha*area
+    T0=.161*V/A0
+    T=.161*V/A
+    source_level=85.0
+    # Relación didáctica: el campo reverberante del receptor disminuye al
+    # aumentar A, aunque la propiedad aislante R del panel permanece igual.
+    room_correction=10*math.log10(A/A0) if A>A0 else 0.0
+    receiver_level=source_level-R-room_correction
+    absorber_count=0 if area==0 or alpha==0 else min(4,max(1,math.ceil(area/15)))
+    absorber_html="".join(
+        f'<div class="absorber {"ceiling" if i==3 else f"a{i+1}"}"></div>'
+        for i in range(absorber_count)
+    )
+    echo_count=max(0,3-round((A-A0)/18))
+    echoes="".join(f'<div class="echo-wave e{i+1}">↝ ↝</div>' for i in range(echo_count))
+    wave_strength=max(1,min(5,round((60-R)/7)))
+    transmitted=")"*wave_strength
+    st.markdown(
+        f'<div class="two-room-lab">'
+        f'<div class="lab-room"><div class="room-name">RECINTO EMISOR · 85 dB</div>'
+        f'<div class="speaker-visual">🔊</div><div class="incident-wave">))) )))</div></div>'
+        f'<div class="lab-panel {panel_class}">{panel}<br>R = {R} dB</div>'
+        f'<div class="lab-room receiver"><div class="room-name">RECINTO RECEPTOR</div>'
+        f'{absorber_html}{echoes}<div class="transmitted-wave">{transmitted}</div>'
+        f'<div class="listener-visual">🧑‍💻</div></div></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div class="concept-grid">'
+        f'<div class="concept-result">🧱<b>{R:.0f} dB</b><span>Aislamiento R del panel<br><strong>No cambia por agregar absorbentes</strong></span></div>'
+        f'<div class="concept-result">🟦<b>{A:.1f} m² sabin</b><span>Absorción equivalente del receptor<br>Inicial: {A0:.1f} m² sabin</span></div>'
+        f'<div class="concept-result">⏱️<b>{T:.2f} s</b><span>T₆₀ del recinto receptor<br>Inicial: {T0:.2f} s</span></div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+    a,b,c=st.columns(3)
+    a.metric("Nivel estimado en el receptor",f"{receiver_level:.1f} dB")
+    b.metric("Cambio de T₆₀",f"{T-T0:+.2f} s")
+    c.metric("Cambio del aislamiento R","0 dB" if material!="Sin tratamiento" else "Sin tratamiento")
+    st.markdown(
+        '<div class="good"><b>Interpretación:</b> cambiar el panel separador modifica el aislamiento entre recintos. '
+        'Agregar material absorbente en el receptor aumenta su absorción equivalente, reduce las reflexiones y disminuye '
+        'el T₆₀. El nivel medido en el receptor puede bajar por la menor reverberación, pero el valor R propio del panel no aumenta.</div>',
+        unsafe_allow_html=True,
+    )
+    check(
+        "e2_lab_1",
+        "Si mantienes el mismo panel y agregas material absorbente en el recinto receptor, ¿qué cambia principalmente?",
+        ["Aumenta el aislamiento R del panel","Aumenta la absorción y disminuye el T₆₀","Aumenta la transmisión por el panel"],
+        "Aumenta la absorción y disminuye el T₆₀",
+        "El absorbente actúa sobre las reflexiones del recinto receptor. No modifica por sí solo la propiedad aislante del panel.",
+    )
+    check(
+        "e2_lab_2",
+        "¿Qué intervención permite reducir directamente la energía que atraviesa desde el recinto emisor?",
+        ["Cambiar por un panel separador de mayor aislamiento","Agregar paneles absorbentes al receptor","Reducir únicamente el T₆₀ del receptor"],
+        "Cambiar por un panel separador de mayor aislamiento",
+        "La transmisión entre recintos se controla mejorando la separación: masa, estanqueidad, desacoplamiento y vías laterales.",
+    )
 
 def stage3():
     header("ETAPA 3 · APLICACIÓN PRÁCTICA","Absorción, reverberación e inteligibilidad",
@@ -355,6 +625,13 @@ def stage4():
     pay=cost/(benefit-maint) if benefit>maint else math.inf
     a,b,c=st.columns(3);a.metric("Costo del ciclo",f"${total:,.0f}");b.metric("ROI",f"{roi:.1f}%");c.metric("Recuperación",f"{pay:.1f} años" if math.isfinite(pay) else "No recupera")
     st.caption(f"La meta acústica seleccionada es {meta} dB. El cálculo económico solo tiene sentido si la solución la cumple.")
+    check(
+        "e4",
+        "Una alternativa ofrece el ROI más alto, pero queda 4 dB bajo la meta de diseño. ¿Cuál es la decisión correcta?",
+        ["Seleccionarla por su rentabilidad","Descartarla o rediseñarla antes del análisis económico","Promediar el ROI con el aislamiento"],
+        "Descartarla o rediseñarla antes del análisis económico",
+        "Primero debe demostrarse la suficiencia acústica. Solo las soluciones que cumplen pueden compararse económicamente.",
+    )
 
 def stage5():
     header("ETAPA 5 · APLICACIÓN CONCEPTUAL","Decisión técnico-económica",
@@ -406,6 +683,13 @@ def stage6():
         tau=(1-share)*10**(-wall/10)+share*10**(-door/10); comp=-10*np.log10(tau)
         st.metric("R compuesto",f"{comp:.1f} dB")
         st.info("Los dB no se promedian: se combinan coeficientes de transmisión ponderados por superficie.")
+    check(
+        "e6",
+        "Si se duplica la masa superficial de un panel dentro de la región ideal de la ley de masa, ¿qué mejora aproximada se espera?",
+        ["3 dB","6 dB","10 dB","El aislamiento no cambia"],
+        "6 dB",
+        "La ley de masa ideal predice aproximadamente 6 dB de aumento de R al duplicar la masa superficial, para una misma frecuencia.",
+    )
 
 def stage7():
     header("ETAPA 7 · APLICACIÓN PRÁCTICA","Diseño de aislamiento acústico",
@@ -424,6 +708,18 @@ def stage7():
     worst=int(np.argmax(received)); ok=np.all(received<=target)
     a,b,c=st.columns(3);a.metric("Banda crítica",f"{FREQS[worst]} Hz");b.metric("Máximo receptor",f"{received[worst]:.1f} dB");c.metric("Meta","Cumple" if ok else "No cumple")
     st.markdown('<div class="warn">Prioriza el elemento o la banda que domina la transmisión. Reforzar una zona que ya aísla bien puede elevar el costo sin mejorar el resultado global.</div>',unsafe_allow_html=True)
+    check(
+        "e7_choice",
+        f"Con la configuración actual, la banda más crítica es {FREQS[worst]} Hz. ¿Qué criterio debe orientar primero el rediseño?",
+        ["Reforzar el componente o la vía que domina esa banda","Aumentar cualquier material aunque no actúe en esa banda","Elegir siempre el cerramiento de mayor costo"],
+        "Reforzar el componente o la vía que domina esa banda",
+        "El rediseño debe atacar la banda y la vía dominantes; mejorar componentes secundarios puede no cambiar el resultado global.",
+    )
+    development_answer(
+        "e7_development",
+        "Propón una mejora para el caso simulado y explica qué variable o componente modificarías para cumplir la meta.",
+        "Una respuesta sólida identifica la banda crítica, el elemento débil o la coincidencia, propone una intervención relacionada con esa causa y vuelve a verificar el nivel del receptor frente a la meta.",
+    )
 
 REF=np.array([33,36,39,42,45,48,51,52,53,54,55,56,56,56,56,56])
 def rw_from_curve(curve):
@@ -473,8 +769,20 @@ def stage9():
     st.markdown("### Comparador de selección")
     compare=pd.DataFrame({"Indicador":["Rᵥ","C","Cₜᵣ","Rᵥ+C","Rᵥ+Cₜᵣ"],"Partición A":[50,-1,-8,49,42],"Partición B":[50,-3,-4,47,46]})
     st.dataframe(compare,hide_index=True,use_container_width=True)
-    use=st.radio("¿Para qué fuente eliges?",["Oficinas con voz","Fachada con tránsito"],horizontal=True)
-    st.success("Partición A: mejor adaptación a voz." if use=="Oficinas con voz" else "Partición B: mejor resultado frente a tránsito y contenido grave.")
+    check(
+        "e9_voice",
+        "Para separar oficinas donde predomina la voz, ¿qué partición seleccionarías?",
+        ["Partición A","Partición B","Son necesariamente equivalentes"],
+        "Partición A",
+        "La Partición A presenta Rᵥ+C = 49 dB, superior a los 47 dB de la Partición B para este tipo de espectro.",
+    )
+    check(
+        "e9_traffic",
+        "Para una fachada expuesta a tránsito y contenido grave, ¿qué partición seleccionarías?",
+        ["Partición A","Partición B","Solo importa que ambas tengan Rᵥ = 50 dB"],
+        "Partición B",
+        "La Partición B presenta Rᵥ+Cₜᵣ = 46 dB, superior a los 42 dB de la Partición A frente a tránsito.",
+    )
 
 QUESTIONS=[
 ("La trayectoria incluye principalmente:",["La partición y sus fugas","Solo el oído","Solo la fuente"],0),
