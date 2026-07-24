@@ -1,7 +1,10 @@
 import base64
+import datetime as dt
+import json
 import math
 import mimetypes
 import re
+import sqlite3
 from pathlib import Path
 
 import numpy as np
@@ -12,6 +15,7 @@ import streamlit as st
 st.set_page_config(page_title="Laboratorio | Aislamiento a Ruido Aéreo", page_icon="🔊", layout="wide")
 ROOT = Path(__file__).parent
 FREQS = np.array([100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150])
+ACTIVITY_DB = ROOT / "formative_responses.sqlite3"
 
 st.markdown("""
 <style>
@@ -495,6 +499,43 @@ def student_lesson(stage_number):
         title,text=STAGE_INTROS[stage_number]
         st.markdown(f'<div class="lesson"><div class="overview-title">ANTES DE COMENZAR</div><h3>{title}</h3><span class="muted">{text}</span></div>',unsafe_allow_html=True)
 
+TEACHER_SLIDE_SUPPORT = {
+1:[
+("Explique que «ruido» no describe una propiedad física distinta del sonido: incorpora contexto, receptor y efecto. Señale en la figura cómo una misma emisión puede ser útil para uno y molesta para otro.","¿El mismo sonido siempre es ruido?","No. Depende de su nivel y características, pero también del lugar, momento, actividad y receptor.","Evite definir ruido solo como «sonido fuerte». Un sonido moderado, tonal o inoportuno también puede ser ruido."),
+("Recorra las tres posibilidades de control: reducir la emisión, interrumpir la propagación o proteger al receptor. Haga que el alumno identifique qué parte cambia en la figura.","¿Dónde conviene actuar primero?","Preferentemente en la fuente, si es técnica y operacionalmente viable, porque evita que la energía se genere o se propague.","Pida siempre identificar la vía dominante antes de ofrecer una solución; una medida bien construida sobre la vía equivocada será poco eficaz."),
+("Señale de izquierda a derecha la fuente, la trayectoria y el receptor. Explique que este modelo ordena el diagnóstico, pero no implica que exista una sola vía.","¿Qué debe conocerse antes de seleccionar una medida?","Qué genera el ruido, por qué vías llega y qué receptor o criterio debe protegerse.","Use un caso real y solicite tres sustantivos: fuente, vía dominante y receptor. Luego recién permita proponer controles."),
+("Siga las ondas que se propagan por el aire. Explique que la distancia puede reducir el nivel en campo libre, pero reflexiones, geometría y directividad modifican el resultado real.","¿Duplicar la distancia siempre reduce exactamente 6 dB?","No. Ese valor corresponde a una fuente puntual ideal en campo libre; otras geometrías y entornos producen comportamientos distintos.","Diferencie atenuación geométrica de aislamiento: alejarse no mejora el cerramiento ni cambia su R."),
+("Siga la vía naranja a través del apoyo y la estructura hasta su nueva radiación. Destaque que una barrera aérea no interrumpe este camino sólido.","¿Por qué una barrera puede no resolver el problema?","Porque puede permanecer la transmisión estructural o una trayectoria aérea indirecta que la barrera no intercepta.","Para demostrarlo, pida imaginar el equipo apagado del aire pero vibrando sobre la losa: el sólido puede transportar energía a otro recinto."),
+("Use la figura como balance energético cualitativo: parte de la energía se refleja, parte se absorbe y parte se transmite. No presente estos fenómenos como sinónimos.","¿Agregar absorción a una cara garantiza mayor aislamiento?","No. Puede reducir la reflexión en ese recinto, pero el aislamiento depende del sistema completo y de la energía transmitida.","Pregunte siempre «¿en qué recinto cambia el fenómeno?»; esa frase separa con claridad absorción interior de aislamiento entre espacios."),
+("Relacione cada intervención con el elemento que modifica. Recalque que distancia es una condición geométrica independiente y que la protección auditiva no reduce el ruido ambiental.","¿Qué medida protege solo al trabajador?","La protección auditiva: reduce la exposición en el receptor, pero la fuente continúa emitiendo al entorno.","Solicite que toda propuesta indique mecanismo, ubicación y verificación. Evite aceptar listas de productos sin explicar cómo actúan."),
+],
+2:[
+("Señale los dos recintos, el panel separador y la diferencia entre energía incidente y transmitida. Explique que R caracteriza la separación, no el ambiente interior por sí solo.","¿Qué debe cambiar para aumentar el aislamiento entre ambos recintos?","La transmisión del sistema separador: su masa, desacoplamiento, estanqueidad o elementos débiles, según el mecanismo dominante.","Use la pregunta «¿atraviesa el panel o rebota dentro de la sala?» para distinguir transmisión de reverberación."),
+("Muestre que el material absorbente actúa sobre la energía reflejada en el mismo recinto. Su incorporación no cambia automáticamente el R propio del panel.","¿Qué magnitud aumenta al instalar material absorbente?","La absorción equivalente del recinto; normalmente disminuyen las reflexiones y el tiempo de reverberación.","Aclare que el nivel medio receptor puede bajar por menor campo reverberante sin que el panel haya mejorado su aislamiento."),
+("Explique el instante en que la fuente se detiene y cómo se observa el decaimiento. Relacione T₆₀ con volumen y absorción equivalente mediante Sabine dentro de sus supuestos.","¿Qué ocurre con T₆₀ si aumenta la absorción y el volumen permanece constante?","Disminuye, porque la energía reflejada decae con mayor rapidez.","Advierta que Sabine es una aproximación de campo difuso; salas muy absorbentes o con distribución no uniforme pueden requerir otros modelos."),
+("Diferencie señal directa, reflexiones útiles tempranas, reflexiones tardías y ruido de fondo. La inteligibilidad no depende solo de «tener absorción».","¿Qué dos condiciones suelen mejorar la comprensión de la palabra?","Una relación señal/ruido favorable y control de reflexiones tardías o reverberación excesiva.","Conecte la figura con una experiencia: una frase puede oírse fuerte y aun así entenderse mal por superposición temporal."),
+],
+4:[
+("Explique el filtro técnico antes del económico: una alternativa que no cumple la meta o no controla la vía dominante no debe ganar por ser barata.","¿Puede compararse económicamente una solución que no cumple?","Puede registrarse su costo, pero no considerarse una alternativa válida para decidir, porque no entrega el desempeño requerido.","Defina por escrito la meta, la banda crítica y el margen antes de mostrar precios; así evita que el costo sesgue la evaluación técnica."),
+("Recorra inversión, instalación, operación, mantención, reposición y retiro. Distinga egresos iniciales de costos recurrentes y lleve todos al mismo horizonte.","¿Por qué la opción más barata al comprar puede ser más costosa?","Porque puede exigir más mantención, reposición, energía, detenciones o tener menor vida útil.","Para una comparación rigurosa use valor presente y una tasa de descuento; no sume flujos de años distintos como si valieran lo mismo."),
+("Señale cómo la mejora adicional disminuye mientras el costo y la complejidad continúan creciendo. Relacione la decisión con suficiencia, riesgo y margen razonable.","¿Cuándo deja de justificarse otro decibel?","Cuando el costo y riesgo marginal superan el beneficio marginal, una vez satisfecha la meta con margen adecuado.","No convierta el gráfico en una regla universal: el valor de un decibel adicional depende del incumplimiento, el receptor y las consecuencias."),
+("Separe dos preguntas: payback indica cuándo se recupera la inversión; ROI indica rentabilidad acumulada en un horizonte. En el ejemplo, inversión $2,0 millones y beneficio neto anual $0,6 millones producen payback 3,33 años; a cinco años, beneficio neto acumulado $1,0 millón y ROI 50 %.","Si dos soluciones tienen el mismo payback, ¿tienen necesariamente el mismo ROI?","No. Pueden tener distinta vida útil, flujos posteriores, mantención y beneficio acumulado; el payback ignora lo que ocurre después de recuperar la inversión.","Dibuje una línea de tiempo de caja. ROI = (beneficios acumulados − costos acumulados)/inversión × 100; payback = inversión/flujo neto anual solo si el flujo es aproximadamente constante."),
+],
+6:[
+("Identifique energía incidente, reflejada y transmitida. Vincule τ con R=-10 log₁₀τ y enfatice que la escala es logarítmica.","Si τ disminuye diez veces, ¿cuánto aumenta R?","Aumenta 10 dB, porque R depende del logaritmo decimal de la fracción transmitida.","Use valores simples: τ=0,01 corresponde a R=20 dB; τ=0,001 corresponde a R=30 dB."),
+("Compare las dos hojas bajo excitación equivalente. Explique la tendencia ideal de ley de masa y sus límites físicos.","¿Duplicar masa siempre agrega 6 dB?","No. Es una aproximación en la región controlada por masa, lejos de resonancia, coincidencia, fugas y flancos.","Antes de aplicar la ley de masa, pregunte si el elemento se comporta como hoja simple y en qué rango de frecuencia."),
+("Señale la banda donde el acoplamiento entre onda aérea y flexión del panel aumenta la radiación. Relaciónela con el valle de R(f).","¿Por qué la coincidencia empeora el aislamiento?","Porque el acoplamiento excita eficientemente ondas de flexión que radián energía al recinto receptor.","No confunda frecuencia crítica con resonancia masa–aire–masa: corresponden a mecanismos diferentes."),
+("Identifique masa, cámara y segunda masa. Explique que desacoplamiento, profundidad, absorbente y ausencia de puentes trabajan en conjunto.","¿Qué ocurre si un montante une rígidamente ambas hojas?","Aparece un puente mecánico que aumenta la transmisión y reduce la ventaja del sistema doble.","El absorbente de cámara amortigua resonancias, pero no sustituye la separación mecánica entre las hojas."),
+("Siga la rendija o el flanco mostrado, no solo el paño principal. Explique la suma energética de vías y por qué no se promedian decibeles.","¿Por qué una puerta pequeña puede controlar el aislamiento global?","Porque su coeficiente de transmisión puede ser muy superior al del muro y dominar la energía total transmitida.","Antes de engrosar un muro, revise puertas, ventanas, sellos, cajas eléctricas, cielos y encuentros."),
+],
+8:[
+("Recorra la curva banda por banda y relaciónela con el espectro de la fuente. Destaque que una cifra global puede ocultar un valle determinante.","¿Qué banda controla una fuente tonal de 125 Hz?","La respuesta del sistema alrededor de 125 Hz; el índice global por sí solo no demuestra suficiencia.","Pida siempre superponer espectro emisor y R(f): la banda crítica nace de ambos, no solo del cerramiento."),
+("Explique el desplazamiento de la curva de referencia y las desviaciones desfavorables. Rw es un descriptor calculado, no un promedio aritmético.","¿Rw=50 significa R=50 dB en todas las bandas?","No. La curva real puede estar sobre o bajo 50 dB según la frecuencia.","Muestre dos curvas con igual Rw pero valles distintos; es la forma más rápida de evitar una lectura literal del índice."),
+("Compare la cámara controlada con la obra y siga los caminos laterales. Diferencie R/Rw de R′/R′w.","¿Por qué R′w suele ser menor que Rw de laboratorio?","Porque en obra intervienen flancos, encuentros, sellos, montaje y otras vías que no pertenecen solo al elemento ensayado.","No atribuya toda diferencia a «mala instalación» sin diagnóstico: geometría, flancos y condiciones de medición también influyen."),
+("Compare el contenido grave del tránsito con un espectro más medio-agudo. Explique que C y Ctr adaptan la lectura de Rw a fuentes distintas.","¿Qué descriptor revisarías frente a buses y camiones?","Rw+Ctr junto con la curva de bajas frecuencias; según el sistema normativo también puede corresponder OITC.","Las correcciones espectrales no reemplazan la curva completa cuando existe tonalidad o una banda dominante."),
+],
+}
+
 def full_matter(stage_number):
     """Render curated learner content and a separate, role-protected teacher guide."""
     student_lesson(stage_number)
@@ -504,16 +545,27 @@ def full_matter(stage_number):
     if not guide:
         return
     explanation,questions=guide
+    slide_support=TEACHER_SLIDE_SUPPORT.get(stage_number)
+    if slide_support:
+        slide_index=max(0,min(st.session_state.get(f"lesson_slide_{stage_number}",0),len(slide_support)-1))
+        slide_title=STUDENT_LESSONS[stage_number][slide_index][0]
+        explanation,question,answer,tip=slide_support[slide_index]
     st.markdown(
         '<div class="teacher-only"><b>🔐 Profundización técnica exclusiva para el docente</b>'
-        '<span>Orientaciones para explicar las figuras, conducir el laboratorio y plantear preguntas.</span></div>',
+        '<span>La orientación cambia junto con la figura que está visible para el alumno.</span></div>',
         unsafe_allow_html=True,
     )
     with st.expander("Abrir guía docente de esta etapa",expanded=False):
         st.markdown('<div class="teacher-grid">',unsafe_allow_html=True)
-        st.markdown(f'<div class="teacher-card"><b>Cómo explicar las figuras y el laboratorio</b><p>{explanation}</p></div>',unsafe_allow_html=True)
-        qhtml="".join(f"<li><strong>{q}</strong><br><span>Respuesta esperada: {answer}</span></li>" for q,answer in questions)
-        st.markdown(f'<div class="teacher-card"><b>Preguntas y soluciones para el docente</b><ol>{qhtml}</ol></div>',unsafe_allow_html=True)
+        if slide_support:
+            st.markdown(f'<div class="teacher-card"><b>Figura visible · {slide_title}</b><p>{explanation}</p></div>',unsafe_allow_html=True)
+            st.markdown(f'<div class="teacher-card"><b>Pregunta vinculada a esta figura</b><p><strong>{question}</strong></p><p><span>Respuesta esperada: {answer}</span></p></div>',unsafe_allow_html=True)
+            st.markdown(f'<div class="teacher-card"><b>Tip técnico para explicarla</b><p>{tip}</p></div>',unsafe_allow_html=True)
+            st.markdown(f'<div class="teacher-card"><b>Conexión con el laboratorio</b><p>{TEACHER_GUIDES[stage_number][0]}</p></div>',unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="teacher-card"><b>Cómo conducir la actividad o laboratorio</b><p>{explanation}</p></div>',unsafe_allow_html=True)
+            qhtml="".join(f"<li><strong>{q}</strong><br><span>Respuesta esperada: {answer}</span></li>" for q,answer in questions)
+            st.markdown(f'<div class="teacher-card"><b>Preguntas y soluciones para el docente</b><ol>{qhtml}</ol></div>',unsafe_allow_html=True)
         st.markdown('</div>',unsafe_allow_html=True)
 
 def lesson(title, text):
@@ -557,6 +609,113 @@ def development_answer(key,q,guide):
             f'<div class="good"><b>Pauta de comparación:</b> {guide}</div>',
             unsafe_allow_html=True,
         )
+
+def _activity_db():
+    con=sqlite3.connect(ACTIVITY_DB)
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS formative_responses(
+        id INTEGER PRIMARY KEY AUTOINCREMENT, created_at TEXT NOT NULL,
+        student TEXT NOT NULL, stage INTEGER NOT NULL, question_key TEXT NOT NULL,
+        question TEXT NOT NULL, answer TEXT NOT NULL, auto_level TEXT,
+        feedback TEXT, teacher_level TEXT, UNIQUE(student,stage,question_key))"""
+    )
+    con.commit()
+    return con
+
+def _save_formative(stage,key,question,answer,level,feedback):
+    student=st.session_state.get("name","Alumno")
+    with _activity_db() as con:
+        con.execute(
+            """INSERT INTO formative_responses
+            (created_at,student,stage,question_key,question,answer,auto_level,feedback)
+            VALUES(?,?,?,?,?,?,?,?)
+            ON CONFLICT(student,stage,question_key) DO UPDATE SET
+            created_at=excluded.created_at,question=excluded.question,
+            answer=excluded.answer,auto_level=excluded.auto_level,feedback=excluded.feedback""",
+            (dt.datetime.now().isoformat(timespec="seconds"),student,stage,key,question,str(answer),level,feedback),
+        )
+
+def _keyword_level(answer,groups):
+    text=re.sub(r"\s+"," ",answer.lower())
+    hits=sum(any(term.lower() in text for term in group) for group in groups)
+    if hits>=max(2,math.ceil(len(groups)*.70)): return "Correcta",hits
+    if hits>=max(1,math.ceil(len(groups)*.35)): return "Parcialmente correcta",hits
+    return "Incorrecta",hits
+
+def formative_development(stage,key,question,solution,groups,error_note):
+    st.markdown(
+        f'<div class="question-box"><div class="question-label">PREGUNTA DE DESARROLLO</div>'
+        f'<div class="question-text">{question}</div></div>',unsafe_allow_html=True)
+    answer=st.text_area("Escribe y justifica tu respuesta",key=f"ans_{key}",
+                        placeholder="Explica el fenómeno y propone una solución cuando corresponda…")
+    if st.button("Comprobar respuesta",key=f"submit_{key}",type="primary"):
+        if len(answer.strip())<20:
+            st.warning("La respuesta es demasiado breve. Explica el fenómeno antes de comprobar.")
+        else:
+            level,hits=_keyword_level(answer,groups)
+            if level=="Correcta":
+                feedback="Reconoces los conceptos esenciales y los relacionas correctamente."
+                st.success(f"Respuesta correcta. {feedback}")
+            elif level=="Parcialmente correcta":
+                feedback=f"Tu respuesta va bien, pero está incompleta. {error_note}"
+                st.warning(f"Respuesta parcialmente correcta. {feedback}")
+            else:
+                feedback=f"Hay una confusión conceptual. {error_note}"
+                st.error(f"Respuesta incorrecta. {feedback}")
+            st.session_state[f"checked_{key}"]=(level,feedback)
+            _save_formative(stage,key,question,answer,level,feedback)
+    if st.session_state.get(f"checked_{key}"):
+        with st.expander("Ver solución desarrollada"):
+            st.markdown(solution)
+
+def formative_numeric(stage,key,question,inputs,checker,solution):
+    st.markdown(
+        f'<div class="question-box"><div class="question-label">EJERCICIO NUMÉRICO</div>'
+        f'<div class="question-text">{question}</div></div>',unsafe_allow_html=True)
+    values={}
+    cols=st.columns(min(len(inputs),3))
+    for i,(name,label,default,step) in enumerate(inputs):
+        values[name]=cols[i%len(cols)].number_input(label,value=default,step=step,key=f"{key}_{name}")
+    if st.button("Comprobar cálculo",key=f"submit_{key}",type="primary"):
+        ok,feedback=checker(values)
+        level="Correcta" if ok else "Incorrecta"
+        (st.success if ok else st.error)(("Correcto. " if ok else "Revisa el procedimiento. ")+feedback)
+        st.session_state[f"checked_{key}"]=(level,feedback)
+        _save_formative(stage,key,question,json.dumps(values,ensure_ascii=False),level,feedback)
+    if st.session_state.get(f"checked_{key}"):
+        with st.expander("Ver desarrollo paso a paso"):
+            st.markdown(solution)
+
+def teacher_group_review(stage,solutions):
+    if st.session_state.get("role")!="Docente":
+        return
+    st.markdown('<div class="teacher-only"><b>👥 Revisión grupal de respuestas</b>'
+                '<span>Seleccione una respuesta y revele la pauta solamente cuando decida discutirla con el curso.</span></div>',
+                unsafe_allow_html=True)
+    with _activity_db() as con:
+        rows=con.execute(
+            "SELECT id,created_at,student,question_key,question,answer,auto_level,feedback,teacher_level "
+            "FROM formative_responses WHERE stage=? ORDER BY question_key,created_at",(stage,)).fetchall()
+    if not rows:
+        st.info("Todavía no hay respuestas guardadas de alumnos para esta etapa.")
+        return
+    labels=[f"{r[3]} · {r[2]} · {r[1].replace('T',' ')}" for r in rows]
+    selected=st.selectbox("Respuesta para revisar",range(len(rows)),format_func=lambda i:labels[i],key=f"review_{stage}")
+    rid,_,student,qkey,question,answer,auto_level,feedback,teacher_level=rows[selected]
+    anonymous=st.toggle("Ocultar nombre al proyectar",value=True,key=f"anon_{stage}")
+    st.markdown(f"**Pregunta:** {question}")
+    st.markdown(f"**Respuesta de {'Alumno/a' if anonymous else student}:**")
+    st.info(answer)
+    st.caption(f"Evaluación automática inicial: {auto_level}. {feedback or ''}")
+    if st.toggle("Mostrar solución esperada",key=f"reveal_{stage}"):
+        st.success(solutions.get(qkey,"Revise la pauta técnica asociada a esta pregunta."))
+    levels=["Sin revisar","Correcta","Parcialmente correcta","Incorrecta"]
+    current=levels.index(teacher_level) if teacher_level in levels else 0
+    mark=st.selectbox("Evaluación docente",levels,index=current,key=f"mark_{stage}_{rid}")
+    if st.button("Guardar evaluación docente",key=f"save_mark_{stage}_{rid}"):
+        with _activity_db() as con:
+            con.execute("UPDATE formative_responses SET teacher_level=? WHERE id=?",(mark,rid))
+        st.success("Evaluación docente guardada.")
 
 def line_chart(x, series, title, ytitle):
     fig=go.Figure()
@@ -731,6 +890,28 @@ def stage3():
     elif T<=1.2: st.warning("Condición intermedia. Puede requerir más absorción según volumen y uso.")
     else: st.error("Reverberación alta para una actividad centrada en la palabra.")
     check("e3","Si el volumen se mantiene y se duplica A, ¿qué ocurre con T₆₀?",["Se duplica","Se reduce aproximadamente a la mitad","No cambia"],"Se reduce aproximadamente a la mitad","Sabine muestra una relación inversa entre T₆₀ y A.")
+    st.markdown('<div class="section-band"><span>✍️</span><h3>Aplicación conceptual · responde y comprueba</h3></div>',unsafe_allow_html=True)
+    questions=[
+      ("s3q1","En una sala de reuniones se instalan paneles acústicos de espuma en todas las paredes. ¿Este tratamiento mejora el aislamiento acústico entre salas contiguas? Justifica tu respuesta.",
+       "No de forma significativa. La espuma es principalmente absorbente: reduce reflexiones y reverberación dentro de la sala, pero su baja masa no impide eficazmente la transmisión. Para aislar se debe mejorar el cerramiento mediante masa, estanqueidad, desacoplamiento y control de fugas y flancos.",
+       [["no","no mejora"],["absor","reverber"],["masa","estanque","desacopl","cerramiento"]],"Diferencia el control de reflexiones interiores del control de transmisión entre recintos."),
+      ("s3q2","Se requiere reducir el eco en una oficina sin afectar la transmisión de sonido hacia otros recintos. ¿Qué tipo de tratamiento acústico se debe aplicar y por qué?",
+       "Se debe aplicar acondicionamiento absorbente interior —paneles, cielo acústico o bafles— para aumentar la absorción equivalente y reducir el T₆₀. El objetivo es controlar reflexiones dentro de la oficina, no modificar el aislamiento del cerramiento.",
+       [["absor","acondicion"],["eco","reflex","reverber"],["t60","tiempo de reverberación"]],"La intervención buscada actúa dentro del mismo recinto y no sobre el sonido que atraviesa la separación."),
+      ("s3q3","Una persona sigue escuchando a sus vecinos a pesar de instalar paneles acústicos de espuma en su muro. ¿Cuál es el error común en la solución adoptada?",
+       "El error es confundir absorción con aislamiento. La espuma puede reducir reflexiones en la habitación, pero no aporta suficiente masa ni desacoplamiento. Deben revisarse muro, puertas, ventanas, juntas, enchufes y transmisiones laterales.",
+       [["confund","absorción","absorcion"],["aislamiento","transmisión","transmision"],["masa","desacopl","sell","fuga","flanco"]],"Explica por qué un material absorbente no se transforma automáticamente en un buen aislante."),
+      ("s3q4","Un gimnasio necesita reducir el ruido percibido en oficinas contiguas. ¿Se deben usar materiales absorbentes o aislantes? Propón una solución adecuada.",
+       "Se requieren principalmente soluciones aislantes y de control vibratorio: piso resiliente o flotante, soportes antivibratorios, cerramientos dobles desacoplados, mayor masa y sellado. Los absorbentes pueden complementar reduciendo la reverberación del gimnasio, pero no sustituyen el aislamiento.",
+       [["aisl","transmis"],["vibr","piso flotante","soporte"],["doble","masa","sell","desacopl"]],"Distingue el ruido aéreo de los impactos y vibraciones que pueden viajar por la estructura."),
+      ("s3q5","Se diseñan dos salas de clases. Una usa paneles absorbentes en el techo y la otra usa muros dobles entre salas. ¿Cuál solución afecta más la inteligibilidad del habla dentro de la sala y cuál mejora el aislamiento entre ellas?",
+       "Los paneles absorbentes del techo reducen el T₆₀ y mejoran principalmente la inteligibilidad dentro del aula. Los muros dobles desacoplados reducen la transmisión y mejoran principalmente el aislamiento entre las salas.",
+       [["panel","techo","absorb"],["intelig","reverber"],["muro doble","aislamiento","transmis"]],"Asocia cada solución con el lugar donde aparece su beneficio: dentro de la sala o al otro lado de la separación."),
+    ]
+    solutions={}
+    for key,q,solution,groups,note in questions:
+        formative_development(3,key,q,solution,groups,note); solutions[key]=solution
+    teacher_group_review(3,solutions)
 
 def economic_inputs(prefix="eco"):
     names=["Solución A","Solución B","Solución C"]
@@ -806,6 +987,19 @@ def stage5():
         best=feasible.loc[feasible["Costo ciclo"].idxmin()]
         st.success(f'Entre las alternativas suficientes, {best["Solución"]} tiene el menor costo del ciclo. La decisión final debe revisar además bandas críticas, montaje y riesgo.')
     check("e5","Una alternativa tiene excelente ROI, pero no alcanza la meta acústica. ¿Qué corresponde?",["Elegirla por su ROI","Descartarla o rediseñarla antes de comparar economía","Promediar ROI y dB"],"Descartarla o rediseñarla antes de comparar economía","La suficiencia técnica precede a la optimización económica.")
+    st.markdown('<div class="section-band"><span>🧮</span><h3>Aplicación técnico-económica · responde y comprueba</h3></div>',unsafe_allow_html=True)
+    q1="Un ingeniero propone aumentar el aislamiento de una oficina de 40 dB a 50 dB. ¿Qué elementos debería considerar para decidir si esto es una buena inversión?"
+    s1="Debe comprobar el nivel actual y la meta, privacidad y uso, espectro de la fuente, cumplimiento, beneficio real de 10 dB, costo del ciclo, factibilidad, puertas, ventanas, juntas y flancos, vida útil, riesgo y rendimiento decreciente. «Más dB» no basta si la mejora no es necesaria o no puede lograrse en obra."
+    formative_development(5,"s5q1",q1,s1,[["meta","objetivo","norma"],["costo","inversión","inversion"],["puerta","ventana","fuga","flanco"],["beneficio","privacidad","confort"],["factib","vida útil","vida util","riesgo"]],"La decisión debe integrar suficiencia acústica, vías dominantes, costo completo y beneficio útil.")
+    q2="Un sistema cuesta $1.200.000 CLP y reduce 30 dB. Otro cuesta $2.400.000 CLP y reduce 38 dB. Calcula el costo por dB de ambos e indica cuál ofrece mayor eficiencia."
+    s2="Sistema 1: $1.200.000/30 = **$40.000 por dB**. Sistema 2: $2.400.000/38 = **$63.158 por dB** aproximadamente. El sistema 1 es más eficiente por este indicador, siempre que alcance la meta acústica."
+    formative_numeric(5,"s5q2",q2,[("a","Sistema 1 · CLP/dB",0.0,1000.0),("b","Sistema 2 · CLP/dB",0.0,1000.0)],
+        lambda v:(abs(v["a"]-40000)<=500 and abs(v["b"]-63157.9)<=600,"Los valores esperados son $40.000/dB y aproximadamente $63.158/dB; el menor costo por dB corresponde al sistema 1."),s2)
+    q3="Opción A: inversión $500.000, beneficio $700.000. Opción B: inversión $1.000.000, beneficio $950.000. Calcula el ROI de ambas e identifica la mejor."
+    s3="ROI A = ($700.000−$500.000)/$500.000×100 = **40 %**. ROI B = ($950.000−$1.000.000)/$1.000.000×100 = **−5 %**. La opción A tiene el mejor retorno."
+    formative_numeric(5,"s5q3",q3,[("a","ROI A (%)",0.0,1.0),("b","ROI B (%)",0.0,1.0)],
+        lambda v:(abs(v["a"]-40)<=0.2 and abs(v["b"]+5)<=0.2,"Se esperaba ROI A = 40 % y ROI B = −5 %. La alternativa A ofrece el mejor retorno."),s3)
+    teacher_group_review(5,{"s5q1":s1,"s5q2":s2,"s5q3":s3})
 
 def mass_r(m,f): return 20*np.log10(np.maximum(m*f,1))-47
 
@@ -819,14 +1013,27 @@ def stage6():
                      r"\tau=\frac{W_t}{W_i} \qquad R=10\log_{10}\left(\frac{1}{\tau}\right)",
                      "<b>Wₜ</b>: potencia transmitida (W)<br><b>Wᵢ</b>: potencia incidente (W)<br><b>τ</b>: fracción transmitida<br><b>R</b>: reducción sonora (dB)",
                      "Para relacionar físicamente la energía que atraviesa una separación con su aislamiento por banda.")
+        formula_card("Despeje directo del coeficiente de transmisión",
+                     r"\tau=10^{-R/10}",
+                     "<b>R</b>: reducción sonora (dB)<br><b>τ</b>: fracción adimensional entre 0 y 1",
+                     "Para conocer qué fracción de la energía atraviesa un elemento cuando se dispone de R.")
         R=st.slider("R (dB)",10,70,40,key="r6"); t=10**(-R/10)
         st.metric("Fracción de energía transmitida",f"{t:.8f} ({t*100:.6f} %)")
+        st.info("Ejemplo: R = 40 dB → τ = 10⁻⁴ = 0,0001. Solo se transmite 0,01 % de la energía incidente.")
     with tabs[1]:
+        formula_card("Ley de masa ideal para una hoja simple",
+                     r"R\approx20\log_{10}(m'f)-47",
+                     "<b>m′</b>: masa superficial (kg/m²)<br><b>f</b>: frecuencia (Hz)<br><b>R</b>: reducción sonora (dB)",
+                     "Aproximación de campo difuso en la región controlada por masa, lejos de resonancias, coincidencia, fugas y flancos.")
         m=st.slider("Masa superficial m′ (kg/m²)",5,150,25)
         curve=mass_r(m,FREQS); curve2=mass_r(2*m,FREQS)
         line_chart(FREQS,[("m′",curve),("2·m′",curve2)],"Ley de masa ideal","R (dB)")
         st.info("Duplicar masa o frecuencia aumenta aproximadamente 6 dB en la región ideal de ley de masa.")
     with tabs[2]:
+        formula_card("Frecuencia crítica de una placa",
+                     r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}\qquad D=\frac{Eh^3}{12(1-\nu^2)}",
+                     "<b>c</b>: velocidad del sonido (m/s)<br><b>m′</b>: masa superficial (kg/m²)<br><b>D</b>: rigidez flexional (N·m)<br><b>E</b>: módulo de Young (Pa)<br><b>h</b>: espesor (m)<br><b>ν</b>: coeficiente de Poisson",
+                     "Para estimar la banda donde la coincidencia puede producir una caída del aislamiento de una placa homogénea.")
         fc=st.slider("Frecuencia crítica estimada (Hz)",100,3150,800)
         ideal=mass_r(25,FREQS); dip=ideal-12*np.exp(-.5*(np.log(FREQS/fc)/.24)**2)
         line_chart(FREQS,[("Ley de masa ideal",ideal),("Con coincidencia",dip)],"Efecto didáctico de coincidencia","R (dB)")
@@ -837,11 +1044,16 @@ def stage6():
         st.metric("Mejora didáctica sobre hoja simple",f"{gain:.1f} dB")
         st.caption("El desempeño real depende de masas, rigidez de uniones, frecuencia masa–aire–masa y puentes estructurales.")
     with tabs[4]:
+        formula_card("Aislamiento de elementos compuestos",
+                     r"\tau_{\mathrm{total}}=\frac{\sum_i S_i\tau_i}{\sum_i S_i}\qquad R_{\mathrm{total}}=-10\log_{10}(\tau_{\mathrm{total}})",
+                     "<b>Sᵢ</b>: área del elemento i (m²)<br><b>τᵢ=10^{-Rᵢ/10}</b>: coeficiente de transmisión de cada elemento",
+                     "Para combinar un muro con puertas, ventanas u otros componentes. Los aislamientos en dB no se promedian.")
         wall=st.slider("R del muro (dB)",30,70,55); door=st.slider("R de puerta/ventana (dB)",15,50,28)
         share=st.slider("Porcentaje de área débil",1,40,15)/100
         tau=(1-share)*10**(-wall/10)+share*10**(-door/10); comp=-10*np.log10(tau)
         st.metric("R compuesto",f"{comp:.1f} dB")
         st.info("Los dB no se promedian: se combinan coeficientes de transmisión ponderados por superficie.")
+        st.caption("Ejemplo: una puerta pequeña y débil puede dominar el resultado porque transmite mucha más energía por cada metro cuadrado que el muro.")
     check(
         "e6",
         "Si se duplica la masa superficial de un panel dentro de la región ideal de la ley de masa, ¿qué mejora aproximada se espera?",
@@ -879,6 +1091,47 @@ def stage7():
         "Propón una mejora para el caso simulado y explica qué variable o componente modificarías para cumplir la meta.",
         "Una respuesta sólida identifica la banda crítica, el elemento débil o la coincidencia, propone una intervención relacionada con esa causa y vuelve a verificar el nivel del receptor frente a la meta.",
     )
+    st.markdown('<div class="section-band"><span>🧪</span><h3>Aplicación conceptual III · 11 ejercicios</h3></div>',unsafe_allow_html=True)
+    solutions={}
+    q="En un ensayo simplificado, el nivel medio en el recinto emisor es 85 dB y en el receptor es 45 dB. Sin aplicar correcciones de recinto, calcula R."
+    s="Aplicación simplificada: **R = L₁ − L₂ = 85 − 45 = 40 dB**. En un ensayo normalizado real se incorporan las correcciones y condiciones definidas por el método."
+    formative_numeric(7,"s7q1",q,[("r","R (dB)",0.0,1.0)],lambda v:(abs(v["r"]-40)<.1,"R debe ser 40 dB: resta nivel receptor al nivel emisor."),s);solutions["s7q1"]=s
+    q="Para un elemento con R = 40 dB, calcula el coeficiente de transmisión τ."
+    s="**τ = 10^(−R/10) = 10⁻⁴ = 0,0001**, equivalente a 0,01 % de la energía incidente."
+    formative_numeric(7,"s7q2",q,[("tau","τ",0.0,0.0001)],lambda v:(abs(v["tau"]-0.0001)<=0.00001,"τ debe ser 0,0001."),s);solutions["s7q2"]=s
+    q="Aplica la ley de masa ideal para m′ = 30 kg/m² y f = 500 Hz. Calcula R."
+    expected=20*math.log10(30*500)-47
+    s=f"**R ≈ 20 log₁₀(30×500) − 47 = {expected:.1f} dB**. Es una aproximación válida solo en la región controlada por masa."
+    formative_numeric(7,"s7q3",q,[("r","R (dB)",0.0,0.1)],lambda v:(abs(v["r"]-expected)<=0.3,f"El resultado esperado es aproximadamente {expected:.1f} dB."),s);solutions["s7q3"]=s
+    q="Una placa tiene E = 2,5 GPa, h = 12 mm, ν = 0,30, m′ = 9,6 kg/m² y c = 343 m/s. Calcula primero D y luego fᶜ."
+    s="Con unidades SI: **D = Eh³/[12(1−ν²)] = 395,6 N·m**. Luego, **fᶜ = c²/(2π)√(m′/D) ≈ 2.917 Hz**."
+    formative_numeric(7,"s7q4",q,[("d","D (N·m)",0.0,1.0),("fc","fᶜ (Hz)",0.0,10.0)],
+        lambda v:(abs(v["d"]-395.6)<=3 and abs(v["fc"]-2917)<=25,"Se esperaba D ≈ 395,6 N·m y fᶜ ≈ 2.917 Hz. Verifica convertir 12 mm a 0,012 m."),s);solutions["s7q4"]=s
+    q="Un recinto posee 60 m² de superficie con α = 0,10 y agrega 25 m² de material con α = 0,80. Calcula la absorción equivalente total."
+    s="**A = 60×0,10 + 25×0,80 = 6 + 20 = 26 m² sabin**."
+    formative_numeric(7,"s7q5",q,[("a","A total (m² sabin)",0.0,1.0)],lambda v:(abs(v["a"]-26)<.1,"La absorción equivalente total es 26 m² sabin."),s);solutions["s7q5"]=s
+    q="Compara dos ventanas: A tiene Rw = 40 dB y B tiene Rw = 35 dB. ¿Cuál transmite menos energía y cuántas veces difieren aproximadamente sus coeficientes τ?"
+    s="La ventana A transmite menos. Una diferencia de 5 dB corresponde a una razón de transmisión de **10^(5/10) ≈ 3,16**: B transmite aproximadamente 3,16 veces más energía que A."
+    formative_development(7,"s7q6",q,s,[["a","40"],["menos","menor"],["3,16","3.16","tres"]],"No compares los dB como una razón lineal: convierte la diferencia mediante 10^(ΔR/10).");solutions["s7q6"]=s
+    q="¿Qué ocurre idealmente con R cuando se duplica la masa superficial de una hoja simple?"
+    s="En la región ideal controlada por masa, **R aumenta aproximadamente 6 dB**. No es una regla universal cerca de resonancias, coincidencia, fugas o flancos."
+    formative_development(7,"s7q7",q,s,[["6","seis"],["masa"],["ideal","coincid","resonan","aproxim"]],"Indica tanto la mejora aproximada como las condiciones que limitan la ley de masa.");solutions["s7q7"]=s
+    q="¿Qué función cumple la lana mineral dentro de un tabique de doble hoja?"
+    s="Absorbe y amortigua la energía dentro de la cámara, reduce la severidad de resonancias y mejora el sistema. **No aporta aislamiento por sí sola ni sustituye el desacoplamiento**, la masa o el sellado."
+    formative_development(7,"s7q8",q,s,[["absor","amort"],["cámara","camara","resonan"],["no","desacopl","masa"]],"Evita atribuirle a la lana mineral toda la capacidad aislante del tabique.");solutions["s7q8"]=s
+    q="Un muro de alto aislamiento incorpora una ventana pequeña de bajo R. ¿Cómo puede afectar esa ventana al aislamiento global?"
+    s="Puede dominar el resultado global porque su τ es mucho mayor que el del muro. Se deben combinar los coeficientes de transmisión ponderados por área; **no se promedian los dB**."
+    formative_development(7,"s7q9",q,s,[["domina","reduce","debil"],["coeficiente","tau","transmis"],["área","area"],["no","promedi"]],"Explica por qué una superficie pequeña puede transportar una fracción grande de la energía.");solutions["s7q9"]=s
+    q="El muro separador fue mejorado, pero el ruido sigue llegando por la unión con el cielo y el piso. ¿Qué fenómeno ocurre y cómo se aborda?"
+    s="Existe **transmisión indirecta o por flancos**. Deben diagnosticarse los encuentros y vías estructurales, controlar continuidades rígidas, sellar pasos y diseñar el conjunto constructivo, no solo el paño separador."
+    formative_development(7,"s7q10",q,s,[["flanco","indirect"],["cielo","piso","encuentro"],["vía","via","estructura","sell"]],"Nombra la trayectoria real y propone una intervención sobre ese encuentro.");solutions["s7q10"]=s
+    q="Un muro de 12 m² tiene R = 55 dB e incorpora una puerta de 2 m² con R = 25 dB. Calcula el R compuesto."
+    tau_total=(12*10**(-55/10)+2*10**(-25/10))/14
+    r_total=-10*math.log10(tau_total)
+    s=f"τtotal = [12·10^(−55/10)+2·10^(−25/10)]/14. Por tanto, **Rtotal ≈ {r_total:.1f} dB**. La puerta reduce drásticamente el desempeño del conjunto."
+    formative_numeric(7,"s7q11",q,[("r","R compuesto (dB)",0.0,0.1)],
+        lambda v:(abs(v["r"]-r_total)<=0.3,f"El resultado esperado es aproximadamente {r_total:.1f} dB; combina τ ponderados por superficie."),s);solutions["s7q11"]=s
+    teacher_group_review(7,solutions)
 
 REF=np.array([33,36,39,42,45,48,51,52,53,54,55,56,56,56,56,56])
 def rw_from_curve(curve):
