@@ -25,6 +25,16 @@ st.markdown("""
 [data-testid="stSidebar"] *{color:white}.hero{background:linear-gradient(125deg,#07172b,#075da9 70%,#11a8cc);
 color:white;border-radius:24px;padding:2rem 2.2rem;margin:.4rem 0 1.2rem;box-shadow:0 18px 42px #14395a25}
 .hero h1{font-size:2.35rem;margin:.2rem 0}.hero p{max-width:850px;font-size:1.05rem}.tag{font-size:.73rem;font-weight:900;letter-spacing:.13em;color:#8ee9ff}
+.time-badge{display:inline-flex;align-items:center;gap:.42rem;margin-top:.55rem;padding:.42rem .78rem;border-radius:999px;
+background:#ffffff1c;border:1px solid #8ee9ff88;color:#fff;font-size:.83rem;font-weight:900}
+.class-clock{background:linear-gradient(135deg,#072b4d,#0967a8);color:#fff;border-radius:18px;padding:1rem 1.2rem;
+margin:.8rem 0 1rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;box-shadow:0 10px 25px #092d5320}
+.class-clock strong{font-size:1.1rem}.class-clock span{color:#ccefff;font-size:.9rem}
+.route-time{display:inline-flex;margin-top:.45rem;padding:.25rem .58rem;border-radius:999px;background:#eaf7ff;
+color:#0871bd;font-size:.75rem;font-weight:900}
+.break-card{background:#fff8e9;border:1px solid #f2cf8d;border-radius:16px;padding:1rem;display:grid;
+grid-template-columns:48px 1fr;gap:.8rem;align-items:center;box-shadow:0 7px 20px #5c43140c}
+.break-card b{display:block;color:#704b08}.break-card p{margin:.15rem 0 0;color:#7d673d;font-size:.88rem}
 .card,.lesson,.answer{background:white;border:1px solid var(--line);border-radius:17px;padding:1.1rem 1.25rem;
 box-shadow:0 6px 18px #17324d0b;margin:.55rem 0}.lesson{border-left:5px solid var(--blue)}
 .formula{background:linear-gradient(135deg,#06172b,#0a4f86);color:white;border-radius:18px;padding:1.35rem;
@@ -187,10 +197,16 @@ STAGES = [
 ("Etapa 10","Evaluación final · Aislamiento a Ruido Aéreo"),
 ]
 
+# La sesión completa dura 4 horas: 230 minutos de trabajo y 10 minutos de pausa.
+STAGE_MINUTES = {0:10, 1:20, 2:25, 3:20, 4:20, 5:15, 6:30, 7:25, 8:20, 9:20, 10:25}
+BREAK_AFTER_STAGE = 5
+BREAK_MINUTES = 10
+TOTAL_CLASS_MINUTES = sum(STAGE_MINUTES.values()) + BREAK_MINUTES
+
 STAGE_GUIDE = {
 0:("🧭","CONOCERÁS","La ruta completa del laboratorio y el propósito profesional de cada etapa.",
    "🎯","AL FINAL","Sabrás qué aprenderás, cómo experimentarás y cómo se evaluará tu avance.",
-   "⏱️","RECORRIDO","10 etapas progresivas, actividades formativas y una evaluación integradora."),
+   "⏱️","RECORRIDO","240 minutos totales: 230 de trabajo guiado y una pausa de 10 minutos."),
 1:("🏭","COMPRENDERÁS","Fuente, trayectoria y receptor; propagación aérea, estructural, directa e indirecta.",
    "🧪","EXPERIMENTARÁS","Encapsulado, barrera, separación física, cabina, fachada y protección auditiva sobre una escena dinámica.",
    "✅","APLICARÁS","La intervención correcta según el lugar donde nace, viaja o se recibe el ruido."),
@@ -245,10 +261,13 @@ def stage_overview(stage_number):
     st.markdown(html+'</div>',unsafe_allow_html=True)
 
 def header(kicker,title,desc):
-    st.markdown(f'<div class="hero"><span class="tag">{kicker}</span><h1>{title}</h1><p>{desc}</p></div>',unsafe_allow_html=True)
     match=re.search(r"ETAPA\s+(\d+)",kicker)
+    stage_number=int(match.group(1)) if match else None
+    duration=(f'<div class="time-badge">⏱️ Tiempo de aplicación: {STAGE_MINUTES[stage_number]} minutos</div>'
+              if stage_number in STAGE_MINUTES else "")
+    st.markdown(f'<div class="hero"><span class="tag">{kicker}</span><h1>{title}</h1><p>{desc}</p>{duration}</div>',unsafe_allow_html=True)
     if match:
-        stage_overview(int(match.group(1)))
+        stage_overview(stage_number)
 
 def image_data_uri(path):
     if not path.exists():
@@ -471,7 +490,7 @@ def _fallback_figure(symbol):
 def student_lesson(stage_number):
     lessons=STUDENT_LESSONS.get(stage_number,[])
     if lessons:
-        st.markdown('<div class="section-band"><span>🖼️</span><h3>Conceptos explicados con figuras</h3></div>',unsafe_allow_html=True)
+        st.markdown('<div class="section-band"><span>🖼️</span><h3>Conceptualización</h3></div>',unsafe_allow_html=True)
         st.caption("Avanza como en una presentación: revisa una figura y su explicación antes de pasar a la siguiente.")
         key=f"lesson_slide_{stage_number}"
         if key not in st.session_state:
@@ -729,10 +748,18 @@ def stage0():
     header("ETAPA 0 · BIENVENIDA","Laboratorio del curso Aislamiento a Ruido Aéreo",
            "Una experiencia visual para comprender el fenómeno, experimentar con variables y decidir con criterio técnico y económico.")
     full_matter(0)
+    st.markdown(
+        f'<div class="class-clock"><div><strong>⏱️ Duración total de la clase: 4 horas</strong>'
+        f'<br><span>{sum(STAGE_MINUTES.values())} min de aprendizaje y aplicación + {BREAK_MINUTES} min de pausa</span></div>'
+        f'<div><strong>{TOTAL_CLASS_MINUTES} min</strong></div></div>',
+        unsafe_allow_html=True,
+    )
     st.markdown('<div class="section-band"><span>🗺️</span><h3>Tu ruta de aprendizaje</h3></div>',unsafe_allow_html=True)
     html='<div class="route-grid">'
     for i,((_,title),(short,desc)) in enumerate(zip(STAGES[1:],ROUTE_SUMMARIES),1):
-        html+=f'<div class="route-card"><span class="step">{i}</span><div><b>{title}</b><p>{desc}</p></div></div>'
+        html+=f'<div class="route-card"><span class="step">{i}</span><div><b>{title}</b><p>{desc}</p><span class="route-time">⏱️ {STAGE_MINUTES[i]} min</span></div></div>'
+        if i==BREAK_AFTER_STAGE:
+            html+=f'<div class="break-card"><span class="step">☕</span><div><b>Pausa pedagógica</b><p>Descanso antes del bloque de fundamentos físicos.</p><span class="route-time">⏱️ {BREAK_MINUTES} min</span></div></div>'
     st.markdown(html+'</div>',unsafe_allow_html=True)
     st.markdown('<div class="good" style="margin-top:1rem"><b>Así aprenderás:</b> concepto visual → explicación técnica → ejemplo → interacción → interpretación → ejercicio → retroalimentación.</div>',unsafe_allow_html=True)
 
@@ -856,6 +883,41 @@ def stage2():
         'el T₆₀. El nivel medido en el receptor puede bajar por la menor reverberación, pero el valor R propio del panel no aumenta.</div>',
         unsafe_allow_html=True,
     )
+    st.markdown('<div class="section-band"><span>📐</span><h3>Laboratorio visual: absorción equivalente y ecuación de Sabine</h3></div>',unsafe_allow_html=True)
+    formula_card("Absorción equivalente y ecuación de Sabine",
+                 r"A=\sum_i S_i\alpha_i \qquad T_{60}=0{,}161\,\frac{V}{A}",
+                 "<b>S</b>: superficie (m²)<br><b>α</b>: coeficiente de absorción<br><b>V</b>: volumen (m³)<br><b>A</b>: absorción equivalente (m² sabin)",
+                 "Para estimar el tiempo de reverberación en un recinto de campo aproximadamente difuso.")
+    c1,c2,c3=st.columns(3)
+    sabine_v=c1.number_input("Volumen (m³)",50,1000,220,key="e2_sabine_v")
+    sabine_base=c2.number_input("Absorción inicial (m² sabin)",5.,200.,28.,key="e2_sabine_base")
+    sabine_area=c3.number_input("Área nueva (m²)",0.,300.,55.,key="e2_sabine_area")
+    sabine_alpha=st.select_slider(
+        "α del material en 500 Hz",
+        options=[0.05,.10,.20,.35,.50,.65,.80,.95],
+        value=.80,
+        key="e2_sabine_alpha",
+    )
+    sabine_a=sabine_base+sabine_area*sabine_alpha
+    sabine_t=.161*sabine_v/sabine_a
+    sabine_t0=.161*sabine_v/sabine_base
+    a,b,c=st.columns(3)
+    a.metric("A nueva",f"{sabine_a:.1f} m² sabin")
+    b.metric("T₆₀ inicial",f"{sabine_t0:.2f} s")
+    c.metric("T₆₀ final",f"{sabine_t:.2f} s",delta=f"{sabine_t-sabine_t0:+.2f} s")
+    if sabine_t<=.8:
+        st.success("Condición didáctica favorable para habla: decaimiento rápido y mejor claridad.")
+    elif sabine_t<=1.2:
+        st.warning("Condición intermedia. Puede requerir más absorción según volumen y uso.")
+    else:
+        st.error("Reverberación alta para una actividad centrada en la palabra.")
+    check(
+        "e2_sabine_check",
+        "Si el volumen se mantiene y se duplica A, ¿qué ocurre con T₆₀?",
+        ["Se duplica","Se reduce aproximadamente a la mitad","No cambia"],
+        "Se reduce aproximadamente a la mitad",
+        "Sabine muestra una relación inversa entre T₆₀ y A.",
+    )
     check(
         "e2_lab_1",
         "Si mantienes el mismo panel y agregas material absorbente en el recinto receptor, ¿qué cambia principalmente?",
@@ -872,24 +934,8 @@ def stage2():
     )
 
 def stage3():
-    header("ETAPA 3 · APLICACIÓN PRÁCTICA","Absorción, reverberación e inteligibilidad",
-           "Diseña el acondicionamiento de un aula y observa cómo cambia el tiempo de reverberación.")
-    full_matter(3)
-    formula_card("Absorción equivalente y ecuación de Sabine",
-                 r"A=\sum_i S_i\alpha_i \qquad T_{60}=0{,}161\,\frac{V}{A}",
-                 "<b>S</b>: superficie (m²)<br><b>α</b>: coeficiente de absorción<br><b>V</b>: volumen (m³)<br><b>A</b>: absorción equivalente (m² sabin)",
-                 "Para estimar el tiempo de reverberación en un recinto de campo aproximadamente difuso.")
-    c1,c2,c3=st.columns(3)
-    V=c1.number_input("Volumen (m³)",50,1000,220)
-    base=c2.number_input("Absorción inicial (m² sabin)",5.,200.,28.)
-    area=c3.number_input("Área nueva (m²)",0.,300.,55.)
-    alpha=st.select_slider("α del material en 500 Hz",options=[0.05,.10,.20,.35,.50,.65,.80,.95],value=.80)
-    A=base+area*alpha; T=.161*V/A; T0=.161*V/base
-    a,b,c=st.columns(3);a.metric("A nueva",f"{A:.1f} m² sabin");b.metric("T₆₀ inicial",f"{T0:.2f} s");c.metric("T₆₀ final",f"{T:.2f} s",delta=f"{T-T0:+.2f} s")
-    if T<=.8: st.success("Condición didáctica favorable para habla: decaimiento rápido y mejor claridad.")
-    elif T<=1.2: st.warning("Condición intermedia. Puede requerir más absorción según volumen y uso.")
-    else: st.error("Reverberación alta para una actividad centrada en la palabra.")
-    check("e3","Si el volumen se mantiene y se duplica A, ¿qué ocurre con T₆₀?",["Se duplica","Se reduce aproximadamente a la mitad","No cambia"],"Se reduce aproximadamente a la mitad","Sabine muestra una relación inversa entre T₆₀ y A.")
+    header("ETAPA 3 · PREGUNTAS DE APLICACIÓN","Aislamiento, absorción y acondicionamiento acústico",
+           "Responde las cinco situaciones, comprueba tu razonamiento y revisa la aclaración correspondiente.")
     st.markdown('<div class="section-band"><span>✍️</span><h3>Aplicación conceptual · responde y comprueba</h3></div>',unsafe_allow_html=True)
     questions=[
       ("s3q1","En una sala de reuniones se instalan paneles acústicos de espuma en todas las paredes. ¿Este tratamiento mejora el aislamiento acústico entre salas contiguas? Justifica tu respuesta.",
@@ -935,6 +981,25 @@ def stage4():
            "La mejor solución no es la de mayor número ni la más barata: es la que cumple la meta con un costo justificable.")
     full_matter(4)
     lesson("Orden correcto de decisión","1) definir meta y espectro; 2) descartar lo que no cumple; 3) comparar costo del ciclo, vida útil, riesgo, ROI y recuperación; 4) revisar margen de seguridad.")
+    formula_card("Flujo anual neto",
+                 r"F_{\mathrm{neto}}=B_a-C_a",
+                 "<b>F<sub>neto</sub></b>: flujo anual neto ($/año)<br>"
+                 "<b>B<sub>a</sub></b>: beneficios económicos anuales o costos evitados ($/año)<br>"
+                 "<b>C<sub>a</sub></b>: costos recurrentes anuales de operación, inspección y mantención ($/año)",
+                 "Para determinar cuánto dinero aporta realmente la solución durante cada año, antes de calcular su período de recuperación.")
+    st.markdown(
+        '<div class="worked-example"><h3>¿Cómo se interpreta el flujo anual neto?</h3>'
+        '<div class="worked-step"><strong>1 · Beneficios anuales.</strong> Se suman los ingresos atribuibles a la solución y los costos que permite evitar: '
+        'multas, paralizaciones, reclamos, pérdida de productividad, arriendos temporales o reparaciones repetidas.</div>'
+        '<div class="worked-step"><strong>2 · Costos anuales.</strong> Se descuentan únicamente los gastos que se repiten cada año: '
+        'mantención, inspecciones, reposición de sellos, energía adicional u operación. La inversión inicial se analiza por separado.</div>'
+        '<div class="worked-step"><strong>3 · Cálculo.</strong> Si la solución evita $700.000 al año y exige $100.000 de mantención, '
+        'el flujo anual neto es $700.000 − $100.000 = <b>$600.000/año</b>.</div>'
+        '<div class="worked-result"><b>Lectura del resultado:</b> un flujo positivo aporta recursos para recuperar la inversión; '
+        'un flujo igual a cero no la recupera; y uno negativo significa que los costos anuales superan los beneficios anuales. '
+        'El payback se calcula dividiendo la inversión inicial por este flujo positivo.</div></div>',
+        unsafe_allow_html=True,
+    )
     formula_card("Retorno de la inversión y período de recuperación",
                  r"ROI=\frac{B-C}{C}\,100 \qquad Payback=\frac{I_0}{B_a-M_a}",
                  "<b>B</b>: beneficio acumulado ($)<br><b>C</b>: costo total ($)<br><b>I₀</b>: inversión inicial ($)<br><b>Bₐ−Mₐ</b>: beneficio anual neto ($/año)",
@@ -977,6 +1042,14 @@ def stage5():
     header("ETAPA 5 · APLICACIÓN CONCEPTUAL","Decisión técnico-económica",
            "Compara alternativas, filtra por suficiencia acústica y encuentra el mejor compromiso.")
     full_matter(5)
+    st.markdown(
+        '<div class="question-box"><div class="question-label">CASO DE DECISIÓN</div>'
+        '<div class="question-text">¿Cuál de las tres soluciones recomendarías para cumplir el objetivo acústico '
+        'con el menor costo del ciclo? Ajusta la meta, revisa los datos de cada alternativa y justifica por qué '
+        'tu elección es técnicamente suficiente antes de compararla económicamente.</div></div>',
+        unsafe_allow_html=True,
+    )
+    st.caption("Instrucción: primero define el objetivo mínimo; luego descarta las soluciones que no cumplen y compara únicamente las alternativas suficientes.")
     target=st.slider("Objetivo acústico mínimo (dB)",25,55,38,key="target5")
     df=economic_inputs("s5")
     df["Cumple"]=df["Aislamiento"]>=target
@@ -986,6 +1059,29 @@ def stage5():
     else:
         best=feasible.loc[feasible["Costo ciclo"].idxmin()]
         st.success(f'Entre las alternativas suficientes, {best["Solución"]} tiene el menor costo del ciclo. La decisión final debe revisar además bandas críticas, montaje y riesgo.')
+    recommendation=st.radio(
+        "Selecciona la solución que recomendarías",
+        ["Solución A","Solución B","Solución C"],
+        index=None,
+        key="s5_table_recommendation",
+        horizontal=True,
+    )
+    justification=st.text_area(
+        "Justifica tu decisión utilizando cumplimiento acústico y costo del ciclo",
+        key="s5_table_justification",
+        placeholder="Ejemplo: descarto… porque no cumple; entre las que cumplen selecciono… porque…",
+    )
+    if st.button("Comprobar decisión",key="b_s5_table_decision"):
+        if recommendation is None:
+            st.warning("Selecciona una solución antes de comprobar.")
+        elif feasible.empty:
+            st.error("Ninguna solución cumple la meta seleccionada. La decisión correcta es rediseñar las alternativas antes de recomendar una.")
+        elif recommendation!=best["Solución"]:
+            st.error(f'La recomendación no es la óptima con estos datos. Primero descarta las alternativas que no cumplen y, entre las suficientes, compara el costo del ciclo. La respuesta esperada es {best["Solución"]}.')
+        elif len(justification.strip())<20:
+            st.warning(f'{best["Solución"]} es la alternativa esperada, pero falta desarrollar la justificación técnica y económica.')
+        else:
+            st.success(f'Correcto. {best["Solución"]} cumple el objetivo y presenta el menor costo del ciclo entre las alternativas suficientes.')
     check("e5","Una alternativa tiene excelente ROI, pero no alcanza la meta acústica. ¿Qué corresponde?",["Elegirla por su ROI","Descartarla o rediseñarla antes de comparar economía","Promediar ROI y dB"],"Descartarla o rediseñarla antes de comparar economía","La suficiencia técnica precede a la optimización económica.")
     st.markdown('<div class="section-band"><span>🧮</span><h3>Aplicación técnico-económica · responde y comprueba</h3></div>',unsafe_allow_html=True)
     q1="Un ingeniero propone aumentar el aislamiento de una oficina de 40 dB a 50 dB. ¿Qué elementos debería considerar para decidir si esto es una buena inversión?"
@@ -1066,6 +1162,13 @@ def stage7():
     header("ETAPA 7 · APLICACIÓN PRÁCTICA","Diseño de aislamiento acústico",
            "Resuelve un caso completo por bandas, identifica el componente dominante y verifica la meta.")
     full_matter(7)
+    st.markdown(
+        '<div class="question-box"><div class="question-label">CASO DE DIAGNÓSTICO ESPECTRAL</div>'
+        '<div class="question-text">¿La configuración propuesta cumple el nivel máximo admisible en el recinto receptor? '
+        'Identifica la banda crítica y determina qué variable o componente deberías modificar primero para alcanzar la meta.</div></div>',
+        unsafe_allow_html=True,
+    )
+    st.caption("Instrucción: modifica los controles, observa las tres curvas y utiliza el máximo nivel receptor —no un promedio— para decidir si el diseño cumple.")
     source=st.slider("Nivel de la fuente (dB)",70,110,92)
     target=st.slider("Nivel máximo admisible en receptor (dB)",25,60,40)
     m=st.slider("Masa superficial del cerramiento (kg/m²)",10,120,40,key="m7")
@@ -1147,8 +1250,8 @@ def stage8():
     full_matter(8)
     data=[
       ("R(f)","Reducción por banda","Laboratorio/curva"),
-      ("Rᵥ","Reducción ponderada","Laboratorio ISO"),
-      ("R′ᵥ","Reducción aparente","Terreno, incluye vías laterales"),
+      ("Rw","Reducción ponderada","Laboratorio ISO"),
+      ("R′w","Reducción aparente","Terreno, incluye vías laterales"),
       ("DₙT,w","Diferencia estandarizada","Entre recintos, corregida por T"),
       ("D₂m,nT,w","Diferencia de fachada","Exterior a 2 m"),
       ("STC / ASTC","Clasificación ASTM","Laboratorio / terreno"),
@@ -1161,40 +1264,95 @@ def stage8():
                  "<b>Rw</b>: valor ponderado ISO<br><b>C</b>: adaptación para espectros medios-altos<br><b>Ctr</b>: adaptación para tránsito y contenido grave",
                  "Para adaptar el índice global al espectro de la fuente. C y Ctr se suman algebraicamente; no son aislamientos independientes.")
     source=st.selectbox("Fuente a evaluar",["Voz / actividades domésticas","Tránsito, buses o bajos","Fachada bajo criterio ASTM","Fuente tonal industrial"])
-    recommendation={"Voz / actividades domésticas":"Revisar Rᵥ y Rᵥ+C.","Tránsito, buses o bajos":"Priorizar Rᵥ+Cₜᵣ y la curva grave.",
+    recommendation={"Voz / actividades domésticas":"Revisar Rw y Rw+C.","Tránsito, buses o bajos":"Priorizar Rw+Cₜᵣ y la curva grave.",
     "Fachada bajo criterio ASTM":"Revisar OITC además de STC.","Fuente tonal industrial":"La curva completa en la banda tonal es indispensable."}[source]
     st.info(recommendation)
-    check("e8","Un tabique tiene Rᵥ=55 dB en laboratorio y R′ᵥ=47 dB en obra. ¿El laboratorio estaba necesariamente equivocado?",["Sí","No; montaje y vías laterales pueden explicar la diferencia"],"No; montaje y vías laterales pueden explicar la diferencia","R′ incorpora el comportamiento aparente de la construcción instalada.")
+    check("e8","Un tabique tiene Rw=55 dB en laboratorio y R′w=47 dB en obra. ¿El laboratorio estaba necesariamente equivocado?",["Sí","No; montaje y vías laterales pueden explicar la diferencia"],"No; montaje y vías laterales pueden explicar la diferencia","R′w incorpora el comportamiento aparente de la construcción instalada.")
 
 def stage9():
     header("ETAPA 9 · APLICACIÓN PRÁCTICA","Cálculo e interpretación de índices",
-           "Desplaza la curva ISO, interpreta C y Cₜᵣ y selecciona la solución adecuada.")
+           "Desplaza la curva ISO y relaciona cada índice acústico con su definición.")
     full_matter(9)
     base=np.array([27,30,33,36,39,43,47,50,53,55,57,59,61,62,63,64],dtype=float)
     low=st.slider("Modificación en bajas frecuencias (100–315 Hz)",-12,12,0)
     mid=st.slider("Modificación en frecuencias medias (400–1250 Hz)",-8,8,0)
     curve=base.copy();curve[:6]+=low;curve[6:12]+=mid
     rw,ref,dev=rw_from_curve(curve)
-    line_chart(FREQS,[("R medida",curve),("Referencia ajustada",ref)],"Cálculo gráfico de Rᵥ","dB")
-    a,b,c=st.columns(3);a.metric("Rᵥ",f"{rw} dB");b.metric("Σ desviaciones",f"{dev.sum():.1f} dB");c.metric("Bandas desfavorables",int(np.sum(dev>0)))
-    st.caption("Rᵥ es el valor de la curva de referencia desplazada en 500 Hz; no es el promedio ni necesariamente R(500).")
-    st.markdown("### Comparador de selección")
-    compare=pd.DataFrame({"Indicador":["Rᵥ","C","Cₜᵣ","Rᵥ+C","Rᵥ+Cₜᵣ"],"Partición A":[50,-1,-8,49,42],"Partición B":[50,-3,-4,47,46]})
-    st.dataframe(compare,hide_index=True,use_container_width=True)
-    check(
-        "e9_voice",
-        "Para separar oficinas donde predomina la voz, ¿qué partición seleccionarías?",
-        ["Partición A","Partición B","Son necesariamente equivalentes"],
-        "Partición A",
-        "La Partición A presenta Rᵥ+C = 49 dB, superior a los 47 dB de la Partición B para este tipo de espectro.",
+    line_chart(FREQS,[("R medida",curve),("Referencia ajustada",ref)],"Cálculo gráfico de Rw","dB")
+    a,b,c=st.columns(3);a.metric("Rw",f"{rw} dB");b.metric("Σ desviaciones",f"{dev.sum():.1f} dB");c.metric("Bandas desfavorables",int(np.sum(dev>0)))
+    st.caption("Rw es el valor de la curva de referencia desplazada en 500 Hz; no es el promedio ni necesariamente R(500).")
+    st.markdown("### Actividad · Relaciona los términos pareados")
+    st.markdown(
+        "Para cada índice o término, selecciona la definición que le corresponde. "
+        "Una misma definición no debe utilizarse dos veces."
     )
-    check(
-        "e9_traffic",
-        "Para una fachada expuesta a tránsito y contenido grave, ¿qué partición seleccionarías?",
-        ["Partición A","Partición B","Solo importa que ambas tengan Rᵥ = 50 dB"],
-        "Partición B",
-        "La Partición B presenta Rᵥ+Cₜᵣ = 46 dB, superior a los 42 dB de la Partición A frente a tránsito.",
-    )
+    paired_terms = {
+        "R": "Índice por banda de frecuencia que expresa la reducción sonora de un elemento en laboratorio.",
+        "R_w": "Índice único ponderado ISO obtenido al ajustar una curva de referencia a resultados de laboratorio.",
+        "R′_w": "Índice único aparente medido en obra, que incorpora montaje, encuentros y transmisiones laterales.",
+        "D_nT,w": "Diferencia de niveles entre recintos, normalizada por el tiempo de reverberación y ponderada.",
+        "D_2m,nT,w": "Diferencia de niveles de fachada medida con el nivel exterior a 2 m, normalizada y ponderada.",
+        "C": "Término de adaptación espectral asociado principalmente a ruido rosa y fuentes de contenido medio-alto.",
+        "Cₜᵣ": "Término de adaptación espectral apropiado para tránsito y fuentes con contenido importante en bajas frecuencias.",
+        "STC": "Clasificación ASTM de número único usada principalmente para particiones interiores.",
+        "OITC": "Clasificación ASTM orientada al aislamiento frente a ruido exterior, especialmente transporte.",
+        "CAC": "Clasificación del aislamiento entre recintos que comparten un cielo suspendido y plenum.",
+    }
+    definitions = list(paired_terms.values())
+    placeholder = "— Selecciona una definición —"
+    selections = {}
+    left,right=st.columns(2)
+    items=list(paired_terms.items())
+    for idx,(term,_) in enumerate(items):
+        column=left if idx < 5 else right
+        with column:
+            st.markdown(f"**{term}**",unsafe_allow_html=True)
+            selections[term]=st.selectbox(
+                f"Definición de {term}",
+                [placeholder]+definitions,
+                key=f"e9_pair_{idx}",
+                label_visibility="collapsed",
+            )
+    if st.button("Comprobar términos pareados",key="e9_check_pairs",type="primary"):
+        unanswered=[term for term,value in selections.items() if value==placeholder]
+        if unanswered:
+            st.warning(f"Completa todas las relaciones. Faltan: {', '.join(unanswered)}.")
+        else:
+            correct_count=sum(selections[term]==definition for term,definition in paired_terms.items())
+            if correct_count==len(paired_terms):
+                st.success("¡Correcto! Relacionaste adecuadamente los 10 términos acústicos.")
+            else:
+                st.warning(f"Obtuviste {correct_count} de {len(paired_terms)} relaciones correctas.")
+                for term,correct_definition in paired_terms.items():
+                    if selections[term]!=correct_definition:
+                        st.error(
+                            f"{term}: la relación seleccionada no corresponde. "
+                            f"Definición correcta: {correct_definition}",
+                            icon="↔️",
+                        )
+            repeated={definition for definition in definitions if list(selections.values()).count(definition)>1}
+            if repeated:
+                st.info("Revisa las definiciones repetidas: en esta actividad cada una corresponde a un solo término.")
+    if st.session_state.get("role")=="Docente":
+        with st.expander("👩‍🏫 Pauta docente · Términos pareados"):
+            st.markdown(
+                "Proyecte primero las relaciones sin revelar la pauta. Pida que el curso justifique "
+                "especialmente las diferencias entre laboratorio, obra, recintos y fachada."
+            )
+            if st.checkbox("Mostrar solución de términos pareados",key="e9_reveal_pairs"):
+                st.dataframe(
+                    pd.DataFrame(
+                        [{"Término":term,"Definición correcta":definition}
+                         for term,definition in paired_terms.items()]
+                    ),
+                    hide_index=True,
+                    use_container_width=True,
+                )
+                st.info(
+                    "Tip técnico: la prima en R′w identifica desempeño aparente en obra; "
+                    "el subíndice 2m identifica fachada; nT indica normalización por reverberación. "
+                    "C y Cₜᵣ no son índices independientes: se suman algebraicamente a Rw."
+                )
 
 QUESTIONS=[
 ("La trayectoria incluye principalmente:",["La partición y sus fugas","Solo el oído","Solo la fuente"],0),
@@ -1216,16 +1374,16 @@ QUESTIONS=[
 ("Los R de elementos compuestos se combinan mediante:",["τ ponderado por área","Promedio aritmético","Suma directa"],0),
 ("Transmisión flanqueante significa:",["Vía indirecta alrededor del separador","Reflexión interior","Medición a 2 m"],0),
 ("R(f) es:",["Resultado por banda","Un único índice","Costo por dB"],0),
-("Rᵥ corresponde principalmente a:",["Laboratorio ISO","Terreno ASTM","Absorción"],0),
-("R′ᵥ incorpora:",["Comportamiento aparente en obra","Solo el material aislado","ROI"],0),
+("Rw corresponde principalmente a:",["Laboratorio ISO","Terreno ASTM","Absorción"],0),
+("R′w incorpora:",["Comportamiento aparente en obra","Solo el material aislado","ROI"],0),
 ("DₙT,w corrige mediante:",["Tiempo de reverberación","Costo de montaje","Masa"],0),
 ("D₂m,nT,w se usa en:",["Fachadas","Cielos plenums","ROI"],0),
 ("OITC es especialmente útil para:",["Ruido exterior de transporte","Eco interior","Impactos exclusivamente"],0),
 ("Cₜᵣ se asocia a:",["Tránsito y contenido grave","Solo agudos","Reverberación"],0),
-("STC y Rᵥ:",["No tienen conversión fija universal","Siempre difieren en 2","Son idénticos"],0),
+("STC y Rw:",["No tienen conversión fija universal","Siempre difieren en 2","Son idénticos"],0),
 ("CAC evalúa:",["Paso por cielos y plenums","Fachada a 2 m","Tiempo de recuperación"],0),
 ("Para una fuente tonal debe priorizarse:",["Curva por bandas","Solo el índice mayor","Solo el costo"],0),
-("Rᵥ es:",["Valor de referencia ajustada en 500 Hz","Promedio de R","R medido siempre en 500 Hz"],0),
+("Rw es:",["Valor de referencia ajustada en 500 Hz","Promedio de R","R medido siempre en 500 Hz"],0),
 ]
 
 def stage10():
@@ -1246,7 +1404,7 @@ def stage10():
     with tab2:
         st.markdown('<div class="question-box"><div class="question-label">PREGUNTA 30 · CASO PROFESIONAL INTEGRADOR</div><div class="question-text">¿Qué solución recomendarías para proteger un dormitorio contiguo a una sala de máquinas?</div><p>La fuente domina en 125, 250 y 500 Hz. Calcula, compara y justifica tu decisión técnico-económica.</p></div>',unsafe_allow_html=True)
         df=pd.DataFrame({
-          "Indicador":["Rᵥ","Cₜᵣ","Rᵥ+Cₜᵣ","R en 125 Hz","R en 250 Hz","R en 500 Hz","Costo instalado","Vida útil"],
+          "Indicador":["Rw","Cₜᵣ","Rw+Cₜᵣ","R en 125 Hz","R en 250 Hz","R en 500 Hz","Costo instalado","Vida útil"],
           "Solución A":["52 dB","−9 dB","43 dB","27 dB","34 dB","47 dB","$1.800.000","20 años"],
           "Solución B":["49 dB","−4 dB","45 dB","34 dB","39 dB","45 dB","$2.100.000","25 años"]})
         st.dataframe(df,hide_index=True,use_container_width=True)
@@ -1273,7 +1431,7 @@ def stage10():
     if "exam_result" in st.session_state:
         theory,practical,total=st.session_state.exam_result
         st.markdown(f'<div class="good"><b>Resultado: {total:.1f}/100</b><br>Teoría: {theory}/29 aciertos, ponderados a 80 puntos. Caso práctico: {practical}/20 puntos.<br>{"APROBADO" if total>=60 else "REQUIERE REFORZAMIENTO"}</div>',unsafe_allow_html=True)
-        st.info("Respuesta esperada: T₆₀≈0,40 s; diferencia $300.000; incremento 16,7%; bandas 125, 250 y 500 Hz; Solución B por mejor respuesta grave, mejor Rᵥ+Cₜᵣ y mayor vida útil. Si ambas cumplieran holgadamente la meta, A podría ser suficiente.")
+        st.info("Respuesta esperada: T₆₀≈0,40 s; diferencia $300.000; incremento 16,7%; bandas 125, 250 y 500 Hz; Solución B por mejor respuesta grave, mejor Rw+Cₜᵣ y mayor vida útil. Si ambas cumplieran holgadamente la meta, A podría ser suficiente.")
 
 def login():
     institutional_header()
@@ -1305,7 +1463,7 @@ with st.sidebar:
     st.caption("AISLAMIENTO A RUIDO AÉREO")
     st.caption("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN")
     st.markdown(f"**{st.session_state.name}**  \n{st.session_state.role}")
-    labels=[f"{n} · {t}" for n,t in STAGES]
+    labels=[f"{n} · {t} · {STAGE_MINUTES[i]} min" for i,(n,t) in enumerate(STAGES)]
     selected=st.radio("Ruta de aprendizaje",labels,label_visibility="collapsed")
     if st.button("Cerrar sesión",use_container_width=True):
         st.session_state.clear();st.rerun()
