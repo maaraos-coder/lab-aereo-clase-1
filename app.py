@@ -1516,9 +1516,10 @@ def stage7():
     st.latex(rf"R_{{total}}=-10\log_{{10}}(\tau_{{total}})={r_total:.1f}\ \mathrm{{dB}}")
     formula_card(
         "Diferencia de nivel y estimación del nivel receptor",
-        r"\Delta L=L_{\mathrm{emisor}}-L_{\mathrm{receptor}}"
-        r"\quad\Longrightarrow\quad"
-        r"L_{\mathrm{receptor}}\approx L_{\mathrm{emisor}}-R_{\mathrm{total}}",
+        r"\begin{aligned}"
+        r"\Delta L &= L_{\mathrm{emisor}}-L_{\mathrm{receptor}}\\"
+        r"L_{\mathrm{receptor}} &\approx L_{\mathrm{emisor}}-R_{\mathrm{total}}"
+        r"\end{aligned}",
         "<b>ΔL</b>: diferencia entre el nivel emisor y el nivel receptor (dB)<br>"
         "<b>L<sub>emisor</sub></b>: nivel en la sala emisora = 82 dB<br>"
         "<b>L<sub>receptor</sub></b>: nivel estimado en la sala receptora (dB)<br>"
