@@ -247,6 +247,19 @@ def _valid_rut(rut):
     return hmac.compare_digest(verifier, expected)
 
 
+def _normalize_identity_document(document):
+    """Normaliza documentos extranjeros sin imponer el formato del RUT chileno."""
+    return " ".join(str(document).strip().upper().split())
+
+
+def _valid_identity_document(document):
+    """Acepta identificaciones alfanuméricas internacionales de longitud razonable."""
+    value = _normalize_identity_document(document)
+    compact = "".join(ch for ch in value if ch.isalnum())
+    allowed = all(ch.isalnum() or ch in " -./" for ch in value)
+    return allowed and 5 <= len(compact) <= 30
+
+
 def _valid_email(email):
     """Validación sencilla y suficiente para el formulario de acceso."""
     value = str(email).strip()
@@ -1409,10 +1422,23 @@ if not st.session_state.get("course_access_granted", False):
             "Nombre completo",
             placeholder="Ej.: Andrea González Pérez",
         )
-        access_rut = st.text_input(
-            "RUT",
-            placeholder="Ej.: 12.345.678-5",
-            help="Se verificará el dígito verificador.",
+        access_document_type = st.selectbox(
+            "Tipo de documento de identidad",
+            [
+                "RUT chileno",
+                "Pasaporte",
+                "DNI",
+                "Cédula de identidad extranjera",
+                "Otro documento oficial",
+            ],
+        )
+        access_document = st.text_input(
+            "Documento de identidad",
+            placeholder="Ej.: 12.345.678-5 o número de pasaporte",
+            help=(
+                "Si seleccionas RUT chileno, se verificará el dígito verificador. "
+                "Los documentos extranjeros pueden contener letras y números."
+            ),
         )
         access_email = st.text_input(
             "Correo electrónico",
@@ -1428,24 +1454,39 @@ if not st.session_state.get("course_access_granted", False):
         )
     if access_submit:
         normalized_name = " ".join(access_name.split())
-        normalized_rut = _normalize_rut(access_rut)
+        normalized_document = (
+            _normalize_rut(access_document)
+            if access_document_type == "RUT chileno"
+            else _normalize_identity_document(access_document)
+        )
         normalized_email = access_email.strip().lower()
         if len(normalized_name.split()) < 2:
             st.error("Ingresa tu nombre completo, incluyendo al menos nombre y apellido.")
-        elif not _valid_rut(normalized_rut):
+        elif access_document_type == "RUT chileno" and not _valid_rut(normalized_document):
             st.error("El RUT ingresado no es válido. Revisa el número y su dígito verificador.")
+        elif access_document_type != "RUT chileno" and not _valid_identity_document(normalized_document):
+            st.error(
+                "Ingresa un número de documento válido, de 5 a 30 caracteres, "
+                "utilizando letras, números, espacios, puntos, guiones o barras."
+            )
         elif not _valid_email(normalized_email):
             st.error("Ingresa un correo electrónico válido.")
         elif not privacy_accept:
             st.error("Debes confirmar que los datos ingresados son correctos.")
         else:
             st.session_state.student_name = normalized_name
-            st.session_state.student_rut = normalized_rut
+            st.session_state.student_document_type = access_document_type
+            st.session_state.student_document = normalized_document
+            # Compatibilidad con sesiones o componentes de versiones anteriores.
+            st.session_state.student_rut = normalized_document
             st.session_state.student_email = normalized_email
             st.session_state.course_access_granted = True
             st.session_state.course_access_at = datetime.now().isoformat(timespec="seconds")
             st.rerun()
-    st.info("El acceso queda vinculado al alumno durante esta sesión.")
+    st.info(
+        "Puedes ingresar con RUT chileno, pasaporte, DNI, cédula extranjera "
+        "u otro documento oficial."
+    )
     st.stop()
 
 
@@ -1458,7 +1499,8 @@ with st.sidebar:
     st.caption("ALUMNO IDENTIFICADO")
     st.markdown(f"**{st.session_state.student_name}**")
     st.caption(
-        f"{st.session_state.student_rut}  \n"
+        f"{st.session_state.get('student_document_type', 'Documento de identidad')}: "
+        f"{st.session_state.get('student_document', st.session_state.get('student_rut', ''))}  \n"
         f"{st.session_state.student_email}"
     )
     st.markdown("---")
@@ -2781,7 +2823,7 @@ else:
             current_identifier = st.session_state.get("final_identifier", "")
             with st.form("teacher_reset_attempt"):
                 reset_identifier = st.text_input(
-                    "RUT o identificación del intento",
+                    "Documento de identidad del intento",
                     value=current_identifier,
                 )
                 confirm_reset = st.checkbox(
@@ -2793,7 +2835,7 @@ else:
                 )
             if reset_attempt:
                 if not reset_identifier.strip():
-                    st.error("Ingresa el RUT o identificación.")
+                    st.error("Ingresa el documento de identidad.")
                 elif not confirm_reset:
                     st.error("Debes confirmar el reinicio.")
                 elif delete_attempt(reset_identifier.strip()):
@@ -2827,11 +2869,15 @@ else:
         with st.form("final_exam_identification"):
             st.markdown("### Alumno que rendirá la evaluación")
             student = st.session_state.student_name
-            identifier = st.session_state.student_rut
+            identifier = st.session_state.get(
+                "student_document",
+                st.session_state.get("student_rut", ""),
+            )
+            document_type = st.session_state.get("student_document_type", "Documento de identidad")
             student_email = st.session_state.student_email
             st.info(
                 f"**{student}**  \n"
-                f"RUT: {identifier}  \n"
+                f"{document_type}: {identifier}  \n"
                 f"Correo: {student_email}"
             )
             course_date = st.date_input("Fecha")
