@@ -20,11 +20,16 @@ La aplicación incluye:
 - acceso inicial independiente para alumnos y docentes;
 - una clase interactiva completa de 4 horas (240 minutos);
 - tres aplicaciones conceptuales basadas en los ejercicios del PowerPoint;
+- dibujos, ecuaciones rasterizadas y animaciones didácticas visibles tanto
+  para alumnos como para el docente;
 - 20 actividades formativas, dos intentos y 50 puntos;
 - seis laboratorios interactivos de profundización;
 - decisión técnico-económica con costo por dB, ROI y payback;
 - evaluación final independiente de 40 puntos;
 - vista docente e informe PDF del intento final.
+
+Al subir el proyecto a GitHub, incluye la carpeta `assets/course_visuals`
+completa. La aplicación la necesita para mostrar las ilustraciones y ecuaciones.
 
 ## Configurar el acceso docente en Streamlit Cloud
 

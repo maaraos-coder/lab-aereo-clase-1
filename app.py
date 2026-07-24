@@ -62,6 +62,7 @@ h1,h2,h3{color:var(--ink);letter-spacing:-.03em}.eyebrow{font-size:.74rem;font-w
 .compound-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:1rem;box-shadow:0 7px 25px #173b6810}.compound-scene{position:relative;height:360px;overflow:hidden;border:1px solid #bfd0df;border-radius:15px;background:linear-gradient(180deg,#e4f4ff 0 82%,#c8b18e 82%)}.compound-wall{position:absolute;left:6%;right:6%;top:7%;bottom:10%;border:7px solid #71879b;border-radius:5px;background:repeating-linear-gradient(0deg,#d8e0e6 0,#d8e0e6 24px,#c7d2da 24px,#c7d2da 27px)}.compound-door{position:absolute;left:13%;bottom:0;width:24%;height:67%;border:6px solid #755a43;border-bottom:0;background:linear-gradient(90deg,#a77b55,#c3986e);box-shadow:inset -7px 0 #7b5a3f}.compound-door:after{content:"";position:absolute;right:12%;top:50%;width:8px;height:8px;border-radius:50%;background:#f4d06f}.compound-window{position:absolute;right:12%;top:18%;width:35%;height:36%;border:8px solid #426c8d;background:linear-gradient(135deg,#bce8fa,#e9f8ff);box-shadow:inset 0 0 0 3px #fff}.compound-window:before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:4px solid #426c8d}.compound-leak{position:absolute;left:11%;right:60%;bottom:-3px;height:9px;border-radius:4px;background:#ef8b2c;box-shadow:0 0 12px #ef8b2c}.compound-label{position:absolute;z-index:4;border-radius:7px;padding:.3rem .48rem;font-size:.65rem;font-weight:800;color:#fff;background:#07172bdc}.compound-label.wall-l{left:42%;top:5%}.compound-label.door-l{left:14%;bottom:4%}.compound-label.window-l{right:15%;top:21%}.compound-label.leak-l{left:13%;bottom:1%;background:#b65a0d}.energy-list{display:grid;gap:.55rem;margin-top:.8rem}.energy-row{display:grid;grid-template-columns:95px 1fr 62px;align-items:center;gap:.55rem;font-size:.76rem}.energy-track{height:10px;border-radius:8px;background:#edf2f7;overflow:hidden}.energy-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,#17c3e6,#0875d1)}.energy-row.dominant{font-weight:800;color:#b65a0d}.energy-row.dominant .energy-fill{background:linear-gradient(90deg,#f3ad56,#ef7525)}
 .footer{color:#718198;font-size:.75rem;text-align:center;border-top:1px solid #dbe5ef;margin-top:2rem;padding:1rem}
 div[data-testid="stMetric"]{background:white;border:1px solid var(--line);border-radius:15px;padding:1rem}button[kind="primary"]{background:#0875d1!important;border-radius:11px!important}
+.teaching-visual{background:#fff;border:1px solid var(--line);border-radius:18px;padding:1rem;box-shadow:0 7px 25px #173b6810;margin:.8rem 0 1.1rem}.teaching-visual img{display:block;width:100%;max-height:520px;object-fit:contain;border-radius:10px}.visual-caption{color:#60718a;font-size:.82rem;line-height:1.45;margin:.65rem .25rem 0}.equation-image{background:#fff;border:1px solid #c9d8e7;border-left:6px solid #0875d1;border-radius:15px;padding:1rem 1.2rem;margin:.8rem 0 1rem}.equation-image img{display:block;max-width:100%;max-height:150px;margin:auto;object-fit:contain}.teacher-layer{border-radius:14px;background:#fff8e7;border:1px solid #f1cc78;padding:.85rem 1rem;margin:.8rem 0;color:#5f4813}.teacher-layer b{color:#7a5600}.animated-phenomenon{position:relative;overflow:hidden;min-height:250px;border:1px solid #bed0df;border-radius:18px;background:linear-gradient(180deg,#e6f6ff 0 76%,#c8b18e 76%);margin:.8rem 0 1rem}.animated-source{position:absolute;left:8%;top:43%;font-size:3rem}.animated-ear{position:absolute;right:8%;top:43%;font-size:3rem}.animated-wall{position:absolute;left:48%;top:8%;bottom:8%;width:5%;border:4px solid #556d81;background:repeating-linear-gradient(0deg,#d4a35f 0,#d4a35f 18px,#9f6d35 18px,#9f6d35 22px)}.wave-dot{position:absolute;top:50%;width:18px;height:18px;border:4px solid #0875d1;border-radius:50%;opacity:0;animation:waveTravel 3.2s infinite ease-out}.wave-dot.w1{left:17%;animation-delay:0s}.wave-dot.w2{left:17%;animation-delay:.65s}.wave-dot.w3{left:17%;animation-delay:1.3s}.wave-dot.w4{left:17%;animation-delay:1.95s}.transmitted-dot{border-color:#ef8b2c;animation-name:waveThrough}.flex-panel{position:absolute;left:48%;top:10%;bottom:10%;width:20px;border-radius:8px;background:#ec9c36;transform-origin:center;animation:flexPanel 1.5s infinite ease-in-out}.bend-wave{position:absolute;left:12%;right:12%;top:47%;height:26px;background:repeating-radial-gradient(ellipse at center,#0875d1 0 2px,transparent 3px 22px);animation:bendSlide 3s infinite linear}.absorb-scene{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.absorb-box{position:relative;min-height:220px;overflow:hidden;border:1px solid #bed0df;border-radius:15px;background:#e9f7ff}.bounce{position:absolute;width:16px;height:16px;border-radius:50%;background:#0875d1;animation:bounceRoom 3s infinite alternate ease-in-out}.bounce.soft{background:#11a99b;animation-duration:1.35s}.scene-label{position:absolute;left:12px;top:10px;z-index:4;background:#07172bdf;color:#fff;border-radius:8px;padding:.35rem .55rem;font-size:.72rem;font-weight:800}@keyframes waveTravel{0%{transform:scale(.3);opacity:.9}75%{transform:translateX(390px) scale(2.2);opacity:.35}100%{transform:translateX(430px) scale(2.5);opacity:0}}@keyframes waveThrough{0%{transform:scale(.3);opacity:.9}48%{opacity:.65}55%{opacity:.15}100%{transform:translateX(430px) scale(1.2);opacity:0}}@keyframes flexPanel{0%,100%{transform:skewX(-5deg) scaleX(.8)}50%{transform:skewX(5deg) scaleX(1.25)}}@keyframes bendSlide{from{background-position:0 0}to{background-position:160px 0}}@keyframes bounceRoom{0%{left:12%;top:35%}33%{left:72%;top:12%}66%{left:34%;top:78%}100%{left:82%;top:48%}}
 @media(max-width:720px){.institutional{align-items:flex-start;gap:1rem;padding:1rem}.institutional-left{gap:.75rem}.institutional-left img{width:56px;height:72px}.institutional-copy{padding-left:.75rem}.institutional-title{font-size:.88rem}.institutional-sub{font-size:.75rem}.institutional-right img{width:110px}.hero{padding:1.5rem}.hero h1{font-size:1.8rem}.acoustic-scene{grid-template-columns:1fr 42px 1fr;min-height:245px}.absorber{width:48px;height:26px}.source-icon,.receiver-icon{font-size:2.4rem}.sound-wave{display:none}.abs-room{height:225px}.abs-summary{grid-template-columns:1fr}.compound-scene{height:270px}.energy-row{grid-template-columns:78px 1fr 52px}}
 </style>
 """, unsafe_allow_html=True)
@@ -76,6 +77,7 @@ ABS = {
     "Panel de lana mineral": .85, "Cielo acústico": .75,
 }
 FREQS = np.array([125, 250, 500, 1000, 2000, 4000])
+COURSE_VISUAL_DIR = Path(__file__).with_name("assets") / "course_visuals"
 ABS_FREQ = {
     "Hormigón pintado": [0.01, 0.01, 0.02, 0.02, 0.02, 0.03],
     "Vidrio": [0.18, 0.06, 0.04, 0.03, 0.02, 0.02],
@@ -112,6 +114,40 @@ def plot_line(x, ys, names, ytitle, title=""):
 
 def module_head(kicker, title, text):
     st.markdown(f'<div class="eyebrow">{kicker}</div><h1>{title}</h1><p style="color:#60718a;max-width:900px">{text}</p>', unsafe_allow_html=True)
+
+def course_visual(number, caption, equation=False):
+    """Material común para alumno y docente, extraído de la presentación original."""
+    extension = "png" if number == 8 else "webp"
+    path = COURSE_VISUAL_DIR / f"visual_{number:02d}.{extension}"
+    if not path.exists():
+        st.warning(f"No se encontró el recurso visual {number}.")
+        return
+    css_class = "equation-image" if equation else "teaching-visual"
+    st.markdown(
+        f'<div class="{css_class}"><img src="{image_data_uri(path)}" alt="{caption}">'
+        f'<div class="visual-caption">{caption}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+def formula_image(name, caption):
+    """Fórmula rasterizada para asegurar la misma visualización en ambos modos."""
+    path = COURSE_VISUAL_DIR / f"{name}.png"
+    if not path.exists():
+        st.warning(f"No se encontró la ecuación {name}.")
+        return
+    st.markdown(
+        f'<div class="equation-image"><img src="{image_data_uri(path)}" alt="{caption}">'
+        f'<div class="visual-caption">{caption}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+def teacher_note(text):
+    """Capa exclusiva de conducción; el contenido visual base sigue siendo idéntico."""
+    if st.session_state.get("teacher_mode", False):
+        st.markdown(
+            f'<div class="teacher-layer"><b>Guía docente</b><br>{text}</div>',
+            unsafe_allow_html=True,
+        )
 
 def institutional_header():
     st.markdown(
@@ -1145,6 +1181,64 @@ def render_four_hour_class():
         c1.info("**Fuente:** reducir emisión o potencia sonora.")
         c2.info("**Trayectoria:** aumentar masa, sellar, desacoplar o interponer barreras.")
         c3.info("**Receptor:** proteger, aumentar distancia o reubicar.")
+        course_visual(
+            4,
+            "El control del ruido puede actuar en la fuente, durante la trayectoria "
+            "o sobre el receptor. La Clase 1 se concentra en la trayectoria.",
+        )
+        teacher_note(
+            "Pida al curso que proponga una intervención concreta en cada punto. "
+            "Luego centre la discusión en particiones verticales y horizontales."
+        )
+        course_visual(
+            5,
+            "Aislamiento aéreo: el elemento separador se opone al paso de la energía "
+            "sonora desde el recinto emisor hacia el receptor.",
+        )
+        st.markdown("### Mira el fenómeno en movimiento")
+        st.markdown(
+            """
+            <div class="animated-phenomenon">
+              <span class="scene-label">TRANSMISIÓN A TRAVÉS DE UNA PARTICIÓN</span>
+              <span class="animated-source">🔊</span><span class="animated-ear">👂</span>
+              <span class="animated-wall"></span>
+              <span class="wave-dot w1"></span><span class="wave-dot w2"></span>
+              <span class="wave-dot w3 transmitted-dot"></span>
+              <span class="wave-dot w4 transmitted-dot"></span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            "Las ondas incidentes excitan la partición. Solo una fracción de la energía "
+            "logra atravesarla y radiarse en el recinto receptor."
+        )
+        course_visual(
+            7,
+            "La absorción reduce reflexiones dentro del recinto; el aislamiento reduce "
+            "la transmisión entre recintos. Son fenómenos complementarios, no sinónimos.",
+        )
+        st.markdown("### ¿Qué cambia realmente dentro del recinto?")
+        st.markdown(
+            """
+            <div class="absorb-scene">
+              <div class="absorb-box"><span class="scene-label">SUPERFICIES REFLECTANTES</span>
+                <span class="bounce"></span></div>
+              <div class="absorb-box"><span class="scene-label">SUPERFICIES ABSORBENTES</span>
+                <span class="bounce soft"></span></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            "A la izquierda la energía permanece más tiempo rebotando; a la derecha "
+            "decae antes por absorción. Ninguna de las dos escenas, por sí sola, describe "
+            "cuánto sonido atraviesa el muro hacia otro recinto."
+        )
+        teacher_note(
+            "Antes de avanzar, formule la pregunta: «Si desaparece el eco, ¿deja de "
+            "escucharse al vecino?». La respuesta esperada es no necesariamente."
+        )
         st.info("Tiempo del bloque: 25 minutos. Continúa con Aplicación Conceptual I.")
 
     with tabs[1]:
@@ -1181,25 +1275,56 @@ def render_four_hour_class():
             "Una solución debe ser viable técnica y económicamente. Más aislamiento no siempre significa una mejor decisión.",
         )
         st.markdown(
-            r"""
+            """
             Los costos incluyen materialidad, montaje y mantenimiento. Los beneficios pueden
             representar continuidad operacional, reducción de reclamos, menor riesgo de sanción,
             bienestar, productividad y cumplimiento normativo.
-
-            \[
-            ROI=\frac{\text{beneficio acumulado}-\text{costo total}}
-            {\text{costo total}}\times100
-            \]
-
-            \[
-            Payback=\frac{\text{inversión inicial}}
-            {\text{beneficio anual}-\text{mantenimiento anual}}
-            \]
 
             **Regla de decisión:** primero se descartan las alternativas que no cumplen el
             objetivo acústico. Solo después se comparan costo por dB, ROI, recuperación,
             vida útil y margen de seguridad.
             """
+        )
+        formula_image(
+            "eq_roi",
+            "Retorno sobre la inversión: relaciona el beneficio neto acumulado con el costo total.",
+        )
+        formula_image(
+            "eq_payback",
+            "Periodo simple de recuperación: tiempo necesario para recuperar la inversión inicial.",
+        )
+        course_visual(
+            8,
+            "Relación conceptual costo–beneficio: el punto de equilibrio aparece cuando "
+            "el beneficio acumulado iguala el costo de la intervención.",
+        )
+        st.markdown("### La decisión se toma en dos filtros")
+        decision_a, decision_b = st.columns(2)
+        decision_a.markdown(
+            """
+            #### 1. Filtro acústico
+            - ¿Cumple el objetivo?
+            - ¿Controla la vía dominante?
+            - ¿Tiene margen frente a fugas y ejecución?
+
+            Una alternativa que no cumple se descarta, aunque sea barata.
+            """
+        )
+        decision_b.markdown(
+            """
+            #### 2. Filtro económico
+            - inversión y mantenimiento;
+            - beneficio acumulado;
+            - costo por dB;
+            - ROI y recuperación.
+
+            Solo se comparan alternativas técnicamente suficientes.
+            """
+        )
+        teacher_note(
+            "Use el gráfico para mostrar que el óptimo no coincide necesariamente con "
+            "la máxima atenuación. Pida identificar costos directos y beneficios evitados "
+            "en un caso de denuncias por ruido."
         )
         st.warning(
             "El punto de equilibrio no es necesariamente el mayor aislamiento disponible: "
@@ -1260,6 +1385,157 @@ def render_four_hour_class():
             "BLOQUE 3 · 45 MIN",
             "Parámetros, fórmulas y comportamiento acústico",
             "Síntesis completa del bloque de definiciones del PowerPoint.",
+        )
+        st.markdown(
+            """
+            Este bloque sigue la cadena física completa: **onda incidente → vibración del
+            elemento → energía transmitida → radiación en el recinto receptor**. Cada
+            parámetro explica una parte distinta del proceso; por eso no deben memorizarse
+            como una lista aislada de símbolos.
+            """
+        )
+        course_visual(
+            13,
+            "Índice de reducción sonora: en el modelo introductorio, la diferencia entre "
+            "el nivel incidente y el transmitido expresa la reducción aportada por el elemento.",
+        )
+        course_visual(
+            16,
+            "El coeficiente de transmisión representa la fracción de energía incidente "
+            "que consigue atravesar el cerramiento.",
+        )
+        course_visual(
+            58,
+            "Ley de masa ideal para un elemento simple, homogéneo y estanco.",
+            equation=True,
+        )
+        f1, f2 = st.columns(2)
+        with f1:
+            formula_image("eq_r", "Reducción sonora en el modelo introductorio.")
+            formula_image("eq_mass", "Masa superficial de una placa homogénea.")
+        with f2:
+            formula_image("eq_tau", "Relación energética entre R y el coeficiente de transmisión.")
+            formula_image("eq_absorption", "Absorción equivalente del recinto receptor.")
+        course_visual(
+            22,
+            "La masa superficial es masa por unidad de área. No debe confundirse con la "
+            "densidad volumétrica del material ni con la masa total del muro.",
+        )
+        st.markdown("### Masa y frecuencia cambian la respuesta")
+        mf1, mf2 = st.columns(2)
+        with mf1:
+            course_visual(
+                19,
+                "Frecuencia: un periodo menor corresponde a una frecuencia mayor.",
+            )
+        with mf2:
+            course_visual(
+                24,
+                "Espesor de un elemento macizo: al aumentar e aumenta también m′, "
+                "si la densidad permanece constante.",
+            )
+        teacher_note(
+            "Deténgase en las unidades: ρ en kg/m³, e en m y m′ en kg/m². "
+            "Pida un cálculo oral antes de revelar el ejercicio."
+        )
+        st.markdown("### Rigidez, flexión y coincidencia")
+        course_visual(
+            27,
+            "El módulo elástico relaciona tensión y deformación. Una placa rígida "
+            "se deforma menos, pero su comportamiento acústico también depende de la flexión.",
+        )
+        course_visual(
+            29,
+            "Masa y rigidez no deben analizarse por separado: el elemento puede transmitir "
+            "energía aérea y estructural mediante mecanismos diferentes.",
+        )
+        st.markdown(
+            """
+            <div class="animated-phenomenon">
+              <span class="scene-label">ONDA DE FLEXIÓN EN UNA PLACA</span>
+              <span class="bend-wave"></span><span class="flex-panel"></span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            "La placa no se desplaza como un bloque rígido: se propagan ondas de flexión. "
+            "Cuando su relación espacial coincide con la onda aérea, la radiación se vuelve "
+            "más eficiente y el aislamiento puede caer."
+        )
+        course_visual(
+            31,
+            "La frecuencia crítica depende de la masa superficial y de la rigidez a la "
+            "flexión. Esta ecuación permite estimarla en una placa delgada.",
+            equation=True,
+        )
+        course_visual(
+            33,
+            "Alrededor de la frecuencia crítica aparece la caída por coincidencia respecto "
+            "de la tendencia ideal de la ley de masa.",
+        )
+        teacher_note(
+            "Aclare que la frecuencia crítica no es simplemente «una resonancia». "
+            "Es la condición a partir de la cual puede ocurrir coincidencia entre la onda "
+            "aérea incidente y las ondas de flexión de la placa."
+        )
+        st.markdown("### Área y absorción del recinto receptor")
+        area_col, abs_col = st.columns(2)
+        with area_col:
+            course_visual(
+                38,
+                "Área del elemento separador: determina cuánta superficie queda expuesta "
+                "a la transmisión sonora.",
+            )
+        with abs_col:
+            course_visual(
+                42,
+                "Cada superficie aporta S·α a la absorción equivalente total del recinto.",
+            )
+        course_visual(
+            46,
+            "Reflexión y absorción dependen del material y de la frecuencia. "
+            "Un material absorbente no equivale automáticamente a un aislante.",
+        )
+        formula_image(
+            "eq_compound",
+            "Cerramiento compuesto: primero se combinan energías ponderadas por superficie; "
+            "después se vuelve a decibeles.",
+        )
+        st.markdown("### Impedancia de radiación")
+        course_visual(
+            51,
+            "La impedancia de radiación describe cuánta oposición encuentra la superficie "
+            "vibrante para transferir energía al aire y radiar sonido.",
+        )
+        st.markdown(
+            """
+            Una partición puede vibrar mucho y, aun así, radiar con poca eficiencia en
+            determinadas condiciones. Cerca de la coincidencia aumenta el acoplamiento
+            entre la placa y el aire; por eso la radiación sonora se vuelve más eficiente.
+            """
+        )
+        st.markdown("### Índices únicos y alcance de la predicción")
+        rw_col, comparison_col = st.columns(2)
+        with rw_col:
+            course_visual(
+                54,
+                "Rw se obtiene con ISO 717-1; STC se determina con ASTM E413. "
+                "Ambos resumen una curva, pero no son índices idénticos.",
+            )
+        with comparison_col:
+            course_visual(
+                57,
+                "Lectura orientativa de índices únicos y ejemplos constructivos.",
+            )
+        st.markdown(
+            """
+            **Ensayo y predicción no son lo mismo.** La ley de masa entrega una primera
+            aproximación. Cremer, Josse–Lamure y David amplían el análisis al incorporar,
+            con diferentes alcances, rigidez, amortiguamiento, dimensiones y coincidencia.
+            Para especificar una solución real deben revisarse ensayos normalizados,
+            condiciones de montaje y soluciones constructivas oficiales aplicables.
+            """
         )
         sections = [
             ("Niveles e índice de reducción",
@@ -1567,8 +1843,46 @@ with st.sidebar:
             f"{st.session_state.student_email}"
         )
     st.markdown("---")
-    pages = ["Inicio", "Clase interactiva · 4 horas", "1 · Aislamiento vs. absorción", "2 · Transmisión sonora", "3 · Ley de masa", "4 · Absorción del recinto", "5 · Elementos compuestos", "6 · Decisión técnico-económica", "Evaluación final"]
+    # La navegación principal representa un único curso. Los laboratorios y la
+    # evaluación no son aplicaciones independientes: son etapas internas de la
+    # clase interactiva.
+    pages = ["Inicio", "Clase interactiva · 4 horas"]
     page = st.radio("Ruta de aprendizaje", pages, label_visibility="collapsed")
+    if page == "Clase interactiva · 4 horas":
+        st.markdown("#### Etapas de la clase")
+        class_stages = [
+            "0 · Contenido guiado",
+            "1 · Aislamiento vs. absorción",
+            "2 · Transmisión sonora",
+            "3 · Ley de masa",
+            "4 · Absorción del recinto",
+            "5 · Elementos compuestos",
+            "6 · Decisión técnico-económica",
+            "7 · Evaluación final",
+        ]
+        selected_stage = st.radio(
+            "Etapa actual",
+            class_stages,
+            key="interactive_class_stage",
+            label_visibility="collapsed",
+        )
+        stage_number = class_stages.index(selected_stage)
+        st.caption(f"Etapa {stage_number + 1} de {len(class_stages)}")
+        st.progress((stage_number + 1) / len(class_stages))
+
+        # Se reutilizan los módulos interactivos existentes, ahora contenidos
+        # dentro de la ruta única de cuatro horas.
+        stage_to_page = {
+            class_stages[0]: "Clase interactiva · 4 horas",
+            class_stages[1]: "1 · Aislamiento vs. absorción",
+            class_stages[2]: "2 · Transmisión sonora",
+            class_stages[3]: "3 · Ley de masa",
+            class_stages[4]: "4 · Absorción del recinto",
+            class_stages[5]: "5 · Elementos compuestos",
+            class_stages[6]: "6 · Decisión técnico-económica",
+            class_stages[7]: "Evaluación final",
+        }
+        page = stage_to_page[selected_stage]
     st.markdown("---")
     if st.button("Cerrar sesión", use_container_width=True):
         for access_key in [
