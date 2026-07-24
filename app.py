@@ -403,7 +403,7 @@ STUDENT_LESSONS = {
 ("Suficiencia antes que rentabilidad","Una alternativa solo entra a la comparación económica si alcanza el objetivo acústico y actúa sobre la vía dominante. Primero se verifica el desempeño; después se optimiza el costo.","Compare las dos separaciones: la alternativa económicamente evaluable es la que realmente protege al receptor.","stage4_sufficiency.webp",None),
 ("Costo del ciclo de vida","El costo real incluye diseño, materiales, instalación, interrupciones, mantención, reposición y vida útil. Comparar solo el precio inicial puede cambiar equivocadamente la decisión.","Siga el ciclo completo alrededor del sistema constructivo: todas sus etapas generan costos o requerimientos.","stage4_lifecycle.webp",None),
 ("Rendimiento decreciente","Los primeros cambios pueden producir mejoras importantes, pero los últimos decibeles suelen exigir soluciones mucho más complejas y costosas. El máximo aislamiento no siempre entrega el mejor valor.","Observe cómo la complejidad continúa aumentando mientras la reducción adicional de ruido se hace cada vez menor.","stage4_diminishing_returns.webp",None),
-("ROI y payback","El ROI relaciona el beneficio neto con el costo total. El payback estima cuánto tarda en recuperarse la inversión inicial mediante el beneficio anual neto.","El encapsulamiento debe cumplir primero su función acústica; luego el ciclo económico permite estudiar recuperación, mantención y beneficio.","stage4_roi_payback.webp",None),
+("ROI y payback","El ROI expresa la ganancia o pérdida porcentual respecto del costo total en un período definido. El payback estima cuánto tarda en recuperarse la inversión inicial mediante el flujo neto anual.","El encapsulamiento debe cumplir primero su función acústica; luego el ciclo económico permite estudiar rentabilidad, recuperación, mantención y beneficio.","stage4_roi_payback.webp",None),
 ],
 6:[
 ("Energía transmitida y reducción sonora","El coeficiente τ expresa la fracción de energía incidente que atraviesa el elemento. La reducción sonora R aumenta cuando la energía transmitida disminuye.","Distinga la onda incidente, la energía reflejada y la pequeña fracción que llega al recinto receptor.","stage6_transmission.webp",None),
@@ -557,7 +557,7 @@ TEACHER_SLIDE_SUPPORT = {
 ("Explique el filtro técnico antes del económico: una alternativa que no cumple la meta o no controla la vía dominante no debe ganar por ser barata.","¿Puede compararse económicamente una solución que no cumple?","Puede registrarse su costo, pero no considerarse una alternativa válida para decidir, porque no entrega el desempeño requerido.","Defina por escrito la meta, la banda crítica y el margen antes de mostrar precios; así evita que el costo sesgue la evaluación técnica."),
 ("Recorra inversión, instalación, operación, mantención, reposición y retiro. Distinga egresos iniciales de costos recurrentes y lleve todos al mismo horizonte.","¿Por qué la opción más barata al comprar puede ser más costosa?","Porque puede exigir más mantención, reposición, energía, detenciones o tener menor vida útil.","Para una comparación rigurosa use valor presente y una tasa de descuento; no sume flujos de años distintos como si valieran lo mismo."),
 ("Señale cómo la mejora adicional disminuye mientras el costo y la complejidad continúan creciendo. Relacione la decisión con suficiencia, riesgo y margen razonable.","¿Cuándo deja de justificarse otro decibel?","Cuando el costo y riesgo marginal superan el beneficio marginal, una vez satisfecha la meta con margen adecuado.","No convierta el gráfico en una regla universal: el valor de un decibel adicional depende del incumplimiento, el receptor y las consecuencias."),
-("Separe dos preguntas: payback indica cuándo se recupera la inversión; ROI indica rentabilidad acumulada en un horizonte. En el ejemplo, inversión $2,0 millones y beneficio neto anual $0,6 millones producen payback 3,33 años; a cinco años, beneficio neto acumulado $1,0 millón y ROI 50 %.","Si dos soluciones tienen el mismo payback, ¿tienen necesariamente el mismo ROI?","No. Pueden tener distinta vida útil, flujos posteriores, mantención y beneficio acumulado; el payback ignora lo que ocurre después de recuperar la inversión.","Dibuje una línea de tiempo de caja. ROI = (beneficios acumulados − costos acumulados)/inversión × 100; payback = inversión/flujo neto anual solo si el flujo es aproximadamente constante."),
+("Separe dos preguntas: payback indica cuándo se recupera la inversión; ROI indica la ganancia o pérdida porcentual en un horizonte. En el ejemplo, inversión $2,0 millones y flujo neto anual $0,6 millones producen payback 3,33 años; el ROI se calcula aparte con beneficios acumulados y costos totales del mismo período.","Si dos soluciones tienen el mismo payback, ¿tienen necesariamente el mismo ROI?","No. Pueden tener distinta vida útil, flujos posteriores, mantención y beneficio acumulado; el payback ignora lo que ocurre después de recuperar la inversión.","Dibuje una línea de tiempo de caja. ROI = (beneficios acumulados − costos totales)/costos totales × 100; payback = inversión/flujo neto anual solo si el flujo es aproximadamente constante."),
 ],
 6:[
 ("Identifique energía incidente, reflejada y transmitida. Vincule τ con R=-10 log₁₀τ y enfatice que la escala es logarítmica.","Si τ disminuye diez veces, ¿cuánto aumenta R?","Aumenta 10 dB, porque R depende del logaritmo decimal de la fracción transmitida.","Use valores simples: τ=0,01 corresponde a R=20 dB; τ=0,001 corresponde a R=30 dB."),
@@ -659,6 +659,17 @@ def _activity_db():
         max_score REAL DEFAULT 0, teacher_score REAL,
         teacher_note TEXT, UNIQUE(student,stage,question_key))"""
     )
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS projection_state(
+        id INTEGER PRIMARY KEY CHECK(id=1), stage INTEGER, question TEXT,
+        answer TEXT, solution TEXT, show_answer INTEGER DEFAULT 0,
+        show_solution INTEGER DEFAULT 0, updated_at TEXT)"""
+    )
+    con.execute(
+        """INSERT OR IGNORE INTO projection_state
+        (id,stage,question,answer,solution,show_answer,show_solution,updated_at)
+        VALUES(1,NULL,'','','',0,0,'')"""
+    )
     existing={row[1] for row in con.execute("PRAGMA table_info(formative_responses)")}
     for column,definition in (
         ("auto_score","REAL DEFAULT 0"),("max_score","REAL DEFAULT 0"),
@@ -668,6 +679,47 @@ def _activity_db():
             con.execute(f"ALTER TABLE formative_responses ADD COLUMN {column} {definition}")
     con.commit()
     return con
+
+def _set_projection(stage=None,question="",answer="",solution="",show_answer=False,show_solution=False):
+    with _activity_db() as con:
+        con.execute(
+            """UPDATE projection_state SET stage=?,question=?,answer=?,solution=?,
+            show_answer=?,show_solution=?,updated_at=? WHERE id=1""",
+            (stage,question,answer,solution,int(show_answer),int(show_solution),
+             dt.datetime.now().isoformat(timespec="seconds")),
+        )
+
+def projection_view():
+    """Safe, read-only screen intended to be shared as a separate Zoom window."""
+    with _activity_db() as con:
+        row=con.execute(
+            "SELECT stage,question,answer,solution,show_answer,show_solution,updated_at "
+            "FROM projection_state WHERE id=1"
+        ).fetchone()
+    st.markdown(
+        '<div class="hero"><div class="tag">VISTA DE PROYECCIÓN · ALUMNOS</div>'
+        '<h1>Laboratorio de aislamiento a ruido aéreo</h1>'
+        '<p>La pantalla se actualiza con el contenido que el docente decide compartir.</p></div>',
+        unsafe_allow_html=True,
+    )
+    if not row or row[0] is None or not row[1]:
+        st.info("Pantalla preparada. El docente todavía no ha enviado una pregunta.")
+    else:
+        stage,question,answer,solution,show_answer,show_solution,updated=row
+        st.markdown(f"### Etapa {stage}")
+        st.markdown(
+            f'<div class="question-box"><div class="question-label">PREGUNTA EN REVISIÓN</div>'
+            f'<div class="question-text">{question}</div></div>',unsafe_allow_html=True)
+        if show_answer and answer:
+            st.markdown("#### Respuesta del alumno/a")
+            st.info(answer)
+        if show_solution and solution:
+            st.markdown("#### Solución esperada")
+            st.success(solution)
+        st.caption(f"Última actualización: {updated.replace('T',' ') if updated else '—'}")
+    st.caption("Esta vista no muestra nombres, guía docente, puntajes ni controles privados.")
+    if st.button("Actualizar pantalla",use_container_width=True):
+        st.rerun()
 
 def _question_points(stage,key):
     return float(APPLICATION_POINTS.get(stage,{}).get(key,0))
@@ -802,8 +854,23 @@ def teacher_group_review(stage,solutions):
     st.markdown(f"**Respuesta de {'Alumno/a' if anonymous else student}:**")
     st.info(answer)
     st.caption(f"Evaluación automática inicial: {auto_level} · {auto_score:g}/{max_score:g} puntos. {feedback or ''}")
+    solution=solutions.get(qkey,"Revise la pauta técnica asociada a esta pregunta.")
     if st.toggle("Mostrar solución esperada",key=f"reveal_{stage}"):
-        st.success(solutions.get(qkey,"Revise la pauta técnica asociada a esta pregunta."))
+        st.success(solution)
+    st.markdown("##### Control de la pantalla compartida")
+    p1,p2,p3,p4=st.columns(4)
+    if p1.button("Mostrar pregunta",key=f"project_q_{stage}_{rid}",use_container_width=True):
+        _set_projection(stage,question,answer,solution,False,False)
+        st.success("Pregunta enviada a la vista de alumnos.")
+    if p2.button("Mostrar respuesta",key=f"project_a_{stage}_{rid}",use_container_width=True):
+        _set_projection(stage,question,answer,solution,True,False)
+        st.success("Respuesta anonimizada enviada a la vista de alumnos.")
+    if p3.button("Revelar solución",key=f"project_s_{stage}_{rid}",use_container_width=True):
+        _set_projection(stage,question,answer,solution,True,True)
+        st.success("Solución revelada en la vista de alumnos.")
+    if p4.button("Limpiar pantalla",key=f"project_clear_{stage}_{rid}",use_container_width=True):
+        _set_projection()
+        st.success("Pantalla de proyección limpiada.")
     levels=["Sin revisar","Correcta","Parcialmente correcta","Incorrecta"]
     current=levels.index(teacher_level) if teacher_level in levels else 0
     mark=st.selectbox("Evaluación docente",levels,index=current,key=f"mark_{stage}_{rid}")
@@ -835,6 +902,46 @@ def teacher_group_review(stage,solutions):
             "Descargar resultados CSV",summary.to_csv(index=False).encode("utf-8-sig"),
             file_name=f"resultados_etapa_{stage}.csv",mime="text/csv",key=f"download_scores_{stage}",
         )
+
+def teacher_student_management():
+    """Reset one stage, reset all work, or remove a test student."""
+    if st.session_state.get("role")!="Docente":
+        return
+    with _activity_db() as con:
+        students=[r[0] for r in con.execute(
+            "SELECT DISTINCT student FROM formative_responses ORDER BY student"
+        ).fetchall()]
+    if not students:
+        st.info("Todavía no hay alumnos con respuestas guardadas.")
+        return
+    student=st.selectbox("Alumno",students,key="manage_student")
+    scope=st.selectbox(
+        "Alcance del reinicio",
+        ["Curso completo"]+[f"Etapa {n}" for n in sorted(APPLICATION_POINTS)],
+        key="manage_scope",
+    )
+    confirm=st.checkbox(
+        f"Confirmo que deseo modificar los registros de {student}",
+        key="manage_confirm",
+    )
+    c1,c2=st.columns(2)
+    if c1.button("Reiniciar respuestas",disabled=not confirm,use_container_width=True):
+        with _activity_db() as con:
+            if scope=="Curso completo":
+                con.execute("DELETE FROM formative_responses WHERE student=?",(student,))
+            else:
+                stage_number=int(scope.split()[-1])
+                con.execute(
+                    "DELETE FROM formative_responses WHERE student=? AND stage=?",
+                    (student,stage_number),
+                )
+        st.success(f"Se reiniciaron las respuestas de {student} en: {scope.lower()}.")
+        st.rerun()
+    if c2.button("Eliminar alumno de prueba",disabled=not confirm,use_container_width=True):
+        with _activity_db() as con:
+            con.execute("DELETE FROM formative_responses WHERE student=?",(student,))
+        st.success(f"Se eliminó el registro de prueba de {student}.")
+        st.rerun()
 
 def line_chart(x, series, title, ytitle):
     fig=go.Figure()
@@ -1082,35 +1189,41 @@ def stage4():
            "La mejor solución no es la de mayor número ni la más barata: es la que cumple la meta con un costo justificable.")
     full_matter(4)
     lesson("Orden correcto de decisión","1) definir meta y espectro; 2) descartar lo que no cumple; 3) comparar costo del ciclo, vida útil, riesgo, ROI y recuperación; 4) revisar margen de seguridad.")
-    formula_card("Flujo anual neto",
-                 r"F_{\mathrm{neto}}=B_a-C_a",
+    formula_card("Del beneficio anual bruto al flujo neto anual",
+                 r"F_{\mathrm{neto,anual}}=B_{\mathrm{bruto,anual}}-C_{\mathrm{recurrente,anual}}",
                  "<b>F<sub>neto</sub></b>: flujo anual neto ($/año)<br>"
-                 "<b>B<sub>a</sub></b>: beneficios económicos anuales o costos evitados ($/año)<br>"
-                 "<b>C<sub>a</sub></b>: costos recurrentes anuales de operación, inspección y mantención ($/año)",
-                 "Para determinar cuánto dinero aporta realmente la solución durante cada año, antes de calcular su período de recuperación.")
+                 "<b>B<sub>bruto</sub></b>: ahorro o ganancia total que produce la solución durante un año, antes de descontar gastos ($/año)<br>"
+                 "<b>C<sub>recurrente</sub></b>: operación, inspección y mantención que se repiten cada año ($/año)",
+                 "Para evitar ambigüedad, la aplicación no usa «beneficio anual neto» como un concepto separado: el dinero que queda después de descontar costos se llama flujo neto anual.")
     st.markdown(
-        '<div class="worked-example"><h3>¿Cómo se interpreta el flujo anual neto?</h3>'
-        '<div class="worked-step"><strong>1 · Beneficios anuales.</strong> Se suman los ingresos atribuibles a la solución y los costos que permite evitar: '
+        '<div class="worked-example"><h3>Dos cantidades diferentes</h3>'
+        '<div class="worked-step"><strong>1 · Beneficio anual bruto.</strong> Es todo el ahorro o ganancia generado durante un año, antes de descontar gastos. '
+        'Se suman los ingresos atribuibles a la solución y los costos que permite evitar: '
         'multas, paralizaciones, reclamos, pérdida de productividad, arriendos temporales o reparaciones repetidas.</div>'
-        '<div class="worked-step"><strong>2 · Costos anuales.</strong> Se descuentan únicamente los gastos que se repiten cada año: '
+        '<div class="worked-step"><strong>2 · Costos recurrentes anuales.</strong> Son los gastos que se repiten cada año: '
         'mantención, inspecciones, reposición de sellos, energía adicional u operación. La inversión inicial se analiza por separado.</div>'
-        '<div class="worked-step"><strong>3 · Cálculo.</strong> Si la solución evita $700.000 al año y exige $100.000 de mantención, '
-        'el flujo anual neto es $700.000 − $100.000 = <b>$600.000/año</b>.</div>'
+        '<div class="worked-step"><strong>3 · Flujo neto anual.</strong> Es el dinero que realmente queda disponible cada año. '
+        'Si el beneficio bruto es $700.000 y los costos recurrentes son $100.000, entonces '
+        '$700.000 − $100.000 = <b>$600.000/año</b>.</div>'
         '<div class="worked-result"><b>Lectura del resultado:</b> un flujo positivo aporta recursos para recuperar la inversión; '
         'un flujo igual a cero no la recupera; y uno negativo significa que los costos anuales superan los beneficios anuales. '
         'El payback se calcula dividiendo la inversión inicial por este flujo positivo.</div></div>',
         unsafe_allow_html=True,
     )
-    formula_card("Retorno de la inversión y período de recuperación",
-                 r"ROI=\frac{B-C}{C}\,100 \qquad Payback=\frac{I_0}{B_a-M_a}",
-                 "<b>B</b>: beneficio acumulado ($)<br><b>C</b>: costo total ($)<br><b>I₀</b>: inversión inicial ($)<br><b>Bₐ−Mₐ</b>: beneficio anual neto ($/año)",
-                 "Después de comprobar que la alternativa cumple la meta acústica. La rentabilidad nunca reemplaza la suficiencia técnica.")
+    formula_card("Payback · tiempo para recuperar la inversión",
+                 r"Payback=\frac{I_0}{F_{\mathrm{neto,anual}}}",
+                 "<b>I₀</b>: inversión inicial ($)<br><b>F<sub>neto,anual</sub></b>: beneficio anual bruto menos costos recurrentes ($/año)",
+                 "Responde una pregunta concreta: ¿cuántos años tardaré en recuperar el dinero invertido? Un payback menor significa recuperación más rápida, pero no informa cuánto se gana después.")
+    formula_card("ROI · rentabilidad de la inversión",
+                 r"ROI=\frac{B_{\mathrm{acumulado}}-C_{\mathrm{total}}}{C_{\mathrm{total}}}\,100",
+                 "<b>B acumulado</b>: beneficios obtenidos durante el período analizado ($)<br><b>C total</b>: inversión inicial más todos los costos del mismo período ($)",
+                 "Responde: ¿cuánto gané o perdí, en porcentaje, respecto de todo lo que costó la inversión? ROI positivo = ganancia; 0 % = solo se recuperaron los costos; negativo = pérdida.")
     st.markdown(
         '<div class="worked-example"><h3>Ejemplo resuelto · ¿Qué significan ROI y payback?</h3>'
         '<div class="worked-step"><strong>1 · Verificación técnica.</strong> Un encapsulamiento cuesta $2.000.000 y cumple la meta acústica. '
         'Recién ahora corresponde analizar su economía.</div>'
-        '<div class="worked-step"><strong>2 · Flujo anual neto.</strong> Evita costos por $700.000 al año y requiere $100.000 de mantención. '
-        'Beneficio anual neto = $700.000 − $100.000 = <b>$600.000/año</b>.</div>'
+        '<div class="worked-step"><strong>2 · Flujo neto anual.</strong> El beneficio anual bruto es $700.000 y la mantención recurrente es $100.000. '
+        'Flujo neto anual = $700.000 − $100.000 = <b>$600.000/año</b>.</div>'
         '<div class="worked-step"><strong>3 · Payback.</strong> $2.000.000 ÷ $600.000/año = <b>3,33 años</b>. '
         'Significa que al cabo de aproximadamente 3 años y 4 meses se recupera la inversión inicial.</div>'
         '<div class="worked-step"><strong>4 · ROI a 5 años.</strong> Beneficio acumulado = $700.000 × 5 = $3.500.000. '
@@ -1158,7 +1271,7 @@ def stage5():
     st.markdown(
         '<div class="question-box"><div class="question-label">CASO DE DECISIÓN</div>'
         '<div class="question-text">¿Cuál de las tres soluciones recomendarías para cumplir el objetivo acústico '
-        'con el menor costo del ciclo? Ajusta la meta, revisa los datos de cada alternativa y justifica por qué '
+        'con el menor costo del ciclo? Revisa la meta fija y los datos de cada alternativa; luego justifica por qué '
         'tu elección es técnicamente suficiente antes de compararla económicamente.</div></div>',
         unsafe_allow_html=True,
     )
@@ -1666,6 +1779,10 @@ def login():
         if valid: st.session_state.update(access=True,role=role,name=name);st.rerun()
         else: st.error("Completa correctamente los datos de acceso.")
 
+if st.query_params.get("projection")=="1":
+    projection_view()
+    st.stop()
+
 if not st.session_state.get("access"):
     login();st.stop()
 
@@ -1678,6 +1795,15 @@ with st.sidebar:
     st.caption("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN")
     st.markdown(f"**{st.session_state.name}**  \n{st.session_state.role}")
     score_counter(compact=True)
+    if st.session_state.role=="Docente":
+        st.link_button(
+            "🖥️ Abrir vista para Zoom",
+            "?projection=1",
+            use_container_width=True,
+            help="Ábrela en otra ventana y comparte solo esa ventana en Zoom.",
+        )
+        with st.expander("⚙️ Gestión de alumnos"):
+            teacher_student_management()
     labels=[f"{n} · {t} · {STAGE_MINUTES[i]} min" for i,(n,t) in enumerate(STAGES)]
     selected=st.radio("Ruta de aprendizaje",labels,label_visibility="collapsed")
     if st.button("Cerrar sesión",use_container_width=True):
