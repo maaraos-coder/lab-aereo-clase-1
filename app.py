@@ -16,6 +16,15 @@ st.set_page_config(page_title="Laboratorio | Aislamiento a Ruido Aéreo", page_i
 ROOT = Path(__file__).parent
 FREQS = np.array([100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150])
 ACTIVITY_DB = ROOT / "formative_responses.sqlite3"
+APPLICATION_POINTS = {
+    3: {"s3q1": 2, "s3q2": 2, "s3q3": 2, "s3q4": 2, "s3q5": 2},
+    5: {"s5q1": 4, "s5q2": 3, "s5q3": 3},
+    7: {"s7q1": 2, "s7q2": 2, "s7q3": 2, "s7q4": 2, "s7q5": 2,
+        "s7q6": 2, "s7q7": 2, "s7q8": 2, "s7q9": 1, "s7q10": 1, "s7q11": 2},
+    9: {"e9_pairs": 20},
+    10: {"final_exam": 100},
+}
+APPLICATION_TOTAL = sum(sum(stage.values()) for stage in APPLICATION_POINTS.values())
 
 st.markdown("""
 <style>
@@ -30,6 +39,11 @@ background:#ffffff1c;border:1px solid #8ee9ff88;color:#fff;font-size:.83rem;font
 .class-clock{background:linear-gradient(135deg,#072b4d,#0967a8);color:#fff;border-radius:18px;padding:1rem 1.2rem;
 margin:.8rem 0 1rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;box-shadow:0 10px 25px #092d5320}
 .class-clock strong{font-size:1.1rem}.class-clock span{color:#ccefff;font-size:.9rem}
+.score-counter{background:linear-gradient(135deg,#092b50,#0878bd);color:#fff;border-radius:18px;padding:1rem 1.2rem;
+margin:.8rem 0 1.1rem;display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:center;box-shadow:0 10px 26px #092d5325}
+.score-counter b{font-size:1.05rem}.score-counter small{display:block;color:#ccefff;margin-top:.2rem}
+.score-number{font-size:1.65rem;font-weight:950;white-space:nowrap}.score-track{height:8px;background:#ffffff2e;border-radius:999px;margin-top:.65rem;overflow:hidden}
+.score-fill{height:100%;background:#65efbe;border-radius:999px}
 .route-time{display:inline-flex;margin-top:.45rem;padding:.25rem .58rem;border-radius:999px;background:#eaf7ff;
 color:#0871bd;font-size:.75rem;font-weight:900}
 .break-card{background:#fff8e9;border:1px solid #f2cf8d;border-radius:16px;padding:1rem;display:grid;
@@ -636,22 +650,72 @@ def _activity_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT, created_at TEXT NOT NULL,
         student TEXT NOT NULL, stage INTEGER NOT NULL, question_key TEXT NOT NULL,
         question TEXT NOT NULL, answer TEXT NOT NULL, auto_level TEXT,
-        feedback TEXT, teacher_level TEXT, UNIQUE(student,stage,question_key))"""
+        feedback TEXT, teacher_level TEXT, auto_score REAL DEFAULT 0,
+        max_score REAL DEFAULT 0, teacher_score REAL,
+        teacher_note TEXT, UNIQUE(student,stage,question_key))"""
     )
+    existing={row[1] for row in con.execute("PRAGMA table_info(formative_responses)")}
+    for column,definition in (
+        ("auto_score","REAL DEFAULT 0"),("max_score","REAL DEFAULT 0"),
+        ("teacher_score","REAL"),("teacher_note","TEXT"),
+    ):
+        if column not in existing:
+            con.execute(f"ALTER TABLE formative_responses ADD COLUMN {column} {definition}")
     con.commit()
     return con
 
-def _save_formative(stage,key,question,answer,level,feedback):
+def _question_points(stage,key):
+    return float(APPLICATION_POINTS.get(stage,{}).get(key,0))
+
+def _score_from_level(level,max_score):
+    return max_score if level=="Correcta" else max_score*.5 if level=="Parcialmente correcta" else 0.0
+
+def _save_formative(stage,key,question,answer,level,feedback,score=None,max_score=None):
     student=st.session_state.get("name","Alumno")
+    max_score=_question_points(stage,key) if max_score is None else float(max_score)
+    score=_score_from_level(level,max_score) if score is None else float(score)
     with _activity_db() as con:
         con.execute(
             """INSERT INTO formative_responses
-            (created_at,student,stage,question_key,question,answer,auto_level,feedback)
-            VALUES(?,?,?,?,?,?,?,?)
+            (created_at,student,stage,question_key,question,answer,auto_level,feedback,auto_score,max_score)
+            VALUES(?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(student,stage,question_key) DO UPDATE SET
             created_at=excluded.created_at,question=excluded.question,
-            answer=excluded.answer,auto_level=excluded.auto_level,feedback=excluded.feedback""",
-            (dt.datetime.now().isoformat(timespec="seconds"),student,stage,key,question,str(answer),level,feedback),
+            answer=excluded.answer,auto_level=excluded.auto_level,feedback=excluded.feedback,
+            auto_score=excluded.auto_score,max_score=excluded.max_score""",
+            (dt.datetime.now().isoformat(timespec="seconds"),student,stage,key,question,str(answer),level,feedback,score,max_score),
+        )
+
+def _student_scores(student=None):
+    student=student or st.session_state.get("name","Alumno")
+    with _activity_db() as con:
+        rows=con.execute(
+            """SELECT stage,question_key,auto_score,max_score,teacher_score
+            FROM formative_responses WHERE student=?""",(student,)).fetchall()
+    return rows
+
+def score_counter(stage=None,compact=False):
+    rows=_student_scores()
+    if stage is not None:
+        rows=[row for row in rows if row[0]==stage]
+        maximum=sum(APPLICATION_POINTS.get(stage,{}).values())
+        title=f"Puntaje de la Etapa {stage}"
+    else:
+        maximum=APPLICATION_TOTAL
+        title="Puntaje acumulado"
+    earned=sum((row[4] if row[4] is not None else row[2]) or 0 for row in rows)
+    completed=len({row[1] for row in rows})
+    expected=len(APPLICATION_POINTS.get(stage,{})) if stage is not None else sum(len(x) for x in APPLICATION_POINTS.values())
+    pct=100*earned/maximum if maximum else 0
+    if compact:
+        st.metric(title,f"{earned:g}/{maximum:g}",f"{pct:.0f}% · {completed}/{expected} respondidas")
+    else:
+        st.markdown(
+            f'<div class="score-counter"><div><b>🏆 {title}</b>'
+            f'<small>{completed} de {expected} actividades respondidas · {pct:.0f}% del puntaje</small>'
+            f'<div class="score-track"><div class="score-fill" style="width:{min(pct,100):.1f}%"></div></div></div>'
+            f'<div class="score-number">{earned:g} / {maximum:g} pts</div></div>',
+            unsafe_allow_html=True,
         )
 
 def _keyword_level(answer,groups):
@@ -713,28 +777,53 @@ def teacher_group_review(stage,solutions):
                 unsafe_allow_html=True)
     with _activity_db() as con:
         rows=con.execute(
-            "SELECT id,created_at,student,question_key,question,answer,auto_level,feedback,teacher_level "
+            "SELECT id,created_at,student,question_key,question,answer,auto_level,feedback,teacher_level,"
+            "auto_score,max_score,teacher_score,teacher_note "
             "FROM formative_responses WHERE stage=? ORDER BY question_key,created_at",(stage,)).fetchall()
     if not rows:
         st.info("Todavía no hay respuestas guardadas de alumnos para esta etapa.")
         return
     labels=[f"{r[3]} · {r[2]} · {r[1].replace('T',' ')}" for r in rows]
     selected=st.selectbox("Respuesta para revisar",range(len(rows)),format_func=lambda i:labels[i],key=f"review_{stage}")
-    rid,_,student,qkey,question,answer,auto_level,feedback,teacher_level=rows[selected]
+    rid,_,student,qkey,question,answer,auto_level,feedback,teacher_level,auto_score,max_score,teacher_score,teacher_note=rows[selected]
     anonymous=st.toggle("Ocultar nombre al proyectar",value=True,key=f"anon_{stage}")
     st.markdown(f"**Pregunta:** {question}")
     st.markdown(f"**Respuesta de {'Alumno/a' if anonymous else student}:**")
     st.info(answer)
-    st.caption(f"Evaluación automática inicial: {auto_level}. {feedback or ''}")
+    st.caption(f"Evaluación automática inicial: {auto_level} · {auto_score:g}/{max_score:g} puntos. {feedback or ''}")
     if st.toggle("Mostrar solución esperada",key=f"reveal_{stage}"):
         st.success(solutions.get(qkey,"Revise la pauta técnica asociada a esta pregunta."))
     levels=["Sin revisar","Correcta","Parcialmente correcta","Incorrecta"]
     current=levels.index(teacher_level) if teacher_level in levels else 0
     mark=st.selectbox("Evaluación docente",levels,index=current,key=f"mark_{stage}_{rid}")
+    manual=st.number_input(
+        "Puntaje docente",min_value=0.0,max_value=float(max_score),value=float(teacher_score if teacher_score is not None else auto_score),
+        step=0.5,key=f"teacher_score_{stage}_{rid}",
+        help="Este puntaje reemplaza la corrección automática en el contador del alumno.",
+    )
+    note=st.text_area("Observación para el alumno",value=teacher_note or "",key=f"teacher_note_{stage}_{rid}")
     if st.button("Guardar evaluación docente",key=f"save_mark_{stage}_{rid}"):
         with _activity_db() as con:
-            con.execute("UPDATE formative_responses SET teacher_level=? WHERE id=?",(mark,rid))
-        st.success("Evaluación docente guardada.")
+            con.execute(
+                "UPDATE formative_responses SET teacher_level=?,teacher_score=?,teacher_note=? WHERE id=?",
+                (mark,manual,note,rid),
+            )
+        st.success("Evaluación docente y puntaje guardados.")
+    with _activity_db() as con:
+        summary=pd.read_sql_query(
+            """SELECT student AS Alumno,
+            ROUND(SUM(COALESCE(teacher_score,auto_score)),1) AS Puntaje,
+            ROUND(SUM(max_score),1) AS Respondido_sobre,
+            COUNT(*) AS Actividades
+            FROM formative_responses WHERE stage=? GROUP BY student ORDER BY Puntaje DESC""",
+            con,params=(stage,),
+        )
+    with st.expander("Panel de resultados de la etapa"):
+        st.dataframe(summary,hide_index=True,use_container_width=True)
+        st.download_button(
+            "Descargar resultados CSV",summary.to_csv(index=False).encode("utf-8-sig"),
+            file_name=f"resultados_etapa_{stage}.csv",mime="text/csv",key=f"download_scores_{stage}",
+        )
 
 def line_chart(x, series, title, ytitle):
     fig=go.Figure()
@@ -957,6 +1046,7 @@ def stage3():
     solutions={}
     for key,q,solution,groups,note in questions:
         formative_development(3,key,q,solution,groups,note); solutions[key]=solution
+    score_counter(3)
     teacher_group_review(3,solutions)
 
 def economic_inputs(prefix="eco"):
@@ -1095,6 +1185,7 @@ def stage5():
     s3="ROI A = ($700.000−$500.000)/$500.000×100 = **40 %**. ROI B = ($950.000−$1.000.000)/$1.000.000×100 = **−5 %**. La opción A tiene el mejor retorno."
     formative_numeric(5,"s5q3",q3,[("a","ROI A (%)",0.0,1.0),("b","ROI B (%)",0.0,1.0)],
         lambda v:(abs(v["a"]-40)<=0.2 and abs(v["b"]+5)<=0.2,"Se esperaba ROI A = 40 % y ROI B = −5 %. La alternativa A ofrece el mejor retorno."),s3)
+    score_counter(5)
     teacher_group_review(5,{"s5q1":s1,"s5q2":s2,"s5q3":s3})
 
 def mass_r(m,f): return 20*np.log10(np.maximum(m*f,1))-47
@@ -1234,6 +1325,7 @@ def stage7():
     s=f"τtotal = [12·10^(−55/10)+2·10^(−25/10)]/14. Por tanto, **Rtotal ≈ {r_total:.1f} dB**. La puerta reduce drásticamente el desempeño del conjunto."
     formative_numeric(7,"s7q11",q,[("r","R compuesto (dB)",0.0,0.1)],
         lambda v:(abs(v["r"]-r_total)<=0.3,f"El resultado esperado es aproximadamente {r_total:.1f} dB; combina τ ponderados por superficie."),s);solutions["s7q11"]=s
+    score_counter(7)
     teacher_group_review(7,solutions)
 
 REF=np.array([33,36,39,42,45,48,51,52,53,54,55,56,56,56,56,56])
@@ -1270,21 +1362,13 @@ def stage8():
     check("e8","Un tabique tiene Rw=55 dB en laboratorio y R′w=47 dB en obra. ¿El laboratorio estaba necesariamente equivocado?",["Sí","No; montaje y vías laterales pueden explicar la diferencia"],"No; montaje y vías laterales pueden explicar la diferencia","R′w incorpora el comportamiento aparente de la construcción instalada.")
 
 def stage9():
-    header("ETAPA 9 · APLICACIÓN PRÁCTICA","Cálculo e interpretación de índices",
-           "Desplaza la curva ISO y relaciona cada índice acústico con su definición.")
+    header("ETAPA 9 · APLICACIÓN PRÁCTICA","Interpretación de índices acústicos",
+           "Relaciona cada índice con su definición, contexto de medición y uso correcto.")
     full_matter(9)
-    base=np.array([27,30,33,36,39,43,47,50,53,55,57,59,61,62,63,64],dtype=float)
-    low=st.slider("Modificación en bajas frecuencias (100–315 Hz)",-12,12,0)
-    mid=st.slider("Modificación en frecuencias medias (400–1250 Hz)",-8,8,0)
-    curve=base.copy();curve[:6]+=low;curve[6:12]+=mid
-    rw,ref,dev=rw_from_curve(curve)
-    line_chart(FREQS,[("R medida",curve),("Referencia ajustada",ref)],"Cálculo gráfico de Rw","dB")
-    a,b,c=st.columns(3);a.metric("Rw",f"{rw} dB");b.metric("Σ desviaciones",f"{dev.sum():.1f} dB");c.metric("Bandas desfavorables",int(np.sum(dev>0)))
-    st.caption("Rw es el valor de la curva de referencia desplazada en 500 Hz; no es el promedio ni necesariamente R(500).")
     st.markdown("### Actividad · Relaciona los términos pareados")
     st.markdown(
-        "Para cada índice o término, selecciona la definición que le corresponde. "
-        "Una misma definición no debe utilizarse dos veces."
+        "En la columna izquierda aparecen los índices acústicos. En la derecha están las definiciones "
+        "numeradas y mezcladas. Selecciona junto a cada índice el número que le corresponde."
     )
     paired_terms = {
         "R": "Índice por banda de frecuencia que expresa la reducción sonora de un elemento en laboratorio.",
@@ -1299,40 +1383,61 @@ def stage9():
         "CAC": "Clasificación del aislamiento entre recintos que comparten un cielo suspendido y plenum.",
     }
     definitions = list(paired_terms.values())
-    placeholder = "— Selecciona una definición —"
+    mixed_order=[7,2,5,0,8,3,9,1,6,4]
+    numbered_definitions={number:definitions[source_index] for number,source_index in enumerate(mixed_order,1)}
+    correct_numbers={
+        term:next(number for number,definition in numbered_definitions.items() if definition==correct_definition)
+        for term,correct_definition in paired_terms.items()
+    }
+    placeholder = "—"
     selections = {}
-    left,right=st.columns(2)
-    items=list(paired_terms.items())
-    for idx,(term,_) in enumerate(items):
-        column=left if idx < 5 else right
-        with column:
-            st.markdown(f"**{term}**",unsafe_allow_html=True)
-            selections[term]=st.selectbox(
-                f"Definición de {term}",
-                [placeholder]+definitions,
-                key=f"e9_pair_{idx}",
-                label_visibility="collapsed",
+    left,right=st.columns([.85,2.15],gap="large")
+    with left:
+        st.markdown("#### Índices o descriptores")
+        for idx,term in enumerate(paired_terms):
+            row_label,row_value=st.columns([1.2,.8])
+            row_label.markdown(f"**{term}**")
+            selections[term]=row_value.selectbox(
+                f"Número para {term}",[placeholder]+list(range(1,11)),
+                key=f"e9_pair_number_{idx}",label_visibility="collapsed",
+            )
+    with right:
+        st.markdown("#### Definiciones numeradas")
+        for number,definition in numbered_definitions.items():
+            st.markdown(
+                f'<div class="card" style="margin:.28rem 0;padding:.72rem .9rem">'
+                f'<b style="color:#0871bd">{number}.</b> {definition}</div>',
+                unsafe_allow_html=True,
             )
     if st.button("Comprobar términos pareados",key="e9_check_pairs",type="primary"):
         unanswered=[term for term,value in selections.items() if value==placeholder]
         if unanswered:
             st.warning(f"Completa todas las relaciones. Faltan: {', '.join(unanswered)}.")
         else:
-            correct_count=sum(selections[term]==definition for term,definition in paired_terms.items())
+            correct_count=sum(selections[term]==correct_numbers[term] for term in paired_terms)
+            pair_score=correct_count*2
+            level="Correcta" if correct_count==len(paired_terms) else "Parcialmente correcta" if correct_count>=4 else "Incorrecta"
+            _save_formative(
+                9,"e9_pairs","Relaciona cada índice acústico con su definición.",
+                json.dumps(selections,ensure_ascii=False),level,
+                f"{correct_count} de {len(paired_terms)} relaciones correctas.",
+                score=pair_score,max_score=20,
+            )
             if correct_count==len(paired_terms):
                 st.success("¡Correcto! Relacionaste adecuadamente los 10 términos acústicos.")
             else:
                 st.warning(f"Obtuviste {correct_count} de {len(paired_terms)} relaciones correctas.")
                 for term,correct_definition in paired_terms.items():
-                    if selections[term]!=correct_definition:
+                    if selections[term]!=correct_numbers[term]:
                         st.error(
                             f"{term}: la relación seleccionada no corresponde. "
-                            f"Definición correcta: {correct_definition}",
+                            f"El número correcto es {correct_numbers[term]}: {correct_definition}",
                             icon="↔️",
                         )
-            repeated={definition for definition in definitions if list(selections.values()).count(definition)>1}
+            repeated={number for number in range(1,11) if list(selections.values()).count(number)>1}
             if repeated:
-                st.info("Revisa las definiciones repetidas: en esta actividad cada una corresponde a un solo término.")
+                st.info(f"Revisa los números repetidos ({', '.join(map(str,sorted(repeated)))}): cada definición se utiliza una sola vez.")
+    score_counter(9)
     if st.session_state.get("role")=="Docente":
         with st.expander("👩‍🏫 Pauta docente · Términos pareados"):
             st.markdown(
@@ -1342,7 +1447,7 @@ def stage9():
             if st.checkbox("Mostrar solución de términos pareados",key="e9_reveal_pairs"):
                 st.dataframe(
                     pd.DataFrame(
-                        [{"Término":term,"Definición correcta":definition}
+                        [{"Término":term,"N.º correcto":correct_numbers[term],"Definición correcta":definition}
                          for term,definition in paired_terms.items()]
                     ),
                     hide_index=True,
@@ -1353,6 +1458,7 @@ def stage9():
                     "el subíndice 2m identifica fachada; nT indica normalización por reverberación. "
                     "C y Cₜᵣ no son índices independientes: se suman algebraicamente a Rw."
                 )
+        teacher_group_review(9,{"e9_pairs":"Cada uno de los 10 términos debe asociarse una sola vez con la definición mostrada en la pauta docente."})
 
 QUESTIONS=[
 ("La trayectoria incluye principalmente:",["La partición y sus fugas","Solo el oído","Solo la fuente"],0),
@@ -1428,10 +1534,28 @@ def stage10():
             practical+=4 if any(k in words for k in ["vida útil","cumple","objetivo","grave","250"]) else 0
             total=theory/29*80+practical
             st.session_state.exam_result=(theory,practical,total)
+            level="Correcta" if total>=60 else "Incorrecta"
+            _save_formative(
+                10,"final_exam","Evaluación final del Curso 1",
+                json.dumps(
+                    {"respuestas_teoricas":st.session_state.exam_answers,
+                     "aciertos_teoricos":theory,"puntaje_caso":practical},
+                    ensure_ascii=False,
+                ),
+                level,
+                f"Teoría: {theory}/29 aciertos. Caso práctico: {practical}/20 puntos.",
+                score=total,max_score=100,
+            )
     if "exam_result" in st.session_state:
         theory,practical,total=st.session_state.exam_result
         st.markdown(f'<div class="good"><b>Resultado: {total:.1f}/100</b><br>Teoría: {theory}/29 aciertos, ponderados a 80 puntos. Caso práctico: {practical}/20 puntos.<br>{"APROBADO" if total>=60 else "REQUIERE REFORZAMIENTO"}</div>',unsafe_allow_html=True)
         st.info("Respuesta esperada: T₆₀≈0,40 s; diferencia $300.000; incremento 16,7%; bandas 125, 250 y 500 Hz; Solución B por mejor respuesta grave, mejor Rw+Cₜᵣ y mayor vida útil. Si ambas cumplieran holgadamente la meta, A podría ser suficiente.")
+    score_counter(10)
+    teacher_group_review(
+        10,
+        {"final_exam":"La evaluación suma 80 puntos teóricos y 20 puntos del caso integrador. "
+         "La aprobación interna se alcanza con 60/100; el docente puede revisar y ajustar el puntaje con fundamento."},
+    )
 
 def login():
     institutional_header()
@@ -1463,6 +1587,7 @@ with st.sidebar:
     st.caption("AISLAMIENTO A RUIDO AÉREO")
     st.caption("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN")
     st.markdown(f"**{st.session_state.name}**  \n{st.session_state.role}")
+    score_counter(compact=True)
     labels=[f"{n} · {t} · {STAGE_MINUTES[i]} min" for i,(n,t) in enumerate(STAGES)]
     selected=st.radio("Ruta de aprendizaje",labels,label_visibility="collapsed")
     if st.button("Cerrar sesión",use_container_width=True):
