@@ -49,6 +49,17 @@ padding:.85rem .9rem;grid-template-columns:minmax(0,1fr) auto;gap:.55rem}
 [data-testid="stSidebar"] .sidebar-score b,[data-testid="stSidebar"] .sidebar-score .score-number{color:#fff!important}
 [data-testid="stSidebar"] .sidebar-score small{color:#d9f5ff!important;font-size:.72rem;white-space:normal}
 [data-testid="stSidebar"] .sidebar-score .score-number{font-size:1.25rem;text-align:right}
+[data-testid="stSidebar"] [data-testid="stLinkButton"] a,
+[data-testid="stSidebar"] .stButton>button,
+[data-testid="stSidebar"] [data-testid="stExpander"] summary{
+background:#0b4f83!important;border:1px solid #59d4ef!important;color:#fff!important;box-shadow:none!important}
+[data-testid="stSidebar"] [data-testid="stLinkButton"] a *,
+[data-testid="stSidebar"] .stButton>button *,
+[data-testid="stSidebar"] [data-testid="stExpander"] summary *{color:#fff!important}
+[data-testid="stSidebar"] [data-testid="stLinkButton"] a:hover,
+[data-testid="stSidebar"] .stButton>button:hover,
+[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover{
+background:#0878bd!important;border-color:#8ee9ff!important}
 .route-time{display:inline-flex;margin-top:.45rem;padding:.25rem .58rem;border-radius:999px;background:#eaf7ff;
 color:#0871bd;font-size:.75rem;font-weight:900}
 .break-card{background:#fff8e9;border:1px solid #f2cf8d;border-radius:16px;padding:1rem;display:grid;
@@ -690,34 +701,34 @@ def _set_projection(stage=None,question="",answer="",solution="",show_answer=Fal
         )
 
 def projection_view():
-    """Safe, read-only screen intended to be shared as a separate Zoom window."""
+    """Complete student-facing class screen intended for a separate Zoom window."""
     with _activity_db() as con:
         row=con.execute(
             "SELECT stage,question,answer,solution,show_answer,show_solution,updated_at "
             "FROM projection_state WHERE id=1"
         ).fetchone()
-    st.markdown(
-        '<div class="hero"><div class="tag">VISTA DE PROYECCIÓN · ALUMNOS</div>'
-        '<h1>Laboratorio de aislamiento a ruido aéreo</h1>'
-        '<p>La pantalla se actualiza con el contenido que el docente decide compartir.</p></div>',
-        unsafe_allow_html=True,
-    )
-    if not row or row[0] is None or not row[1]:
-        st.info("Pantalla preparada. El docente todavía no ha enviado una pregunta.")
-    else:
-        stage,question,answer,solution,show_answer,show_solution,updated=row
-        st.markdown(f"### Etapa {stage}")
+    stage=row[0] if row else None
+    if stage is None:
         st.markdown(
-            f'<div class="question-box"><div class="question-label">PREGUNTA EN REVISIÓN</div>'
-            f'<div class="question-text">{question}</div></div>',unsafe_allow_html=True)
-        if show_answer and answer:
-            st.markdown("#### Respuesta del alumno/a")
-            st.info(answer)
-        if show_solution and solution:
-            st.markdown("#### Solución esperada")
-            st.success(solution)
-        st.caption(f"Última actualización: {updated.replace('T',' ') if updated else '—'}")
-    st.caption("Esta vista no muestra nombres, guía docente, puntajes ni controles privados.")
+            '<div class="hero"><div class="tag">VISTA DE PROYECCIÓN · ALUMNOS</div>'
+            '<h1>Laboratorio de aislamiento a ruido aéreo</h1>'
+            '<p>Pantalla preparada. Seleccione una etapa desde el panel docente.</p></div>',
+            unsafe_allow_html=True,
+        )
+        st.info("El docente todavía no ha seleccionado el contenido de la clase.")
+    else:
+        st.session_state["projection_mode"]=True
+        st.session_state["role"]="Proyección"
+        st.session_state["name"]="Pantalla de clase"
+        stage_functions=[stage0,stage1,stage2,stage3,stage4,stage5,stage6,stage7,stage8,stage9,stage10]
+        stage_functions[int(stage)]()
+        if row[4] and row[2]:
+            st.markdown("#### Respuesta anónima seleccionada por el docente")
+            st.info(row[2])
+        if row[5] and row[3]:
+            st.markdown("#### Solución revelada por el docente")
+            st.success(row[3])
+    st.caption("Vista para alumnos: sin profundización docente, nombres, puntajes ni controles privados.")
     if st.button("Actualizar pantalla",use_container_width=True):
         st.rerun()
 
@@ -728,6 +739,8 @@ def _score_from_level(level,max_score):
     return max_score if level=="Correcta" else max_score*.5 if level=="Parcialmente correcta" else 0.0
 
 def _save_formative(stage,key,question,answer,level,feedback,score=None,max_score=None):
+    if st.session_state.get("projection_mode"):
+        return
     student=st.session_state.get("name","Alumno")
     max_score=_question_points(stage,key) if max_score is None else float(max_score)
     score=_score_from_level(level,max_score) if score is None else float(score)
@@ -752,6 +765,8 @@ def _student_scores(student=None):
     return rows
 
 def score_counter(stage=None,compact=False):
+    if st.session_state.get("projection_mode"):
+        return
     rows=_student_scores()
     if stage is not None:
         rows=[row for row in rows if row[0]==stage]
@@ -1783,6 +1798,8 @@ if st.query_params.get("projection")=="1":
     projection_view()
     st.stop()
 
+st.session_state.pop("projection_mode",None)
+
 if not st.session_state.get("access"):
     login();st.stop()
 
@@ -1802,6 +1819,15 @@ with st.sidebar:
             use_container_width=True,
             help="Ábrela en otra ventana y comparte solo esa ventana en Zoom.",
         )
+        projection_stage=st.selectbox(
+            "Contenido visible en Zoom",
+            range(len(STAGES)),
+            format_func=lambda i:f"{STAGES[i][0]} · {STAGES[i][1]}",
+            key="projection_stage_selector",
+        )
+        if st.button("Mostrar etapa en Zoom",use_container_width=True):
+            _set_projection(stage=projection_stage)
+            st.success(f"{STAGES[projection_stage][0]} enviada a la pantalla Zoom.")
         with st.expander("⚙️ Gestión de alumnos"):
             teacher_student_management()
     labels=[f"{n} · {t} · {STAGE_MINUTES[i]} min" for i,(n,t) in enumerate(STAGES)]
