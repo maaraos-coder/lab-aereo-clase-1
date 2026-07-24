@@ -44,6 +44,11 @@ margin:.8rem 0 1.1rem;display:grid;grid-template-columns:1fr auto;gap:1rem;align
 .score-counter b{font-size:1.05rem}.score-counter small{display:block;color:#ccefff;margin-top:.2rem}
 .score-number{font-size:1.65rem;font-weight:950;white-space:nowrap}.score-track{height:8px;background:#ffffff2e;border-radius:999px;margin-top:.65rem;overflow:hidden}
 .score-fill{height:100%;background:#65efbe;border-radius:999px}
+[data-testid="stSidebar"] .sidebar-score{background:linear-gradient(135deg,#0b4f83,#0878bd);border:1px solid #5ed8f0;
+padding:.85rem .9rem;grid-template-columns:minmax(0,1fr) auto;gap:.55rem}
+[data-testid="stSidebar"] .sidebar-score b,[data-testid="stSidebar"] .sidebar-score .score-number{color:#fff!important}
+[data-testid="stSidebar"] .sidebar-score small{color:#d9f5ff!important;font-size:.72rem;white-space:normal}
+[data-testid="stSidebar"] .sidebar-score .score-number{font-size:1.25rem;text-align:right}
 .route-time{display:inline-flex;margin-top:.45rem;padding:.25rem .58rem;border-radius:999px;background:#eaf7ff;
 color:#0871bd;font-size:.75rem;font-weight:900}
 .break-card{background:#fff8e9;border:1px solid #f2cf8d;border-radius:16px;padding:1rem;display:grid;
@@ -708,7 +713,13 @@ def score_counter(stage=None,compact=False):
     expected=len(APPLICATION_POINTS.get(stage,{})) if stage is not None else sum(len(x) for x in APPLICATION_POINTS.values())
     pct=100*earned/maximum if maximum else 0
     if compact:
-        st.metric(title,f"{earned:g}/{maximum:g}",f"{pct:.0f}% · {completed}/{expected} respondidas")
+        st.markdown(
+            f'<div class="score-counter sidebar-score"><div><b>🏆 {title}</b>'
+            f'<small>{completed} de {expected} actividades respondidas</small>'
+            f'<div class="score-track"><div class="score-fill" style="width:{min(pct,100):.1f}%"></div></div></div>'
+            f'<div class="score-number">{earned:g}/{maximum:g}<small>{pct:.0f}%</small></div></div>',
+            unsafe_allow_html=True,
+        )
     else:
         st.markdown(
             f'<div class="score-counter"><div><b>🏆 {title}</b>'
@@ -1109,23 +1120,35 @@ def stage4():
         'El ROI no indica cuándo se recuperó el dinero; ese dato lo entrega el payback.</div></div>',
         unsafe_allow_html=True,
     )
-    st.markdown("### Ahora modifica el ejemplo")
-    st.caption("Los controles siguientes recalculan ambos indicadores. Cambia un valor a la vez y observa qué resultado responde a cada pregunta.")
-    meta=st.slider("Meta de diseño (dB)",25,55,38)
-    cost=st.slider("Costo de la solución ($)",500000,5000000,1800000,100000)
-    benefit=st.slider("Beneficio anual ($)",100000,2000000,650000,50000)
-    maint=st.slider("Mantenimiento anual ($)",0,500000,100000,25000)
-    horizon=st.slider("Horizonte (años)",1,20,10)
-    total=cost+maint*horizon; accum=benefit*horizon; roi=(accum-total)/total*100
-    pay=cost/(benefit-maint) if benefit>maint else math.inf
-    a,b,c=st.columns(3);a.metric("Costo del ciclo",f"${total:,.0f}");b.metric("ROI",f"{roi:.1f}%");c.metric("Recuperación",f"{pay:.1f} años" if math.isfinite(pay) else "No recupera")
-    st.caption(f"La meta acústica seleccionada es {meta} dB. El cálculo económico solo tiene sentido si la solución la cumple.")
+    st.markdown("### Ejemplos para interpretar los indicadores")
+    st.caption("Selecciona una respuesta en cada situación. Los datos son fijos para concentrar la actividad en la interpretación.")
     check(
-        "e4",
-        "Una alternativa ofrece el ROI más alto, pero queda 4 dB bajo la meta de diseño. ¿Cuál es la decisión correcta?",
-        ["Seleccionarla por su rentabilidad","Descartarla o rediseñarla antes del análisis económico","Promediar el ROI con el aislamiento"],
-        "Descartarla o rediseñarla antes del análisis económico",
-        "Primero debe demostrarse la suficiencia acústica. Solo las soluciones que cumplen pueden compararse económicamente.",
+        "e4_flow",
+        "Una solución evita costos por $900.000 al año y requiere $150.000 anuales de mantención. ¿Cuál es su flujo anual neto?",
+        ["$750.000/año","$900.000/año","$1.050.000/año","$150.000/año"],
+        "$750.000/año",
+        "Fneto = Ba − Ca = $900.000 − $150.000 = $750.000 por año.",
+    )
+    check(
+        "e4_payback",
+        "Una medida cuesta $2.400.000 y genera un flujo anual neto de $600.000. ¿Cuál es su payback?",
+        ["2 años","4 años","6 años","40 %"],
+        "4 años",
+        "Payback = I₀/Fneto = $2.400.000/$600.000 por año = 4 años.",
+    )
+    check(
+        "e4_roi",
+        "En cinco años, una solución acumula beneficios por $4.500.000 y costos totales por $3.000.000. ¿Cuál es su ROI?",
+        ["33,3 %","50 %","66,7 %","150 %"],
+        "50 %",
+        "ROI = (B−C)/C×100 = ($4.500.000−$3.000.000)/$3.000.000×100 = 50 %.",
+    )
+    check(
+        "e4_decision",
+        "La alternativa A tiene ROI de 70 %, pero alcanza 36 dB. La alternativa B tiene ROI de 35 % y alcanza la meta de 40 dB. ¿Cuál puede recomendarse?",
+        ["Alternativa A, porque tiene mayor ROI","Alternativa B, porque primero cumple la meta","Promediar dB y ROI","Ninguna, porque el ROI debe superar 50 %"],
+        "Alternativa B, porque primero cumple la meta",
+        "La suficiencia acústica es el filtro inicial. La rentabilidad solo permite comparar alternativas técnicamente suficientes.",
     )
 
 def stage5():
@@ -1139,9 +1162,15 @@ def stage5():
         'tu elección es técnicamente suficiente antes de compararla económicamente.</div></div>',
         unsafe_allow_html=True,
     )
-    st.caption("Instrucción: primero define el objetivo mínimo; luego descarta las soluciones que no cumplen y compara únicamente las alternativas suficientes.")
-    target=st.slider("Objetivo acústico mínimo (dB)",25,55,38,key="target5")
-    df=economic_inputs("s5")
+    st.caption("Instrucción: la meta y todos los datos son fijos. Analiza la tabla, descarta las soluciones que no cumplen y presenta tu recomendación sin modificar valores.")
+    target=38
+    st.info("Objetivo acústico mínimo del caso: **38 dB**")
+    fixed=[
+        ["Solución A",32,1200000,2640000,7200000,172.7,1.7],
+        ["Solución B",40,1900000,4540000,13800000,204.0,2.0],
+        ["Solución C",47,3200000,7100000,18750000,164.1,3.2],
+    ]
+    df=pd.DataFrame(fixed,columns=["Solución","Aislamiento","Inversión","Costo ciclo","Beneficio acumulado","ROI","Payback"])
     df["Cumple"]=df["Aislamiento"]>=target
     st.dataframe(df.style.format({"Inversión":"${:,.0f}","Costo ciclo":"${:,.0f}","Beneficio acumulado":"${:,.0f}","ROI":"{:.1f}%","Payback":"{:.1f} años"}),use_container_width=True,hide_index=True)
     feasible=df[df.Cumple]
@@ -1206,7 +1235,19 @@ def stage6():
                      "Para conocer qué fracción de la energía atraviesa un elemento cuando se dispone de R.")
         R=st.slider("R (dB)",10,70,40,key="r6"); t=10**(-R/10)
         st.metric("Fracción de energía transmitida",f"{t:.8f} ({t*100:.6f} %)")
+        st.markdown(
+            f'<div class="worked-example"><h3>¿De dónde sale el porcentaje?</h3>'
+            f'<div class="worked-step"><strong>1.</strong> La ecuación entrega una fracción decimal: '
+            f'τ = 10<sup>−{R}/10</sup> = {t:.8f}.</div>'
+            f'<div class="worked-step"><strong>2.</strong> Para expresarla como porcentaje se multiplica por 100: '
+            f'{t:.8f} × 100 = <b>{t*100:.6f} %</b>.</div>'
+            f'<div class="worked-result">Este porcentaje corresponde a energía transmitida, no a porcentaje de superficie.</div></div>',
+            unsafe_allow_html=True,
+        )
         st.info("Ejemplo: R = 40 dB → τ = 10⁻⁴ = 0,0001. Solo se transmite 0,01 % de la energía incidente.")
+        check("e6_tau_practical","Si R = 30 dB, ¿qué porcentaje de energía se transmite?",
+              ["0,001 %","0,01 %","0,1 %","3 %"],"0,1 %",
+              "τ = 10⁻³ = 0,001; al multiplicar por 100 se obtiene 0,1 %.")
     with tabs[1]:
         formula_card("Ley de masa ideal para una hoja simple",
                      r"R\approx20\log_{10}(m'f)-47",
@@ -1235,12 +1276,36 @@ def stage6():
                      r"\tau_{\mathrm{total}}=\frac{\sum_i S_i\tau_i}{\sum_i S_i}\qquad R_{\mathrm{total}}=-10\log_{10}(\tau_{\mathrm{total}})",
                      "<b>Sᵢ</b>: área del elemento i (m²)<br><b>τᵢ=10^{-Rᵢ/10}</b>: coeficiente de transmisión de cada elemento",
                      "Para combinar un muro con puertas, ventanas u otros componentes. Los aislamientos en dB no se promedian.")
-        wall=st.slider("R del muro (dB)",30,70,55); door=st.slider("R de puerta/ventana (dB)",15,50,28)
-        share=st.slider("Porcentaje de área débil",1,40,15)/100
-        tau=(1-share)*10**(-wall/10)+share*10**(-door/10); comp=-10*np.log10(tau)
+        st.markdown("#### Aplicación práctica · muro con puerta")
+        st.write("Datos fijos: muro de **4,0 m × 3,0 m** (12 m²), puerta de **1,0 m × 2,0 m** (2 m²), "
+                 "R del paño de muro = **55 dB** y R de la puerta = **25 dB**.")
+        total_area=12.0
+        weak_area=2.0
+        share=weak_area/total_area
+        wall_area=total_area-weak_area
+        wall=55
+        door=25
+        tau=(wall_area*10**(-wall/10)+weak_area*10**(-door/10))/total_area
+        comp=-10*np.log10(tau)
+        st.markdown(
+            '<div class="worked-example"><h3>Cálculo del porcentaje de área débil</h3>'
+            '<div class="worked-step"><strong>1 · Área total del cerramiento.</strong> 4,0 × 3,0 = <b>12 m²</b>.</div>'
+            '<div class="worked-step"><strong>2 · Área de la puerta.</strong> 1,0 × 2,0 = <b>2 m²</b>.</div>'
+            '<div class="worked-step"><strong>3 · Porcentaje débil.</strong> '
+            '(Sdébil/Stotal) × 100 = (2/12) × 100 = <b>16,7 %</b>.</div>'
+            '<div class="worked-result">En la ecuación se usa la fracción 2/12 = 0,1667. '
+            'El área útil del muro es 12−2 = 10 m²; la puerta no se suma nuevamente al total.</div></div>',
+            unsafe_allow_html=True,
+        )
         st.metric("R compuesto",f"{comp:.1f} dB")
         st.info("Los dB no se promedian: se combinan coeficientes de transmisión ponderados por superficie.")
-        st.caption("Ejemplo: una puerta pequeña y débil puede dominar el resultado porque transmite mucha más energía por cada metro cuadrado que el muro.")
+        check("e6_area_practical","¿Qué porcentaje del cerramiento corresponde a la puerta?",
+              ["12,0 %","16,7 %","20,0 %","2,0 %"],"16,7 %",
+              "El porcentaje se obtiene desde las áreas geométricas: (2 m²/12 m²)×100 = 16,7 %.")
+        check("e6_comp_practical",f"Al combinar energéticamente ambos elementos, el resultado es aproximadamente {comp:.1f} dB. ¿Por qué queda mucho más cerca de la puerta que del muro?",
+              ["Porque se promediaron 55 y 25 dB","Porque la puerta tiene un τ mucho mayor y domina la energía transmitida","Porque la puerta ocupa más superficie que el muro"],
+              "Porque la puerta tiene un τ mucho mayor y domina la energía transmitida",
+              "Aunque solo ocupa 16,7 % del área, la puerta transmite mucha más energía por metro cuadrado. Por eso los coeficientes τ se ponderan por superficie.")
     check(
         "e6",
         "Si se duplica la masa superficial de un panel dentro de la región ideal de la ley de masa, ¿qué mejora aproximada se espera?",
@@ -1251,39 +1316,64 @@ def stage6():
 
 def stage7():
     header("ETAPA 7 · APLICACIÓN PRÁCTICA","Diseño de aislamiento acústico",
-           "Resuelve un caso completo por bandas, identifica el componente dominante y verifica la meta.")
+           "Aplica las ecuaciones de la etapa anterior siguiendo una ruta de cálculo clara y verificable.")
     full_matter(7)
     st.markdown(
-        '<div class="question-box"><div class="question-label">CASO DE DIAGNÓSTICO ESPECTRAL</div>'
-        '<div class="question-text">¿La configuración propuesta cumple el nivel máximo admisible en el recinto receptor? '
-        'Identifica la banda crítica y determina qué variable o componente deberías modificar primero para alcanzar la meta.</div></div>',
+        '<div class="question-box"><div class="question-label">CASO GUIADO · MURO CON PUERTA</div>'
+        '<div class="question-text">Una sala emisora tiene 82 dB. La separación mide 15 m² e incorpora una puerta de 2 m². '
+        'El muro tiene R = 50 dB y la puerta R = 30 dB. Calcula el área débil, el aislamiento compuesto y el nivel estimado en el receptor. '
+        'Luego decide si cumple la meta de 45 dB.</div></div>',
         unsafe_allow_html=True,
     )
-    st.caption("Instrucción: modifica los controles, observa las tres curvas y utiliza el máximo nivel receptor —no un promedio— para decidir si el diseño cumple.")
-    source=st.slider("Nivel de la fuente (dB)",70,110,92)
-    target=st.slider("Nivel máximo admisible en receptor (dB)",25,60,40)
-    m=st.slider("Masa superficial del cerramiento (kg/m²)",10,120,40,key="m7")
-    fc=st.select_slider("Frecuencia crítica (Hz)",options=list(FREQS),value=800,key="fc7")
-    weak=st.slider("R del elemento débil (dB)",18,50,32,key="weak7")
-    share=st.slider("Área del elemento débil (%)",1,30,10,key="share7")/100
-    wall=mass_r(m,FREQS)-10*np.exp(-.5*(np.log(FREQS/fc)/.28)**2)
-    comp=-10*np.log10((1-share)*10**(-wall/10)+share*10**(-weak/10))
-    received=source-comp
-    line_chart(FREQS,[("R muro",wall),("R compuesto",comp),("Nivel receptor",received)],"Diagnóstico espectral","dB")
-    worst=int(np.argmax(received)); ok=np.all(received<=target)
-    a,b,c=st.columns(3);a.metric("Banda crítica",f"{FREQS[worst]} Hz");b.metric("Máximo receptor",f"{received[worst]:.1f} dB");c.metric("Meta","Cumple" if ok else "No cumple")
-    st.markdown('<div class="warn">Prioriza el elemento o la banda que domina la transmisión. Reforzar una zona que ya aísla bien puede elevar el costo sin mejorar el resultado global.</div>',unsafe_allow_html=True)
-    check(
-        "e7_choice",
-        f"Con la configuración actual, la banda más crítica es {FREQS[worst]} Hz. ¿Qué criterio debe orientar primero el rediseño?",
-        ["Reforzar el componente o la vía que domina esa banda","Aumentar cualquier material aunque no actúe en esa banda","Elegir siempre el cerramiento de mayor costo"],
-        "Reforzar el componente o la vía que domina esa banda",
-        "El rediseño debe atacar la banda y la vía dominantes; mejorar componentes secundarios puede no cambiar el resultado global.",
+    st.caption("Todos los datos son fijos. Resuelve cada paso y comprueba antes de continuar.")
+    source=82.0
+    target=45.0
+    total_area=15.0
+    weak_area=2.0
+    wall_area=total_area-weak_area
+    r_wall=50.0
+    r_weak=30.0
+    weak_pct=100*weak_area/total_area
+    tau_wall=10**(-r_wall/10)
+    tau_weak=10**(-r_weak/10)
+    tau_total=(wall_area*tau_wall+weak_area*tau_weak)/total_area
+    r_total=-10*math.log10(tau_total)
+    receiver=source-r_total
+    case_df=pd.DataFrame([
+        ["Nivel emisor",f"{source:.0f} dB"],
+        ["Área total",f"{total_area:.0f} m²"],
+        ["Área de puerta",f"{weak_area:.0f} m²"],
+        ["Área efectiva de muro",f"{wall_area:.0f} m²"],
+        ["R muro",f"{r_wall:.0f} dB"],
+        ["R puerta",f"{r_weak:.0f} dB"],
+        ["Meta en receptor",f"≤ {target:.0f} dB"],
+    ],columns=["Dato","Valor"])
+    st.dataframe(case_df,hide_index=True,use_container_width=True)
+    st.markdown(
+        '<div class="worked-example"><h3>Origen de las áreas y porcentajes</h3>'
+        '<div class="worked-step">El área total de 15 m² corresponde a toda la separación, incluida la puerta.</div>'
+        '<div class="worked-step">Área efectiva del muro = 15−2 = <b>13 m²</b>.</div>'
+        '<div class="worked-step">Porcentaje de puerta = (2/15)×100 = <b>13,3 %</b>. '
+        'En la ecuación se usa 2/15 = 0,1333.</div></div>',
+        unsafe_allow_html=True,
     )
-    development_answer(
-        "e7_development",
-        "Propón una mejora para el caso simulado y explica qué variable o componente modificarías para cumplir la meta.",
-        "Una respuesta sólida identifica la banda crítica, el elemento débil o la coincidencia, propone una intervención relacionada con esa causa y vuelve a verificar el nivel del receptor frente a la meta.",
+    check("e7_guided_area","¿Qué porcentaje del área total ocupa la puerta?",
+          ["7,5 %","13,3 %","15,0 %","20,0 %"],"13,3 %",
+          "Se obtiene de los datos geométricos del caso: (2 m²/15 m²)×100 = 13,3 %.")
+    check("e7_guided_tau","¿Qué coeficientes de transmisión corresponden al muro y a la puerta?",
+          ["τmuro=10⁻⁵ y τpuerta=10⁻³","τmuro=50 y τpuerta=30","τmuro=0,50 y τpuerta=0,30"],
+          "τmuro=10⁻⁵ y τpuerta=10⁻³",
+          "Se aplica τ=10^(−R/10): para 50 dB resulta 10⁻⁵ y para 30 dB resulta 10⁻³.")
+    st.latex(rf"\tau_{{total}}=\frac{{13(10^{{-5}})+2(10^{{-3}})}}{{15}}={tau_total:.6f}")
+    st.latex(rf"R_{{total}}=-10\log_{{10}}(\tau_{{total}})={r_total:.1f}\ \mathrm{{dB}}")
+    check("e7_guided_result",f"Con Rtotal ≈ {r_total:.1f} dB, ¿cuál es el nivel receptor estimado y cumple la meta?",
+          [f"{receiver:.1f} dB; sí cumple",f"{receiver:.1f} dB; no cumple","32,0 dB; sí cumple","52,0 dB; no cumple"],
+          f"{receiver:.1f} dB; sí cumple",
+          f"Lreceptor = 82−{r_total:.1f} = {receiver:.1f} dB. Como es menor o igual que 45 dB, el caso cumple.")
+    st.markdown(
+        '<div class="good"><b>Lectura profesional:</b> el procedimiento siempre sigue la misma ruta: '
+        'áreas → porcentajes → τ de cada elemento → τ ponderado → R compuesto → comparación con la meta.</div>',
+        unsafe_allow_html=True,
     )
     st.markdown('<div class="section-band"><span>🧪</span><h3>Aplicación conceptual III · 11 ejercicios</h3></div>',unsafe_allow_html=True)
     solutions={}
