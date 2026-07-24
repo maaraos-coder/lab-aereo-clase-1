@@ -100,6 +100,19 @@ border:4px solid #087585;border-radius:6px;box-shadow:0 4px 10px #083f4b28}
 .concept-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin:1rem 0}
 .concept-result{background:white;border:1px solid var(--line);border-radius:15px;padding:1rem;text-align:center}
 .concept-result b{display:block;color:#0a2d52;font-size:1.18rem;margin:.25rem 0}.concept-result span{font-size:.79rem;color:var(--muted)}
+.learning-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:1rem 0 1.35rem}
+.learning-card{background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 9px 25px #17324d12}
+.learning-figure{height:210px;background:linear-gradient(145deg,#e8f6ff,#f8fbff);display:flex;align-items:center;justify-content:center;padding:1rem}
+.learning-figure img{width:100%;height:100%;object-fit:contain;display:block}
+.learning-copy{padding:1.1rem 1.2rem 1.25rem}.learning-kicker{font-size:.72rem;letter-spacing:.11em;font-weight:900;color:#0871bd}
+.learning-copy h3{color:#092d53;margin:.3rem 0 .55rem;font-size:1.22rem}.learning-copy p{color:#40536b;line-height:1.55;margin:.35rem 0}
+.observe{margin-top:.8rem;background:#eef8ff;border-left:4px solid #17a8d2;border-radius:10px;padding:.7rem .8rem;color:#294861;font-size:.88rem}
+.mini-scene{width:100%;height:100%;position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(#dff3ff 0 70%,#d9dee3 70%)}
+.mini-source,.mini-receiver,.mini-wall,.mini-wave,.mini-floorwave{position:absolute}.mini-source{left:8%;bottom:17%;font-size:3.3rem}
+.mini-receiver{right:8%;bottom:17%;font-size:3.2rem}.mini-wave{left:30%;top:39%;color:#0877c5;font-size:1.7rem;font-weight:900}
+.mini-wall{left:48%;bottom:10%;height:70%;width:18px;background:#344b60;border-radius:4px}.mini-floorwave{left:25%;right:23%;bottom:8%;border-bottom:5px dashed #ef8b2c}
+.teacher-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.teacher-card{background:#fff;color:#2a2141;border-radius:14px;padding:1rem;border:1px solid #d7ccef}
+.teacher-card b{display:block;color:#432675;margin-bottom:.4rem}.teacher-card p,.teacher-card li{font-size:.9rem;line-height:1.48}
 .small{font-size:.85rem}.route{font-size:.8rem;padding:.25rem 0;color:#d7ecff}
 .institutional{display:flex;align-items:center;justify-content:space-between;gap:2rem;
 background:#fff;border:1px solid var(--line);border-radius:20px;padding:1rem 1.5rem;
@@ -126,6 +139,7 @@ margin:.25rem 0 1rem;box-shadow:0 7px 25px #173b6810;overflow:hidden}
   .two-room-lab{grid-template-columns:1fr 46px 1fr;min-height:270px}.speaker-visual,.listener-visual{font-size:3rem}
   .incident-wave,.transmitted-wave{font-size:1.25rem}.absorber{transform:scale(.75)}
   .concept-grid{grid-template-columns:1fr}
+  .learning-grid,.teacher-grid{grid-template-columns:1fr}
 }
 </style>
 """, unsafe_allow_html=True)
@@ -322,52 +336,125 @@ def _student_card_body(body):
         summary+="\n\n> **Idea para recordar:** identifica el fenómeno, la variable que cambia y el efecto esperado antes de aplicar una fórmula."
     return summary
 
+STUDENT_LESSONS = {
+1:[
+("¿Qué es el ruido?","Es un sonido que resulta no deseado, molesto o perjudicial en un contexto determinado. La misma señal puede ser útil para una persona y ruido para otra.","Observe que la calificación depende de la fuente, el momento, el lugar y el receptor.",None,"🔊"),
+("Control de ruido","Es el conjunto de medidas destinadas a reducir la generación, la propagación o la recepción del sonido no deseado.","Antes de elegir una solución, identifique dónde nace el problema y cuál es su vía dominante.","visual_04.webp",None),
+("Fuente → trayectoria → receptor","La fuente genera energía sonora; la trayectoria es el camino aéreo o estructural; el receptor es la persona o recinto afectado.","Una medida es eficaz cuando actúa sobre el mecanismo que realmente domina la exposición.",None,"🏭 ))) ━━━ 🧑"),
+("Propagación aérea","La presión acústica se propaga por el aire desde la fuente. Con distancia y obstáculos, el nivel puede disminuir, aunque el entorno modifica esa atenuación.","Siga las ondas azules desde la máquina hasta el receptor.",None,"🌬️"),
+("Propagación estructural","La vibración entra a pisos, muros o soportes y puede radiar sonido en otro punto del edificio.","La línea inferior representa una vía sólida diferente del camino por el aire.",None,"〰️"),
+("Reflexión, absorción y transmisión","Al llegar a una superficie, una parte de la energía vuelve, otra se disipa y otra atraviesa el elemento.","La energía incidente se reparte: no confunda absorción superficial con aislamiento entre recintos.","visual_46.webp",None),
+("¿Dónde intervenir?","En la fuente: mantenimiento, encapsulamiento o antivibratorios. En la trayectoria: barrera acústica. En el receptor: protección auditiva, cabina o mejora de fachada. La distancia es una condición geométrica independiente.","Priorice la fuente cuando sea viable y compruebe siempre la vía dominante.",None,"🎛️"),
+],
+2:[
+("Aislamiento acústico","Capacidad de un muro, puerta, ventana, piso o techo para reducir el sonido transmitido hacia otro recinto.","Mire el panel central: el resultado se evalúa al otro lado de la separación.","visual_05.webp",None),
+("Absorción acústica","Capacidad de una superficie para disipar parte de la energía incidente y reducir las reflexiones dentro del mismo recinto.","El panel absorbente modifica el campo interior, pero no aumenta por sí solo el R del muro.","visual_07.webp",None),
+("Tiempo de reverberación","T₆₀ es el tiempo que tarda el nivel en decaer 60 dB después de detener la fuente. Aumentar la absorción equivalente reduce ese tiempo.","Una sala menos reverberante mejora normalmente la claridad de la palabra.","visual_42.webp",None),
+("Inteligibilidad","Describe cuánto se comprende un mensaje hablado. Depende de reverberación, ruido de fondo, distancia y relación señal/ruido.","Escuchar una voz no significa necesariamente entenderla.",None,"🗣️ → 👂"),
+],
+4:[
+("Suficiencia antes que rentabilidad","Una alternativa solo entra a la comparación económica si alcanza el objetivo acústico y actúa sobre la vía dominante.","Una solución barata que no cumple no es una solución conveniente.",None,"✅"),
+("Costo del ciclo de vida","Incluye diseño, materiales, instalación, interrupciones, mantención y reposición durante la vida útil.","Compare costos en el mismo horizonte temporal.",None,"🔄"),
+("Rendimiento decreciente","Los últimos decibeles suelen ser más difíciles y costosos. El mayor aislamiento no siempre entrega el mejor valor.","Busque el punto donde el beneficio adicional deja de justificar el costo.","visual_08.png",None),
+("ROI y payback","El ROI relaciona beneficio neto e inversión; el payback estima cuánto tarda en recuperarse lo invertido.","Son criterios complementarios: ninguno reemplaza la verificación acústica.",None,"💰"),
+],
+6:[
+("Energía transmitida y R","El coeficiente τ expresa la fracción de energía que atraviesa el elemento; R aumenta cuando τ disminuye.","Una reducción grande de energía transmitida corresponde a un R alto.","visual_16.webp",None),
+("Masa superficial","La masa por unidad de superficie, m′, combina densidad y espesor. En la región ideal, más masa produce mayor aislamiento.","Duplicar m′ aporta aproximadamente 6 dB bajo la ley de masa ideal.","visual_22.webp",None),
+("Frecuencia y ley de masa","El aislamiento ideal aumenta con la masa superficial y con la frecuencia, fuera de las zonas controladas por rigidez o coincidencia.","La pendiente no representa todo el comportamiento real de un panel.","visual_58.webp",None),
+("Frecuencia crítica","En coincidencia, el panel radia con mayor eficiencia y aparece un valle en la curva de aislamiento.","La banda crítica puede dominar la decisión aunque el índice global sea alto.","visual_33.webp",None),
+("Sistemas dobles","Dos hojas separadas por una cámara pueden superar a una hoja simple si existe desacoplamiento y se controlan resonancias y puentes rígidos.","La lana mineral amortigua la cavidad; no sustituye el desacoplamiento.",None,"▌  ◌  ▐"),
+("Elementos débiles y flancos","Puertas, ventanas, rendijas y vías laterales pueden dominar el resultado global del sistema construido.","Los decibeles no se promedian: se combinan transmisiones por superficie y por vías.",None,"🚪"),
+],
+8:[
+("R(f) y Rw","R(f) describe el aislamiento en cada banda; Rw resume la curva ISO en un único valor ponderado.","Rw no es un promedio ni significa el mismo aislamiento en todas las frecuencias.","visual_57.webp",None),
+("C y Ctr","Son términos de adaptación espectral. C representa mejor espectros medios-altos; Ctr penaliza más las bajas frecuencias típicas del tránsito.","Para tránsito, revise Rw+Ctr y la curva grave.",None,"🚍"),
+("Laboratorio y terreno","R o Rw caracterizan un elemento en condiciones controladas; R′ o R′w incorporan montaje, encuentros y transmisiones laterales en obra.","No espere una diferencia fija entre laboratorio y terreno.","visual_38.webp",None),
+("STC, OITC y fachada","STC pertenece al sistema ASTM; OITC se orienta a ruido exterior de transporte. Los índices no tienen una conversión fija universal.","Elija el indicador según fuente, norma, lugar de ensayo y rango de frecuencia.",None,"🏢"),
+],
+}
+
+STAGE_INTROS = {
+3:("Ahora aplicarás lo aprendido","Identifica el fenómeno, clasifica la intervención y responde cada ejercicio en pantalla. La retroalimentación te mostrará por qué una opción es correcta."),
+5:("Decidir exige dos filtros","Primero comprueba el desempeño acústico; después compara inversión, vida útil, ROI y costo del ciclo."),
+7:("Diseño guiado por la banda crítica","Modifica el cerramiento y el elemento débil. La curva mostrará qué banda y qué vía dominan el nivel receptor."),
+9:("Del espectro al indicador","Trabaja con curvas por bandas antes de tomar una decisión basada en Rw, C, Ctr, STC u OITC."),
+10:("Evaluación final","Responde 29 preguntas de alternativas y un caso integrador directamente en pantalla."),
+}
+
+TEACHER_GUIDES = {
+1:("Explique primero las siete figuras y recién después abra el laboratorio. Contraste propagación aérea con estructural y recalque que la distancia no es una medida ubicada en la trayectoria.",
+["¿Qué elemento es la fuente en esta escena?","¿Qué camino seguiría existiendo si se instala una barrera?","¿Por qué una orejera protege al trabajador pero no controla el ruido ambiental?"]),
+2:("Use los dos recintos para separar tres magnitudes: R del panel, absorción equivalente del receptor y T₆₀. Al agregar absorbentes, R debe permanecer constante.",
+["¿Qué cambia al reemplazar el panel?","¿Qué cambia al revestir el recinto receptor?","¿Puede disminuir el nivel receptor sin haber mejorado el R del panel?"]),
+3:("Pida justificaciones breves y detecte si el estudiante clasifica por el objeto o por el mecanismo físico predominante.",
+["¿Cuál es la vía dominante?","¿La solución controla transmisión o reverberación?","¿Qué dato adicional pedirías antes de diseñar?"]),
+4:("No permita comparar ROI entre alternativas técnicamente insuficientes. Explique el rendimiento decreciente con la curva costo–beneficio.",
+["¿Cuál alternativa cumple?","¿Qué costo no está incluido?","¿Qué ocurre si cambia la vida útil?"]),
+5:("Conduzca la comparación como una decisión en dos etapas: filtro acústico y optimización económica.",
+["¿Qué alternativa se elimina primero?","¿Qué indicador económico ayuda, pero no decide por sí solo?"]),
+6:("Diferencie el modelo ideal de ley de masa del comportamiento real. Use las curvas para ubicar resonancia, coincidencia y el efecto de elementos débiles.",
+["¿Dónde deja de ser válida la ley ideal?","¿Por qué una pequeña puerta puede dominar el conjunto?","¿Qué aporta el desacoplamiento?"]),
+7:("Solicite que cada propuesta nombre la banda crítica, la vía dominante y la variable que se modificará antes de volver a verificar la meta.",
+["¿Qué banda controla el diseño?","¿Conviene reforzar el muro o el elemento débil?","¿Cómo comprobarías la mejora?"]),
+8:("Presente cada índice junto con su contexto: laboratorio, terreno, fachada y espectro de la fuente. Evite equivalencias automáticas.",
+["¿Qué número usarías frente a tránsito?","¿Qué incorpora la prima en R′w?","¿Cuándo el índice único es insuficiente?"]),
+9:("Pida primero leer la curva y luego el número único. Enfatice que dos soluciones con igual Rw pueden responder distinto frente a tránsito.",
+["¿Dónde están las desviaciones desfavorables?","¿Qué partición conviene para voz?","¿Cuál conviene para bajas frecuencias y por qué?"]),
+10:("Use los resultados para retroalimentación final. En el caso 30 exija suficiencia acústica, bandas críticas, costo incremental y vida útil.",
+["¿La recomendación se apoya en el índice correcto?","¿El mayor Rw es necesariamente la mejor solución?"]),
+}
+
+def _visual_path(filename):
+    if not filename:
+        return None
+    candidates=[ROOT/"assets/course_visuals"/filename,ROOT/"LAB_AEREO_CLASE_1/assets/course_visuals"/filename]
+    return next((p for p in candidates if p.exists()),None)
+
+def _fallback_figure(symbol):
+    if "━━━" in (symbol or ""):
+        return '<div class="mini-scene"><div class="mini-source">🏭</div><div class="mini-wave">))) )))</div><div class="mini-receiver">🧑</div><div class="mini-floorwave"></div></div>'
+    return f'<div style="font-size:4rem;text-align:center">{symbol or "🔎"}</div>'
+
+def student_lesson(stage_number):
+    lessons=STUDENT_LESSONS.get(stage_number,[])
+    if lessons:
+        st.markdown('<div class="section-band"><span>🖼️</span><h3>Conceptos explicados con figuras</h3></div>',unsafe_allow_html=True)
+        st.caption("Revisa estas definiciones antes de utilizar el laboratorio visual.")
+        html='<div class="learning-grid">'
+        for title,definition,observe,image_name,symbol in lessons:
+            path=_visual_path(image_name)
+            visual=f'<img src="{image_data_uri(path)}" alt="{title}">' if path else _fallback_figure(symbol)
+            html+=(
+                f'<article class="learning-card"><div class="learning-figure">{visual}</div>'
+                f'<div class="learning-copy"><div class="learning-kicker">DEFINICIÓN ILUSTRADA</div>'
+                f'<h3>{title}</h3><p>{definition}</p><div class="observe"><b>Qué observar:</b> {observe}</div></div></article>'
+            )
+        st.markdown(html+'</div>',unsafe_allow_html=True)
+    elif stage_number in STAGE_INTROS:
+        title,text=STAGE_INTROS[stage_number]
+        st.markdown(f'<div class="lesson"><div class="overview-title">ANTES DE COMENZAR</div><h3>{title}</h3><span class="muted">{text}</span></div>',unsafe_allow_html=True)
+
 def full_matter(stage_number):
-    """Render only the role-protected teaching guide.
-
-    Learners receive the curated lesson, figures, laboratories and answerable
-    activities defined in each stage. Raw Word/planning content is never
-    rendered in their session.
-    """
-    content=ACADEMIC_CONTENT.get(stage_number,"").strip()
-    if not content:
+    """Render curated learner content and a separate, role-protected teacher guide."""
+    student_lesson(stage_number)
+    if stage_number==0 or st.session_state.get("role")!="Docente":
         return
-    content=content.replace(
-        "Evaluación final del Curso 1",
-        "Evaluación final del curso Aislamiento a Ruido Aéreo",
-    )
-    duration,blocks=_academic_blocks(content)
-    if st.session_state.get("role")!="Docente":
+    guide=TEACHER_GUIDES.get(stage_number)
+    if not guide:
         return
-
+    explanation,questions=guide
     st.markdown(
-        '<div class="teacher-only"><b>🔐 Guía técnica exclusiva para el docente</b>'
-        '<span>Apoyo para explicar las figuras, conducir el laboratorio visual y formular preguntas a los estudiantes.</span></div>',
+        '<div class="teacher-only"><b>🔐 Profundización técnica exclusiva para el docente</b>'
+        '<span>Orientaciones para explicar las figuras, conducir el laboratorio y plantear preguntas.</span></div>',
         unsafe_allow_html=True,
     )
-    with st.expander("Abrir profundización y guía de enseñanza",expanded=False):
-        st.info(
-            "Contenido exclusivo del perfil Docente. No se crea ni se muestra en la sesión del alumno."
-        )
-        if duration:
-            st.caption(duration.replace("Duración propuesta:","Duración de referencia:"))
-        for index,(title,body) in enumerate(blocks):
-            st.markdown(f"### {index+1}. {title}")
-            if body:
-                st.markdown(body)
-            st.markdown("**Cómo abordarlo durante la clase**")
-            st.markdown(
-                "- Relacione este fundamento con la figura o el cambio visible del laboratorio de la etapa.\n"
-                "- Pida al estudiante identificar qué variable cambia, qué fenómeno permanece y cómo se interpreta el resultado.\n"
-                "- Distinga entre una representación didáctica y un valor aplicable a un proyecto real."
-            )
-            st.markdown("**Preguntas sugeridas para los estudiantes**")
-            st.markdown(
-                "1. ¿Qué fenómeno acústico representa esta figura o resultado?\n"
-                "2. ¿Qué cambiaría si se modifica la variable principal?\n"
-                "3. ¿Qué decisión técnica sería coherente y cómo la justificarías?"
-            )
-            st.divider()
+    with st.expander("Abrir guía docente de esta etapa",expanded=False):
+        st.markdown('<div class="teacher-grid">',unsafe_allow_html=True)
+        st.markdown(f'<div class="teacher-card"><b>Cómo explicar las figuras y el laboratorio</b><p>{explanation}</p></div>',unsafe_allow_html=True)
+        qhtml="".join(f"<li>{q}</li>" for q in questions)
+        st.markdown(f'<div class="teacher-card"><b>Preguntas para plantear al curso</b><ol>{qhtml}</ol></div>',unsafe_allow_html=True)
+        st.markdown('</div>',unsafe_allow_html=True)
 
 def lesson(title, text):
     st.markdown(f'<div class="lesson"><div class="overview-title">CONCEPTO CLAVE</div><h3>{title}</h3><span class="muted">{text}</span></div>',unsafe_allow_html=True)
