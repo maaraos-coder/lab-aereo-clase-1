@@ -102,8 +102,8 @@ border:4px solid #087585;border-radius:6px;box-shadow:0 4px 10px #083f4b28}
 .concept-result b{display:block;color:#0a2d52;font-size:1.18rem;margin:.25rem 0}.concept-result span{font-size:.79rem;color:var(--muted)}
 .learning-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:1rem 0 1.35rem}
 .learning-card{background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 9px 25px #17324d12}
-.learning-figure{height:210px;background:linear-gradient(145deg,#e8f6ff,#f8fbff);display:flex;align-items:center;justify-content:center;padding:1rem}
-.learning-figure img{width:100%;height:100%;object-fit:contain;display:block}
+.learning-figure{aspect-ratio:16/9;min-height:210px;background:linear-gradient(145deg,#e8f6ff,#f8fbff);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.learning-figure img{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
 .learning-copy{padding:1.1rem 1.2rem 1.25rem}.learning-kicker{font-size:.72rem;letter-spacing:.11em;font-weight:900;color:#0871bd}
 .learning-copy h3{color:#092d53;margin:.3rem 0 .55rem;font-size:1.22rem}.learning-copy p{color:#40536b;line-height:1.55;margin:.35rem 0}
 .observe{margin-top:.8rem;background:#eef8ff;border-left:4px solid #17a8d2;border-radius:10px;padding:.7rem .8rem;color:#294861;font-size:.88rem}
@@ -338,13 +338,13 @@ def _student_card_body(body):
 
 STUDENT_LESSONS = {
 1:[
-("¿Qué es el ruido?","Es un sonido que resulta no deseado, molesto o perjudicial en un contexto determinado. La misma señal puede ser útil para una persona y ruido para otra.","Observe que la calificación depende de la fuente, el momento, el lugar y el receptor.",None,"🔊"),
-("Control de ruido","Es el conjunto de medidas destinadas a reducir la generación, la propagación o la recepción del sonido no deseado.","Antes de elegir una solución, identifique dónde nace el problema y cuál es su vía dominante.","visual_04.webp",None),
-("Fuente → trayectoria → receptor","La fuente genera energía sonora; la trayectoria es el camino aéreo o estructural; el receptor es la persona o recinto afectado.","Una medida es eficaz cuando actúa sobre el mecanismo que realmente domina la exposición.",None,"🏭 ))) ━━━ 🧑"),
-("Propagación aérea","La presión acústica se propaga por el aire desde la fuente. Con distancia y obstáculos, el nivel puede disminuir, aunque el entorno modifica esa atenuación.","Siga las ondas azules desde la máquina hasta el receptor.",None,"🌬️"),
-("Propagación estructural","La vibración entra a pisos, muros o soportes y puede radiar sonido en otro punto del edificio.","La línea inferior representa una vía sólida diferente del camino por el aire.",None,"〰️"),
-("Reflexión, absorción y transmisión","Al llegar a una superficie, una parte de la energía vuelve, otra se disipa y otra atraviesa el elemento.","La energía incidente se reparte: no confunda absorción superficial con aislamiento entre recintos.","visual_46.webp",None),
-("¿Dónde intervenir?","En la fuente: mantenimiento, encapsulamiento o antivibratorios. En la trayectoria: barrera acústica. En el receptor: protección auditiva, cabina o mejora de fachada. La distancia es una condición geométrica independiente.","Priorice la fuente cuando sea viable y compruebe siempre la vía dominante.",None,"🎛️"),
+("¿Qué es el ruido?","Es un sonido que resulta no deseado, molesto o perjudicial en un contexto determinado. La misma señal puede ser útil para una persona y ruido para otra.","Observe que la calificación depende de la fuente, el momento, el lugar y el receptor.","stage1_noise.webp",None),
+("Control de ruido","Es el conjunto de medidas destinadas a reducir la generación, la propagación o la recepción del sonido no deseado.","Antes de elegir una solución, identifique dónde nace el problema y cuál es su vía dominante.","stage1_noise_control.webp",None),
+("Fuente → trayectoria → receptor","La fuente genera energía sonora; la trayectoria es el camino aéreo o estructural; el receptor es la persona o recinto afectado.","Una medida es eficaz cuando actúa sobre el mecanismo que realmente domina la exposición.","stage1_source_path_receiver.webp",None),
+("Propagación aérea","La presión acústica se propaga por el aire desde la fuente. Con distancia y obstáculos, el nivel puede disminuir, aunque el entorno modifica esa atenuación.","Siga las ondas azules desde la máquina hasta el receptor.","stage1_airborne.webp",None),
+("Propagación estructural","La vibración entra a pisos, muros o soportes y puede radiar sonido en otro punto del edificio.","La vía naranja recorre el sólido y vuelve a radiar energía en el recinto receptor.","stage1_structure_borne.webp",None),
+("Reflexión, absorción y transmisión","Al llegar a una superficie, una parte de la energía vuelve, otra se disipa y otra atraviesa el elemento.","La energía incidente se reparte: no confunda absorción superficial con aislamiento entre recintos.","stage1_energy_split.webp",None),
+("¿Dónde intervenir?","En la fuente: mantenimiento, encapsulamiento o antivibratorios. En la trayectoria: barrera acústica. En el receptor: protección auditiva, cabina o mejora de fachada. La distancia es una condición geométrica independiente.","Priorice la fuente cuando sea viable y compruebe siempre la vía dominante.","stage1_interventions.webp",None),
 ],
 2:[
 ("Aislamiento acústico","Capacidad de un muro, puerta, ventana, piso o techo para reducir el sonido transmitido hacia otro recinto.","Mire el panel central: el resultado se evalúa al otro lado de la separación.","visual_05.webp",None),
@@ -353,24 +353,23 @@ STUDENT_LESSONS = {
 ("Inteligibilidad","Describe cuánto se comprende un mensaje hablado. Depende de reverberación, ruido de fondo, distancia y relación señal/ruido.","Escuchar una voz no significa necesariamente entenderla.",None,"🗣️ → 👂"),
 ],
 4:[
-("Suficiencia antes que rentabilidad","Una alternativa solo entra a la comparación económica si alcanza el objetivo acústico y actúa sobre la vía dominante.","Una solución barata que no cumple no es una solución conveniente.",None,"✅"),
-("Costo del ciclo de vida","Incluye diseño, materiales, instalación, interrupciones, mantención y reposición durante la vida útil.","Compare costos en el mismo horizonte temporal.",None,"🔄"),
-("Rendimiento decreciente","Los últimos decibeles suelen ser más difíciles y costosos. El mayor aislamiento no siempre entrega el mejor valor.","Busque el punto donde el beneficio adicional deja de justificar el costo.","visual_08.png",None),
-("ROI y payback","El ROI relaciona beneficio neto e inversión; el payback estima cuánto tarda en recuperarse lo invertido.","Son criterios complementarios: ninguno reemplaza la verificación acústica.",None,"💰"),
+("Suficiencia antes que rentabilidad","Una alternativa solo entra a la comparación económica si alcanza el objetivo acústico y actúa sobre la vía dominante. Primero se verifica el desempeño; después se optimiza el costo.","Compare las dos separaciones: la alternativa económicamente evaluable es la que realmente protege al receptor.","stage4_sufficiency.webp",None),
+("Costo del ciclo de vida","El costo real incluye diseño, materiales, instalación, interrupciones, mantención, reposición y vida útil. Comparar solo el precio inicial puede cambiar equivocadamente la decisión.","Siga el ciclo completo alrededor del sistema constructivo: todas sus etapas generan costos o requerimientos.","stage4_lifecycle.webp",None),
+("Rendimiento decreciente","Los primeros cambios pueden producir mejoras importantes, pero los últimos decibeles suelen exigir soluciones mucho más complejas y costosas. El máximo aislamiento no siempre entrega el mejor valor.","Observe cómo la complejidad continúa aumentando mientras la reducción adicional de ruido se hace cada vez menor.","stage4_diminishing_returns.webp",None),
+("ROI y payback","El ROI relaciona el beneficio neto con el costo total. El payback estima cuánto tarda en recuperarse la inversión inicial mediante el beneficio anual neto.","El encapsulamiento debe cumplir primero su función acústica; luego el ciclo económico permite estudiar recuperación, mantención y beneficio.","stage4_roi_payback.webp",None),
 ],
 6:[
-("Energía transmitida y R","El coeficiente τ expresa la fracción de energía que atraviesa el elemento; R aumenta cuando τ disminuye.","Una reducción grande de energía transmitida corresponde a un R alto.","visual_16.webp",None),
-("Masa superficial","La masa por unidad de superficie, m′, combina densidad y espesor. En la región ideal, más masa produce mayor aislamiento.","Duplicar m′ aporta aproximadamente 6 dB bajo la ley de masa ideal.","visual_22.webp",None),
-("Frecuencia y ley de masa","El aislamiento ideal aumenta con la masa superficial y con la frecuencia, fuera de las zonas controladas por rigidez o coincidencia.","La pendiente no representa todo el comportamiento real de un panel.","visual_58.webp",None),
-("Frecuencia crítica","En coincidencia, el panel radia con mayor eficiencia y aparece un valle en la curva de aislamiento.","La banda crítica puede dominar la decisión aunque el índice global sea alto.","visual_33.webp",None),
-("Sistemas dobles","Dos hojas separadas por una cámara pueden superar a una hoja simple si existe desacoplamiento y se controlan resonancias y puentes rígidos.","La lana mineral amortigua la cavidad; no sustituye el desacoplamiento.",None,"▌  ◌  ▐"),
-("Elementos débiles y flancos","Puertas, ventanas, rendijas y vías laterales pueden dominar el resultado global del sistema construido.","Los decibeles no se promedian: se combinan transmisiones por superficie y por vías.",None,"🚪"),
+("Energía transmitida y reducción sonora","El coeficiente τ expresa la fracción de energía incidente que atraviesa el elemento. La reducción sonora R aumenta cuando la energía transmitida disminuye.","Distinga la onda incidente, la energía reflejada y la pequeña fracción que llega al recinto receptor.","stage6_transmission.webp",None),
+("Ley de masa","La masa superficial m′ combina densidad y espesor. En la región ideal, aumentar la masa o la frecuencia eleva el aislamiento; duplicar m′ aporta aproximadamente 6 dB.","Compare la hoja liviana, que vibra y transmite más, con la hoja pesada sometida a una excitación equivalente.","stage6_mass_law.webp",None),
+("Frecuencia crítica y coincidencia","Cuando la onda aérea y la onda de flexión del panel se acoplan eficientemente, aumenta la radiación hacia el otro lado y aparece un valle en la curva de aislamiento.","La situación central muestra mayor transmisión que las frecuencias vecinas: esa banda puede dominar el diseño.","stage6_coincidence.webp",None),
+("Sistema doble masa–aire–masa","Dos hojas separadas pueden superar a una hoja simple si están desacopladas, la cámara es suficiente y se controlan la resonancia y los puentes rígidos. El absorbente amortigua la cavidad, pero no sustituye el desacoplamiento.","Identifique las dos hojas independientes, la cámara con lana mineral y la ausencia de una unión rígida directa.","stage6_double_wall.webp",None),
+("Elementos débiles, fugas y flancos","Una puerta, ventana, rendija o vía lateral puede dominar el aislamiento global aunque ocupe poca superficie. El resultado se obtiene combinando transmisiones, no promediando decibeles.","Observe por dónde escapa realmente la energía: reforzar el paño que ya funciona bien puede no mejorar el conjunto.","stage6_weak_elements.webp",None),
 ],
 8:[
-("R(f) y Rw","R(f) describe el aislamiento en cada banda; Rw resume la curva ISO en un único valor ponderado.","Rw no es un promedio ni significa el mismo aislamiento en todas las frecuencias.","visual_57.webp",None),
-("C y Ctr","Son términos de adaptación espectral. C representa mejor espectros medios-altos; Ctr penaliza más las bajas frecuencias típicas del tránsito.","Para tránsito, revise Rw+Ctr y la curva grave.",None,"🚍"),
-("Laboratorio y terreno","R o Rw caracterizan un elemento en condiciones controladas; R′ o R′w incorporan montaje, encuentros y transmisiones laterales en obra.","No espere una diferencia fija entre laboratorio y terreno.","visual_38.webp",None),
-("STC, OITC y fachada","STC pertenece al sistema ASTM; OITC se orienta a ruido exterior de transporte. Los índices no tienen una conversión fija universal.","Elija el indicador según fuente, norma, lugar de ensayo y rango de frecuencia.",None,"🏢"),
+("R(f): aislamiento por frecuencia","El aislamiento no es constante: R(f) describe la reducción sonora en cada banda. Las ondas graves, medias y agudas pueden atravesar una misma separación en proporciones distintas.","Compare las longitudes de onda y relaciónelas con los distintos puntos de la curva: siempre revise la banda que domina la fuente.","stage8_frequency_curve.webp",None),
+("Rw: índice ponderado ISO","Rw resume la curva mediante una referencia normalizada que se desplaza hasta cumplir el límite de desviaciones desfavorables. No es un promedio ni equivale necesariamente a R en todas las bandas.","Observe las dos curvas y las separaciones desfavorables; el número único nace de un procedimiento, no de escoger el punto más alto.","stage8_weighted_index.webp",None),
+("Laboratorio y terreno","R y Rw caracterizan un elemento bajo condiciones controladas. R′ y R′w describen el comportamiento aparente instalado e incorporan encuentros, montaje y transmisiones laterales.","En el laboratorio domina el elemento ensayado; en la obra aparecen caminos por piso, cielo y uniones.","stage8_lab_field.webp",None),
+("C, Ctr y el espectro de la fuente","C y Ctr adaptan Rw a espectros distintos. C se asocia mejor con espectros medios-altos; Ctr penaliza especialmente las bajas frecuencias frecuentes en tránsito.","La misma fachada enfrenta ondas distintas: para buses y camiones revise Rw+Ctr y la curva de bajas frecuencias.","stage8_spectral_terms.webp",None),
 ],
 }
 
@@ -389,16 +388,16 @@ TEACHER_GUIDES = {
 ["¿Qué cambia al reemplazar el panel?","¿Qué cambia al revestir el recinto receptor?","¿Puede disminuir el nivel receptor sin haber mejorado el R del panel?"]),
 3:("Pida justificaciones breves y detecte si el estudiante clasifica por el objeto o por el mecanismo físico predominante.",
 ["¿Cuál es la vía dominante?","¿La solución controla transmisión o reverberación?","¿Qué dato adicional pedirías antes de diseñar?"]),
-4:("No permita comparar ROI entre alternativas técnicamente insuficientes. Explique el rendimiento decreciente con la curva costo–beneficio.",
-["¿Cuál alternativa cumple?","¿Qué costo no está incluido?","¿Qué ocurre si cambia la vida útil?"]),
+4:("Explique las cuatro figuras en orden: filtro de suficiencia, costo del ciclo, rendimiento decreciente y recuperación. En la primera figura haga que el curso descarte la separación que no protege al receptor. En la segunda identifique costos omitidos. Use la tercera para buscar el punto de mejora marginal y la cuarta solo después de verificar el desempeño acústico.",
+["¿Cuál alternativa puede entrar a la comparación económica y por qué?","¿Qué costo del ciclo podría cambiar la decisión?","¿En qué punto la mejora adicional deja de justificar el aumento de complejidad?","¿Por qué un buen ROI no rescata una solución acústicamente insuficiente?"]),
 5:("Conduzca la comparación como una decisión en dos etapas: filtro acústico y optimización económica.",
 ["¿Qué alternativa se elimina primero?","¿Qué indicador económico ayuda, pero no decide por sí solo?"]),
-6:("Diferencie el modelo ideal de ley de masa del comportamiento real. Use las curvas para ubicar resonancia, coincidencia y el efecto de elementos débiles.",
-["¿Dónde deja de ser válida la ley ideal?","¿Por qué una pequeña puerta puede dominar el conjunto?","¿Qué aporta el desacoplamiento?"]),
+6:("Recorra las figuras desde la energía hasta el sistema construido. Relacione τ con R; compare hoja liviana y pesada; identifique la transmisión adicional en coincidencia; explique las dos masas desacopladas; y cierre siguiendo la fuga o el elemento débil. Después use cada pestaña del simulador para comprobar el fenómeno.",
+["¿Qué ocurre con R cuando disminuye τ?","¿Bajo qué condiciones duplicar masa aporta cerca de 6 dB?","¿Por qué aparece un valle en coincidencia?","¿Qué se pierde si ambas hojas quedan unidas rígidamente?","¿Por qué una rendija pequeña puede dominar el resultado?"]),
 7:("Solicite que cada propuesta nombre la banda crítica, la vía dominante y la variable que se modificará antes de volver a verificar la meta.",
 ["¿Qué banda controla el diseño?","¿Conviene reforzar el muro o el elemento débil?","¿Cómo comprobarías la mejora?"]),
-8:("Presente cada índice junto con su contexto: laboratorio, terreno, fachada y espectro de la fuente. Evite equivalencias automáticas.",
-["¿Qué número usarías frente a tránsito?","¿Qué incorpora la prima en R′w?","¿Cuándo el índice único es insuficiente?"]),
+8:("Empiece por R(f), porque el índice único solo tiene sentido después de comprender la curva. Explique visualmente el ajuste de Rw, compare la cámara de ensayo con las vías laterales de obra y termine contrastando voz con tránsito. Vincule después cada fila de la tabla con método, lugar y espectro.",
+["¿Por qué Rw no representa el mismo aislamiento en todas las bandas?","¿Qué incorpora la prima en R′w?","¿Qué combinación revisarías frente a buses y camiones?","¿Cuándo la curva completa es más importante que el índice único?"]),
 9:("Pida primero leer la curva y luego el número único. Enfatice que dos soluciones con igual Rw pueden responder distinto frente a tránsito.",
 ["¿Dónde están las desviaciones desfavorables?","¿Qué partición conviene para voz?","¿Cuál conviene para bajas frecuencias y por qué?"]),
 10:("Use los resultados para retroalimentación final. En el caso 30 exija suficiencia acústica, bandas críticas, costo incremental y vida útil.",
