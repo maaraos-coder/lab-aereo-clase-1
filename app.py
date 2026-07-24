@@ -1514,13 +1514,34 @@ def stage7():
           "Se aplica τ=10^(−R/10): para 50 dB resulta 10⁻⁵ y para 30 dB resulta 10⁻³.")
     st.latex(rf"\tau_{{total}}=\frac{{13(10^{{-5}})+2(10^{{-3}})}}{{15}}={tau_total:.6f}")
     st.latex(rf"R_{{total}}=-10\log_{{10}}(\tau_{{total}})={r_total:.1f}\ \mathrm{{dB}}")
+    formula_card(
+        "Diferencia de nivel y estimación del nivel receptor",
+        r"\Delta L=L_{\mathrm{emisor}}-L_{\mathrm{receptor}}"
+        r"\quad\Longrightarrow\quad"
+        r"L_{\mathrm{receptor}}\approx L_{\mathrm{emisor}}-R_{\mathrm{total}}",
+        "<b>ΔL</b>: diferencia entre el nivel emisor y el nivel receptor (dB)<br>"
+        "<b>L<sub>emisor</sub></b>: nivel en la sala emisora = 82 dB<br>"
+        "<b>L<sub>receptor</sub></b>: nivel estimado en la sala receptora (dB)<br>"
+        "<b>R<sub>total</sub></b>: aislamiento compuesto calculado = "
+        f"{r_total:.1f} dB",
+        "En este ejercicio simplificado se considera que la reducción producida por la "
+        "separación es aproximadamente igual a la diferencia de nivel. Por eso se resta "
+        "Rtotal al nivel emisor. En una medición normalizada real también deben considerarse "
+        "la geometría y las condiciones acústicas del recinto receptor.",
+    )
+    st.latex(
+        rf"L_{{\mathrm{{receptor}}}}\approx 82-{r_total:.1f}"
+        rf"={receiver:.1f}\ \mathrm{{dB}}"
+    )
     check("e7_guided_result",f"Con Rtotal ≈ {r_total:.1f} dB, ¿cuál es el nivel receptor estimado y cumple la meta?",
           [f"{receiver:.1f} dB; sí cumple",f"{receiver:.1f} dB; no cumple","32,0 dB; sí cumple","52,0 dB; no cumple"],
           f"{receiver:.1f} dB; sí cumple",
-          f"Lreceptor = 82−{r_total:.1f} = {receiver:.1f} dB. Como es menor o igual que 45 dB, el caso cumple.")
+          f"En esta estimación simplificada, ΔL ≈ Rtotal y Lreceptor = 82−{r_total:.1f} "
+          f"= {receiver:.1f} dB. Como es menor o igual que 45 dB, el caso cumple.")
     st.markdown(
         '<div class="good"><b>Lectura profesional:</b> el procedimiento siempre sigue la misma ruta: '
-        'áreas → porcentajes → τ de cada elemento → τ ponderado → R compuesto → comparación con la meta.</div>',
+        'áreas → porcentajes → τ de cada elemento → τ ponderado → R compuesto → '
+        'diferencia de nivel estimada → nivel receptor → comparación con la meta.</div>',
         unsafe_allow_html=True,
     )
     st.markdown('<div class="section-band"><span>🧪</span><h3>Aplicación conceptual III · 11 ejercicios</h3></div>',unsafe_allow_html=True)
@@ -1538,9 +1559,10 @@ def stage7():
     st.markdown("#### Ejercicio guiado · Rigidez flexional y frecuencia crítica")
     formula_card(
         "Ecuaciones que debes aplicar",
-        r"D=\frac{Eh^3}{12(1-\nu^2)}"
-        r"\qquad"
-        r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}",
+        r"\begin{aligned}"
+        r"D&=\frac{Eh^3}{12(1-\nu^2)}\\[0.65em]"
+        r"f_c&=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}"
+        r"\end{aligned}",
         "<b>D</b>: rigidez flexional de la placa (N·m)<br>"
         "<b>E</b>: módulo de Young (Pa)<br>"
         "<b>h</b>: espesor de la placa (m)<br>"
