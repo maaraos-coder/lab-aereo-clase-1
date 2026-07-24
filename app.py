@@ -278,7 +278,7 @@ ROUTE_SUMMARIES = [
 ("Fundamentos físicos","Explora masa, frecuencia, resonancia, coincidencia y sistemas dobles."),
 ("Diseño práctico","Detecta bandas críticas, elementos débiles y vías dominantes."),
 ("Índices acústicos","Interpreta Rw, C, Ctr, STC, OITC y resultados de terreno."),
-("Aplicación de índices","Entenderás los índices y su respectivo uso y normativa"),
+("Aplicación de índices","Entenderás los índices y sus respectivos usos y normativas"),
 ("Evaluación final","Integra acústica y costo-beneficio en una decisión profesional."),
 ]
 
