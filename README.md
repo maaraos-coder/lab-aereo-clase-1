@@ -17,6 +17,7 @@ streamlit run app.py
 
 La aplicación incluye:
 
+- acceso inicial independiente para alumnos y docentes;
 - una clase interactiva completa de 4 horas (240 minutos);
 - tres aplicaciones conceptuales basadas en los ejercicios del PowerPoint;
 - 20 actividades formativas, dos intentos y 50 puntos;
@@ -24,5 +25,17 @@ La aplicación incluye:
 - decisión técnico-económica con costo por dB, ROI y payback;
 - evaluación final independiente de 40 puntos;
 - vista docente e informe PDF del intento final.
+
+## Configurar el acceso docente en Streamlit Cloud
+
+En **Manage app → Settings → Secrets**, agrega:
+
+```toml
+[teacher]
+email = "maaraos@gmail.com"
+password = "TU_CLAVE_DOCENTE_SEGURA"
+```
+
+El correo y la clave no deben escribirse en `app.py` ni subirse a GitHub.
 
 Los cálculos son didácticos y no sustituyen una predicción normalizada, un ensayo de laboratorio ni una medición en terreno.

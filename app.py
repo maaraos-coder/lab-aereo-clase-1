@@ -1410,83 +1410,141 @@ if not st.session_state.get("course_access_granted", False):
         """
         <div class="hero">
           <span class="tag">ACCESO AL CURSO</span>
-          <h1>Identificación del alumno</h1>
-          <p>Completa tus datos personales para ingresar a la Clase 1.
-          Esta información acompañará tu progreso, puntajes e informe final.</p>
+          <h1>Selecciona tu forma de acceso</h1>
+          <p>Ingresa como alumno para realizar la clase y su evaluación,
+          o como docente para administrar y revisar el curso.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    with st.form("student_course_access"):
-        access_name = st.text_input(
-            "Nombre completo",
-            placeholder="Ej.: Andrea González Pérez",
-        )
-        access_document_type = st.selectbox(
-            "Tipo de documento de identidad",
-            [
-                "RUT chileno",
-                "Pasaporte",
-                "DNI",
-                "Cédula de identidad extranjera",
-                "Otro documento oficial",
-            ],
-        )
-        access_document = st.text_input(
-            "Documento de identidad",
-            placeholder="Ej.: 12.345.678-5 o número de pasaporte",
-            help=(
-                "Si seleccionas RUT chileno, se verificará el dígito verificador. "
-                "Los documentos extranjeros pueden contener letras y números."
-            ),
-        )
-        access_email = st.text_input(
-            "Correo electrónico",
-            placeholder="nombre@correo.cl",
-        )
-        privacy_accept = st.checkbox(
-            "Confirmo que los datos ingresados son correctos y corresponden a mi identidad."
-        )
-        access_submit = st.form_submit_button(
-            "Ingresar al curso",
-            type="primary",
-            use_container_width=True,
-        )
-    if access_submit:
-        normalized_name = " ".join(access_name.split())
-        normalized_document = (
-            _normalize_rut(access_document)
-            if access_document_type == "RUT chileno"
-            else _normalize_identity_document(access_document)
-        )
-        normalized_email = access_email.strip().lower()
-        if len(normalized_name.split()) < 2:
-            st.error("Ingresa tu nombre completo, incluyendo al menos nombre y apellido.")
-        elif access_document_type == "RUT chileno" and not _valid_rut(normalized_document):
-            st.error("El RUT ingresado no es válido. Revisa el número y su dígito verificador.")
-        elif access_document_type != "RUT chileno" and not _valid_identity_document(normalized_document):
-            st.error(
-                "Ingresa un número de documento válido, de 5 a 30 caracteres, "
-                "utilizando letras, números, espacios, puntos, guiones o barras."
-            )
-        elif not _valid_email(normalized_email):
-            st.error("Ingresa un correo electrónico válido.")
-        elif not privacy_accept:
-            st.error("Debes confirmar que los datos ingresados son correctos.")
-        else:
-            st.session_state.student_name = normalized_name
-            st.session_state.student_document_type = access_document_type
-            st.session_state.student_document = normalized_document
-            # Compatibilidad con sesiones o componentes de versiones anteriores.
-            st.session_state.student_rut = normalized_document
-            st.session_state.student_email = normalized_email
-            st.session_state.course_access_granted = True
-            st.session_state.course_access_at = datetime.now().isoformat(timespec="seconds")
-            st.rerun()
-    st.info(
-        "Puedes ingresar con RUT chileno, pasaporte, DNI, cédula extranjera "
-        "u otro documento oficial."
+    student_access_tab, teacher_access_tab = st.tabs(
+        ["🎓 ACCESO ALUMNO", "🧑‍🏫 ACCESO DOCENTE"]
     )
+
+    with student_access_tab:
+        st.markdown("### Identificación del alumno")
+        st.caption(
+            "Tus datos quedarán asociados al progreso, puntajes, evaluación e informe final."
+        )
+        with st.form("student_course_access"):
+            access_name = st.text_input(
+                "Nombre completo",
+                placeholder="Ej.: Andrea González Pérez",
+            )
+            access_document_type = st.selectbox(
+                "Tipo de documento de identidad",
+                [
+                    "RUT chileno",
+                    "Pasaporte",
+                    "DNI",
+                    "Cédula de identidad extranjera",
+                    "Otro documento oficial",
+                ],
+            )
+            access_document = st.text_input(
+                "Documento de identidad",
+                placeholder="Ej.: 12.345.678-5 o número de pasaporte",
+                help=(
+                    "Si seleccionas RUT chileno, se verificará el dígito verificador. "
+                    "Los documentos extranjeros pueden contener letras y números."
+                ),
+            )
+            access_email = st.text_input(
+                "Correo electrónico",
+                placeholder="nombre@correo.cl",
+            )
+            privacy_accept = st.checkbox(
+                "Confirmo que los datos ingresados son correctos y corresponden a mi identidad."
+            )
+            access_submit = st.form_submit_button(
+                "Ingresar como alumno",
+                type="primary",
+                use_container_width=True,
+            )
+        if access_submit:
+            normalized_name = " ".join(access_name.split())
+            normalized_document = (
+                _normalize_rut(access_document)
+                if access_document_type == "RUT chileno"
+                else _normalize_identity_document(access_document)
+            )
+            normalized_email = access_email.strip().lower()
+            if len(normalized_name.split()) < 2:
+                st.error("Ingresa tu nombre completo, incluyendo al menos nombre y apellido.")
+            elif access_document_type == "RUT chileno" and not _valid_rut(normalized_document):
+                st.error("El RUT ingresado no es válido. Revisa el número y su dígito verificador.")
+            elif access_document_type != "RUT chileno" and not _valid_identity_document(normalized_document):
+                st.error(
+                    "Ingresa un número de documento válido, de 5 a 30 caracteres, "
+                    "utilizando letras, números, espacios, puntos, guiones o barras."
+                )
+            elif not _valid_email(normalized_email):
+                st.error("Ingresa un correo electrónico válido.")
+            elif not privacy_accept:
+                st.error("Debes confirmar que los datos ingresados son correctos.")
+            else:
+                st.session_state.student_name = normalized_name
+                st.session_state.student_document_type = access_document_type
+                st.session_state.student_document = normalized_document
+                # Compatibilidad con sesiones o componentes de versiones anteriores.
+                st.session_state.student_rut = normalized_document
+                st.session_state.student_email = normalized_email
+                st.session_state.teacher_mode = False
+                st.session_state.course_access_granted = True
+                st.session_state.course_access_at = datetime.now().isoformat(timespec="seconds")
+                st.rerun()
+        st.info(
+            "Puedes ingresar con RUT chileno, pasaporte, DNI, cédula extranjera "
+            "u otro documento oficial."
+        )
+
+    with teacher_access_tab:
+        st.markdown("### Ingreso del docente")
+        st.caption(
+            "Acceso reservado para revisar contenidos, soluciones e intentos de los estudiantes."
+        )
+        with st.form("teacher_course_access", clear_on_submit=True):
+            teacher_email = st.text_input(
+                "Correo electrónico docente",
+                placeholder="docente@correo.cl",
+            )
+            teacher_password = st.text_input("Clave docente", type="password")
+            teacher_login = st.form_submit_button(
+                "Ingresar como docente",
+                type="primary",
+                use_container_width=True,
+            )
+        if teacher_login:
+            try:
+                teacher_secrets = st.secrets["teacher"]
+                expected_password = str(teacher_secrets["password"])
+                expected_email = str(
+                    teacher_secrets.get("email", TEACHER_EMAIL)
+                ).strip().lower()
+            except (KeyError, FileNotFoundError):
+                expected_password = ""
+                expected_email = TEACHER_EMAIL.strip().lower()
+            normalized_teacher_email = teacher_email.strip().lower()
+            if not expected_password:
+                st.error(
+                    "El acceso docente aún no está configurado. "
+                    "Agrega el correo y la clave docente en los Secrets de la aplicación."
+                )
+            elif not hmac.compare_digest(normalized_teacher_email, expected_email):
+                st.error("Correo docente incorrecto.")
+            elif not hmac.compare_digest(teacher_password, expected_password):
+                st.error("Clave docente incorrecta.")
+            else:
+                st.session_state.teacher_mode = True
+                st.session_state.teacher_email = normalized_teacher_email
+                st.session_state.student_name = "Marco Araos Barría"
+                st.session_state.student_document_type = "Perfil"
+                st.session_state.student_document = "Docente"
+                st.session_state.student_rut = "Docente"
+                st.session_state.student_email = normalized_teacher_email
+                st.session_state.course_access_granted = True
+                st.session_state.course_access_at = datetime.now().isoformat(timespec="seconds")
+                st.rerun()
     st.stop()
 
 
@@ -1496,43 +1554,30 @@ with st.sidebar:
     st.markdown("**Curso 1**")
     st.caption("AISLAMIENTO A RUIDO AÉREO")
     st.markdown("---")
-    st.caption("ALUMNO IDENTIFICADO")
-    st.markdown(f"**{st.session_state.student_name}**")
-    st.caption(
-        f"{st.session_state.get('student_document_type', 'Documento de identidad')}: "
-        f"{st.session_state.get('student_document', st.session_state.get('student_rut', ''))}  \n"
-        f"{st.session_state.student_email}"
-    )
+    if st.session_state.get("teacher_mode", False):
+        st.caption("DOCENTE IDENTIFICADO")
+        st.markdown("**Marco Araos Barría**")
+        st.caption(st.session_state.get("teacher_email", TEACHER_EMAIL))
+    else:
+        st.caption("ALUMNO IDENTIFICADO")
+        st.markdown(f"**{st.session_state.student_name}**")
+        st.caption(
+            f"{st.session_state.get('student_document_type', 'Documento de identidad')}: "
+            f"{st.session_state.get('student_document', st.session_state.get('student_rut', ''))}  \n"
+            f"{st.session_state.student_email}"
+        )
     st.markdown("---")
     pages = ["Inicio", "Clase interactiva · 4 horas", "1 · Aislamiento vs. absorción", "2 · Transmisión sonora", "3 · Ley de masa", "4 · Absorción del recinto", "5 · Elementos compuestos", "6 · Decisión técnico-económica", "Evaluación final"]
     page = st.radio("Ruta de aprendizaje", pages, label_visibility="collapsed")
     st.markdown("---")
-    with st.expander("🔐 Acceso docente"):
-        if st.session_state.get("teacher_mode", False):
-            st.success("Vista docente activa")
-            if st.button("Cerrar vista docente", use_container_width=True):
-                st.session_state.teacher_mode = False
-                st.rerun()
-        else:
-            with st.form("teacher_login", clear_on_submit=True):
-                teacher_password = st.text_input("Clave docente", type="password")
-                teacher_login = st.form_submit_button(
-                    "Ingresar", use_container_width=True
-                )
-            if teacher_login:
-                try:
-                    expected_password = str(st.secrets["teacher"]["password"])
-                except (KeyError, FileNotFoundError):
-                    expected_password = ""
-                if expected_password and hmac.compare_digest(
-                    teacher_password, expected_password
-                ):
-                    st.session_state.teacher_mode = True
-                    st.rerun()
-                elif not expected_password:
-                    st.error("El acceso docente aún no está configurado.")
-                else:
-                    st.error("Clave incorrecta.")
+    if st.button("Cerrar sesión", use_container_width=True):
+        for access_key in [
+            "course_access_granted", "teacher_mode", "teacher_email",
+            "student_name", "student_document_type", "student_document",
+            "student_rut", "student_email", "course_access_at",
+        ]:
+            st.session_state.pop(access_key, None)
+        st.rerun()
     if st.session_state.get("final_submitted"):
         practical_points = st.session_state.get("final_practical_result", {}).get("points", 0)
         total_points = st.session_state.final_score + practical_points
