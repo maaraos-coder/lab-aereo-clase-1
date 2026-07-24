@@ -990,15 +990,16 @@ def make_evaluation_pdf(student, identifier, email, course_date, answers, score,
 
 
 CLASS_PLAN = [
-    ("Inicio y diagnóstico", 10),
-    ("Bloque 1 · Control del ruido, aislamiento y absorción", 25),
-    ("Aplicación Conceptual I", 25),
-    ("Bloque 2 · Costos, beneficios y decisión económica", 25),
-    ("Aplicación Conceptual II", 25),
-    ("Pausa", 10),
-    ("Bloque 3 · Parámetros y comportamiento acústico", 45),
-    ("Aplicación Conceptual III", 60),
-    ("Cierre y retroalimentación", 15),
+    ("08:30–08:40 · Fundamentos y ruta de aprendizaje", 10),
+    ("08:40–09:05 · Aislamiento vs. absorción + aplicación", 25),
+    ("09:05–09:30 · Transmisión sonora + aplicación", 25),
+    ("09:30–10:05 · Ley de masa, frecuencia y rigidez + cálculos", 35),
+    ("10:05–10:15 · Pausa", 10),
+    ("10:15–10:40 · Absorción del recinto + aplicación", 25),
+    ("10:40–11:10 · Elementos compuestos + aplicación", 30),
+    ("11:10–11:40 · Decisión técnico-económica + aplicación", 30),
+    ("11:40–12:00 · Caso integrador y síntesis", 20),
+    ("12:00–12:30 · Evaluación final", 30),
 ]
 
 FORMATIVE_MAX = 50
@@ -1138,31 +1139,84 @@ def render_four_hour_class():
             "Los ejercicios permiten dos verificaciones; el segundo acierto obtiene 50 %."
         )
 
-    with st.expander("Programa exacto de las 4 horas", expanded=False):
+    with st.expander("Horario y recorrido exacto de las 4 horas", expanded=True):
         plan = pd.DataFrame(CLASS_PLAN, columns=["Etapa", "Minutos"])
         plan["Acumulado"] = plan["Minutos"].cumsum()
         st.dataframe(plan, hide_index=True, use_container_width=True)
-        st.caption("Total: 240 minutos, incluida una pausa de 10 minutos.")
+        st.caption(
+            "Total: 240 minutos, incluida una pausa de 10 minutos. "
+            "Cada ejercicio aparece inmediatamente después del concepto que evalúa."
+        )
+
+    st.markdown("### Método de trabajo en cada etapa")
+    method_cols = st.columns(4)
+    method_cols[0].info("**1 · Definir**\n\nConceptos y vocabulario técnico.")
+    method_cols[1].info("**2 · Visualizar**\n\nDibujo, animación y fenómeno físico.")
+    method_cols[2].info("**3 · Resolver**\n\nEjemplo desarrollado paso a paso.")
+    method_cols[3].info("**4 · Aplicar**\n\nEjercicio con tiempo, puntaje y retroalimentación.")
+    st.caption(
+        "La vista docente conserva este mismo recorrido y agrega notas, respuestas "
+        "esperadas y orientaciones para conducir la discusión."
+    )
 
     tabs = st.tabs(
         [
-            "1 · Control del ruido",
-            "Aplicación I · 10 pt",
-            "2 · Decisión económica",
-            "Aplicación II · 10 pt",
-            "3 · Fundamentos físicos",
-            "Aplicación III · 30 pt",
-            "Cierre",
+            "1 · Aislamiento/absorción · Teoría",
+            "1 · Aplicación inmediata · 10 pt",
+            "2 · Decisión económica · Teoría",
+            "2 · Aplicación inmediata · 10 pt",
+            "3–6 · Fundamentos físicos · Teoría",
+            "3–6 · Aplicaciones intercaladas · 30 pt",
+            "7 · Caso integrador y síntesis",
         ]
     )
 
     with tabs[0]:
         module_head(
             "BLOQUE 1 · 25 MIN",
-            "Control del ruido y aislamiento aéreo",
+            "Aislamiento y absorción: dos fenómenos diferentes",
             "El problema puede intervenirse en la fuente, la trayectoria o el receptor. "
             "En esta clase el foco está en la trayectoria mediante particiones verticales y horizontales.",
         )
+        st.markdown("### Definiciones fundamentales")
+        definitions = [
+            (
+                "Ruido aéreo",
+                "Sonido originado por voces, música, tránsito o equipos que se propaga "
+                "primero por el aire y excita los elementos constructivos.",
+            ),
+            (
+                "Recinto emisor",
+                "Espacio donde se encuentra la fuente y desde el cual la energía sonora "
+                "incide sobre la separación.",
+            ),
+            (
+                "Recinto receptor",
+                "Espacio protegido en el que se evalúa el sonido que logró transmitirse.",
+            ),
+            (
+                "Partición",
+                "Elemento que separa ambos recintos: muro, tabique, puerta, ventana, "
+                "fachada o entrepiso.",
+            ),
+            (
+                "Aislamiento acústico",
+                "Capacidad del conjunto constructivo para reducir la transmisión entre "
+                "el recinto emisor y el receptor.",
+            ),
+            (
+                "Absorción acústica",
+                "Transformación de parte de la energía sonora en calor dentro de un "
+                "material; reduce reflexiones y reverberación en el mismo recinto.",
+            ),
+        ]
+        definition_cols = st.columns(2)
+        for definition_index, (term, definition) in enumerate(definitions):
+            with definition_cols[definition_index % 2]:
+                st.markdown(
+                    f'<div class="card"><h4>{term}</h4><p>{definition}</p></div>',
+                    unsafe_allow_html=True,
+                )
         st.markdown(
             """
             ### ¿Qué es el aislamiento acústico a ruido aéreo?
@@ -1213,6 +1267,20 @@ def render_four_hour_class():
             "Las ondas incidentes excitan la partición. Solo una fracción de la energía "
             "logra atravesarla y radiarse en el recinto receptor."
         )
+        st.markdown("### Balance energético en una superficie")
+        st.latex(r"E_i = E_r + E_a + E_t")
+        st.markdown(
+            r"""
+            - \(E_i\): energía incidente que llega a la superficie.
+            - \(E_r\): energía reflejada que vuelve al recinto emisor.
+            - \(E_a\): energía absorbida o disipada dentro del elemento.
+            - \(E_t\): energía transmitida que alcanza el recinto receptor.
+
+            El **aislamiento** se evalúa observando cuánto se reduce \(E_t\). La
+            **absorción** describe principalmente cuánto aumenta \(E_a\) y cómo cambian
+            las reflexiones dentro del recinto.
+            """
+        )
         course_visual(
             7,
             "La absorción reduce reflexiones dentro del recinto; el aislamiento reduce "
@@ -1239,11 +1307,14 @@ def render_four_hour_class():
             "Antes de avanzar, formule la pregunta: «Si desaparece el eco, ¿deja de "
             "escucharse al vecino?». La respuesta esperada es no necesariamente."
         )
-        st.info("Tiempo del bloque: 25 minutos. Continúa con Aplicación Conceptual I.")
+        st.info(
+            "Al completar esta explicación, continúa de inmediato con la aplicación "
+            "del mismo concepto. Tiempo conjunto de la etapa: 25 minutos."
+        )
 
     with tabs[1]:
         module_head(
-            "APLICACIÓN CONCEPTUAL I · 25 MIN · 10 PUNTOS",
+            "APLICACIÓN INMEDIATA · 10 PUNTOS",
             "Diagnóstico: absorción o aislamiento",
             "Cinco situaciones profesionales del PowerPoint, contextualizadas como casos reales.",
         )
@@ -1270,7 +1341,7 @@ def render_four_hour_class():
 
     with tabs[2]:
         module_head(
-            "BLOQUE 2 · 25 MIN",
+            "ETAPA 6 · TEORÍA Y EJEMPLO GUIADO",
             "Costos, beneficios, ROI y suficiencia técnica",
             "Una solución debe ser viable técnica y económicamente. Más aislamiento no siempre significa una mejor decisión.",
         )
@@ -1333,7 +1404,7 @@ def render_four_hour_class():
 
     with tabs[3]:
         module_head(
-            "APLICACIÓN CONCEPTUAL II · 25 MIN · 10 PUNTOS",
+            "APLICACIÓN INMEDIATA · 10 PUNTOS",
             "Decisión técnico-económica",
             "Tres ejercicios del PowerPoint aplicados a una oficina administrativa expuesta a una sala de máquinas.",
         )
@@ -1382,7 +1453,7 @@ def render_four_hour_class():
 
     with tabs[4]:
         module_head(
-            "BLOQUE 3 · 45 MIN",
+            "ETAPAS 2 A 5 · TEORÍA, VISUALIZACIÓN Y EJEMPLOS",
             "Parámetros, fórmulas y comportamiento acústico",
             "Síntesis completa del bloque de definiciones del PowerPoint.",
         )
@@ -1569,7 +1640,7 @@ def render_four_hour_class():
 
     with tabs[5]:
         module_head(
-            "APLICACIÓN CONCEPTUAL III · 60 MIN · 30 PUNTOS",
+            "APLICACIONES INTERCALADAS · 30 PUNTOS",
             "Diagnóstico integral de una oficina junto a una sala de máquinas",
             "Once ejercicios del PowerPoint conectados por un mismo caso profesional.",
         )
@@ -1648,9 +1719,9 @@ def render_four_hour_class():
 
     with tabs[6]:
         module_head(
-            "CIERRE · 15 MIN",
-            "Síntesis y preparación para la evaluación",
-            "Revisa el desempeño formativo antes de iniciar la evaluación final independiente.",
+            "CASO INTEGRADOR Y SÍNTESIS · 20 MIN",
+            "Integración y preparación para la evaluación",
+            "Revisa el desempeño formativo antes de iniciar la última etapa de la misma clase: la evaluación final.",
         )
         st.metric("Puntaje formativo", f"{_formative_score():g}/{FORMATIVE_MAX}")
         st.progress(min(_formative_score() / FORMATIVE_MAX, 1.0))
@@ -1851,14 +1922,15 @@ with st.sidebar:
     if page == "Clase interactiva · 4 horas":
         st.markdown("#### Etapas de la clase")
         class_stages = [
-            "0 · Contenido guiado",
-            "1 · Aislamiento vs. absorción",
-            "2 · Transmisión sonora",
-            "3 · Ley de masa",
-            "4 · Absorción del recinto",
-            "5 · Elementos compuestos",
-            "6 · Decisión técnico-económica",
-            "7 · Evaluación final",
+            "0 · Fundamentos y ruta · 10 min",
+            "1 · Aislamiento vs. absorción · 25 min",
+            "2 · Transmisión sonora · 25 min",
+            "3 · Ley de masa y rigidez · 35 min",
+            "4 · Absorción del recinto · 25 min",
+            "5 · Elementos compuestos · 30 min",
+            "6 · Decisión técnico-económica · 30 min",
+            "7 · Caso integrador y síntesis · 20 min",
+            "8 · Evaluación final · 30 min",
         ]
         selected_stage = st.radio(
             "Etapa actual",
@@ -1880,7 +1952,8 @@ with st.sidebar:
             class_stages[4]: "4 · Absorción del recinto",
             class_stages[5]: "5 · Elementos compuestos",
             class_stages[6]: "6 · Decisión técnico-económica",
-            class_stages[7]: "Evaluación final",
+            class_stages[7]: "Clase interactiva · 4 horas",
+            class_stages[8]: "Evaluación final",
         }
         page = stage_to_page[selected_stage]
     st.markdown("---")
