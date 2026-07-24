@@ -7,6 +7,7 @@ import json
 import smtplib
 import sqlite3
 import textwrap
+import time
 import uuid
 from datetime import datetime
 from email.message import EmailMessage
@@ -172,11 +173,11 @@ FINAL_QUESTIONS = [
 PRACTICAL_FREQS = [100, 125, 160, 200, 250, 315, 400, 500, 630, 800,
                    1000, 1250, 1600, 2000, 2500, 3150]
 PRACTICAL_MATERIALS = {
-    "Yeso-cartón": {"density": 800, "min_mm": 10, "max_mm": 50, "default_mm": 15},
-    "Madera MDF": {"density": 750, "min_mm": 10, "max_mm": 60, "default_mm": 25},
-    "Vidrio": {"density": 2500, "min_mm": 4, "max_mm": 20, "default_mm": 8},
-    "Acero": {"density": 7850, "min_mm": 1, "max_mm": 12, "default_mm": 3},
-    "Hormigón": {"density": 2400, "min_mm": 50, "max_mm": 250, "default_mm": 100},
+    "Yeso-cartón": {"density": 800, "young_gpa": 2.5, "poisson": 0.30, "min_mm": 10, "max_mm": 50, "default_mm": 15},
+    "Madera MDF": {"density": 750, "young_gpa": 3.0, "poisson": 0.30, "min_mm": 10, "max_mm": 60, "default_mm": 25},
+    "Vidrio": {"density": 2500, "young_gpa": 70.0, "poisson": 0.23, "min_mm": 4, "max_mm": 20, "default_mm": 8},
+    "Acero": {"density": 7850, "young_gpa": 200.0, "poisson": 0.30, "min_mm": 1, "max_mm": 12, "default_mm": 3},
+    "Hormigón": {"density": 2400, "young_gpa": 30.0, "poisson": 0.20, "min_mm": 50, "max_mm": 250, "default_mm": 100},
 }
 PRACTICAL_DOORS = {
     "Puerta liviana hueca": {
@@ -220,10 +221,45 @@ def _identifier_hash(identifier):
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
+def _normalize_rut(rut):
+    """Devuelve el RUT chileno sin puntos y con guion."""
+    clean = "".join(ch for ch in str(rut).upper() if ch.isdigit() or ch == "K")
+    if len(clean) < 2:
+        return ""
+    return f"{clean[:-1]}-{clean[-1]}"
+
+
+def _valid_rut(rut):
+    """Valida un RUT chileno mediante módulo 11."""
+    normalized = _normalize_rut(rut)
+    if not normalized:
+        return False
+    body, verifier = normalized.split("-")
+    if not body.isdigit() or len(body) < 7:
+        return False
+    total = 0
+    factor = 2
+    for digit in reversed(body):
+        total += int(digit) * factor
+        factor = 2 if factor == 7 else factor + 1
+    expected_value = 11 - total % 11
+    expected = "0" if expected_value == 11 else "K" if expected_value == 10 else str(expected_value)
+    return hmac.compare_digest(verifier, expected)
+
+
+def _valid_email(email):
+    """Validación sencilla y suficiente para el formulario de acceso."""
+    value = str(email).strip()
+    if value.count("@") != 1 or " " in value:
+        return False
+    local, domain = value.rsplit("@", 1)
+    return bool(local and "." in domain and not domain.startswith(".") and not domain.endswith("."))
+
+
 def _attempt_state():
     keys = (
         "final_exam_started", "final_submitted", "final_student",
-        "final_identifier", "final_date", "final_current", "final_answers",
+        "final_identifier", "final_email", "final_date", "final_current", "final_answers",
         "final_option_orders", "final_practical_stage",
         "final_practical_result", "final_practical_draft", "final_score",
         "final_practical_calculation",
@@ -295,7 +331,7 @@ def clear_attempt_session():
     """Devuelve la sesión actual al estado previo al inicio de la evaluación."""
     attempt_keys = {
         "final_exam_started", "final_submitted", "final_student",
-        "final_identifier", "final_date", "final_current", "final_answers",
+        "final_identifier", "final_email", "final_date", "final_current", "final_answers",
         "final_option_orders", "final_practical_stage",
         "final_practical_result", "final_practical_draft", "final_score",
         "final_practical_calculation",
@@ -338,6 +374,7 @@ def send_evaluation_email(pdf_bytes, filename):
 
     student = st.session_state.final_student
     identifier = st.session_state.final_identifier
+    student_email = st.session_state.get("final_email", st.session_state.get("student_email", ""))
     score = st.session_state.final_score
     practical = st.session_state.get("final_practical_result") or {"points": 0}
     total = score + practical["points"]
@@ -350,6 +387,7 @@ def send_evaluation_email(pdf_bytes, filename):
         "Se adjunta el informe de la evaluación final.\n\n"
         f"Estudiante: {student}\n"
         f"Identificación: {identifier}\n"
+        f"Correo electrónico: {student_email}\n"
         f"Fecha: {st.session_state.final_date}\n"
         f"Preguntas 1 a 29: {score}/{CONCEPTUAL_POINTS}\n"
         f"Pregunta 30 práctica: {practical['points']}/{PRACTICAL_POINTS}\n"
@@ -393,9 +431,20 @@ def _single_number_from_curve(curve):
     return PRACTICAL_REFERENCE_CURVE[7] + shift
 
 
+def _critical_frequency(material_data, thickness_mm):
+    """Frecuencia crítica educativa de una placa homogénea e isótropa."""
+    density = material_data["density"]
+    young = material_data["young_gpa"] * 1e9
+    poisson = material_data["poisson"]
+    thickness_m = thickness_mm / 1000
+    longitudinal_speed = math.sqrt(young / (density * (1 - poisson ** 2)))
+    return 343 ** 2 / (1.8 * longitudinal_speed * thickness_m)
+
+
 def practical_expected_values(solution):
     """Resultados que el estudiante debe obtener antes de ver la simulación."""
-    density = PRACTICAL_MATERIALS[solution["material"]]["density"]
+    material_data = PRACTICAL_MATERIALS[solution["material"]]
+    density = material_data["density"]
     thickness_mm = float(solution["thickness_mm"])
     total_area = float(solution["wall_width"]) * float(solution["wall_height"])
     door_area = float(solution["door_width"]) * float(solution["door_height"])
@@ -413,6 +462,7 @@ def practical_expected_values(solution):
     wall_power = opaque_area * 10 ** (-wall_r[500] / 10)
     door_power = door_area * 10 ** (-door_r_500 / 10)
     compound_r_500 = -10 * math.log10((wall_power + door_power) / total_area)
+    critical_frequency = _critical_frequency(material_data, thickness_mm)
     return {
         "total_area": total_area,
         "door_area": door_area,
@@ -421,7 +471,9 @@ def practical_expected_values(solution):
         "r125": wall_r[125],
         "r500": wall_r[500],
         "r2000": wall_r[2000],
+        "door_r500": door_r_500,
         "compound_r500": compound_r_500,
+        "critical_frequency": critical_frequency,
     }
 
 
@@ -438,13 +490,20 @@ def evaluate_practical(solution, calculation=None):
     wall_height = float(solution["wall_height"])
     door_width = float(solution["door_width"])
     door_height = float(solution["door_height"])
-    density = PRACTICAL_MATERIALS[material]["density"]
+    material_data = PRACTICAL_MATERIALS[material]
+    density = material_data["density"]
     surface_mass = density * thickness_mm / 1000
     total_area = wall_width * wall_height
     door_area = min(door_width * door_height, total_area * 0.45)
     opaque_area = max(total_area - door_area, 0.1)
-    wall_curve = [max(0.0, 20 * math.log10(max(surface_mass * f, 1.0)) - 47)
-                  for f in PRACTICAL_FREQS]
+    ideal_wall_curve = [max(0.0, 20 * math.log10(max(surface_mass * f, 1.0)) - 47)
+                        for f in PRACTICAL_FREQS]
+    critical_frequency = _critical_frequency(material_data, thickness_mm)
+    # Caída educativa suave para visualizar coincidencia; no sustituye un ensayo.
+    wall_curve = [
+        max(0.0, ideal_r - 8 * math.exp(-0.5 * (math.log2(f / critical_frequency) / 0.42) ** 2))
+        for f, ideal_r in zip(PRACTICAL_FREQS, ideal_wall_curve)
+    ]
     door_curve = list(PRACTICAL_DOORS[solution["door_type"]]["curve"])
     compound_curve = []
     door_shares = []
@@ -460,13 +519,16 @@ def evaluate_practical(solution, calculation=None):
     dominant = "La puerta" if sum(door_shares) / len(door_shares) >= 50 else "El muro"
     target_ok = compound_index >= PRACTICAL_TARGET
     diagnosis_ok = solution.get("dominant_answer") == dominant
-    trend_ok = solution.get("trend_answer") == "El aislamiento aumenta al aumentar la frecuencia"
+    coincidence_ok = solution.get("coincidence_answer") == (
+        "El aislamiento real puede disminuir respecto de la ley de masa ideal"
+    )
+    decision_expected = "Mejorar primero la puerta" if dominant == "La puerta" else "Aumentar la masa del muro o panel"
+    decision_ok = solution.get("decision_answer") == decision_expected
     margin = compound_index - PRACTICAL_TARGET
     points = calculation_score(calculation)
-    points += 2 if target_ok else 0
     points += 1 if diagnosis_ok else 0
-    points += 1 if trend_ok else 0
-    points += 1 if margin >= 2 else 0
+    points += 1 if coincidence_ok else 0
+    points += 1 if decision_ok else 0
     points = min(points, PRACTICAL_POINTS)
     status = (
         "Desempeño destacado" if points >= 10 else
@@ -480,14 +542,17 @@ def evaluate_practical(solution, calculation=None):
         "total_area": total_area, "opaque_area": opaque_area,
         "door_type": solution["door_type"], "door_width": door_width,
         "door_height": door_height, "door_area": door_area,
-        "wall_curve": wall_curve, "door_curve": door_curve,
+        "ideal_wall_curve": ideal_wall_curve, "wall_curve": wall_curve, "door_curve": door_curve,
         "compound_curve": compound_curve, "door_shares": door_shares,
         "wall_index": wall_index, "door_index": door_index,
         "compound_index": compound_index, "dominant": dominant,
+        "critical_frequency": critical_frequency,
         "diagnosis_answer": solution.get("dominant_answer"),
-        "trend_answer": solution.get("trend_answer"),
+        "coincidence_answer": solution.get("coincidence_answer"),
+        "decision_answer": solution.get("decision_answer"),
         "calculation": calculation or {},
-        "diagnosis_ok": diagnosis_ok, "trend_ok": trend_ok,
+        "diagnosis_ok": diagnosis_ok, "coincidence_ok": coincidence_ok,
+        "decision_ok": decision_ok,
         "target_ok": target_ok, "margin": margin,
         "points": points, "status": status,
     }
@@ -517,24 +582,36 @@ def practical_controls(prefix, disabled=False):
         )
         door_width, door_height = 0.9, 2.1
         st.info("Dimensiones de la puerta: 0,90 × 2,10 m")
+        st.caption(
+            f"Datos del panel: ρ = {data['density']} kg/m³ · "
+            f"E = {data['young_gpa']:.1f} GPa · ν = {data['poisson']:.2f}"
+        )
         dominant_answer = st.selectbox(
             "¿Qué elemento domina la transmisión del conjunto?",
             ["Selecciona una respuesta", "El muro", "La puerta"],
             key=f"{prefix}_dominant", disabled=disabled,
         )
-        trend_answer = st.selectbox(
-            "¿Qué tendencia general observas en la curva del muro?",
+        coincidence_answer = st.selectbox(
+            "¿Qué ocurre alrededor de la frecuencia crítica?",
             ["Selecciona una respuesta",
-             "El aislamiento aumenta al aumentar la frecuencia",
-             "El aislamiento disminuye al aumentar la frecuencia",
-             "El aislamiento permanece constante"],
-            key=f"{prefix}_trend", disabled=disabled,
+             "El aislamiento real puede disminuir respecto de la ley de masa ideal",
+             "El aislamiento real siempre aumenta exactamente 6 dB",
+             "La puerta deja de transmitir sonido"],
+            key=f"{prefix}_coincidence", disabled=disabled,
+        )
+        decision_answer = st.selectbox(
+            "¿Qué intervención priorizarías en esta configuración?",
+            ["Selecciona una respuesta", "Mejorar primero la puerta",
+             "Aumentar la masa del muro o panel"],
+            key=f"{prefix}_decision", disabled=disabled,
         )
     return {
         "material": material, "thickness_mm": thickness,
         "wall_width": wall_width, "wall_height": wall_height,
         "door_type": door_type, "door_width": door_width, "door_height": door_height,
-        "dominant_answer": dominant_answer, "trend_answer": trend_answer,
+        "dominant_answer": dominant_answer,
+        "coincidence_answer": coincidence_answer,
+        "decision_answer": decision_answer,
     }
 
 
@@ -547,8 +624,13 @@ def render_calculation_challenge(solution, prefix, teacher=False):
             {
                 "Magnitud": [
                     "Superficie total", "Superficie de puerta", "Superficie opaca",
-                    "Masa superficial", "R(125 Hz)", "R(500 Hz)",
-                    "R(2.000 Hz)", "R compuesto (500 Hz)",
+                    "Masa superficial del muro o panel seleccionado",
+                    "R del muro o panel a 125 Hz",
+                    "R del muro o panel a 500 Hz",
+                    "R del muro o panel a 2.000 Hz",
+                    "R de la puerta a 500 Hz (dato entregado)",
+                    "R del cerramiento compuesto a 500 Hz",
+                    "Frecuencia crítica estimada del muro o panel",
                 ],
                 "Resultado correcto": [
                     f'{expected["total_area"]:.2f} m²',
@@ -558,7 +640,9 @@ def render_calculation_challenge(solution, prefix, teacher=False):
                     f'{expected["r125"]:.2f} dB',
                     f'{expected["r500"]:.2f} dB',
                     f'{expected["r2000"]:.2f} dB',
+                    f'{expected["door_r500"]:.2f} dB',
                     f'{expected["compound_r500"]:.2f} dB',
+                    f'{expected["critical_frequency"]:.0f} Hz',
                 ],
             },
             hide_index=True,
@@ -566,8 +650,11 @@ def render_calculation_challenge(solution, prefix, teacher=False):
         )
         st.caption("Tolerancia de corrección: ±0,05 m² y ±0,5 kg/m² o dB.")
         return {
-            "unlocked": True, "points": 6, "attempts": 0,
-            "values": expected, "correct": {key: True for key in expected},
+            "unlocked": True, "points": 8, "attempts": 0,
+            "values": expected,
+            "correct": {
+                key: True for key in expected if key != "door_r500"
+            },
         }
 
     state_key = f"{prefix}_calculation_record"
@@ -581,7 +668,7 @@ def render_calculation_challenge(solution, prefix, teacher=False):
     st.session_state[state_key] = record
     if record.get("unlocked"):
         st.success(
-            f'Cálculo entregado · {record["points"]}/6 puntos. '
+            f'Cálculo entregado · {record["points"]}/8 puntos. '
             "La comprobación gráfica está desbloqueada."
         )
         return record
@@ -591,18 +678,36 @@ def render_calculation_challenge(solution, prefix, teacher=False):
         "Calcula sin ver la gráfica. Puedes verificar como máximo **dos veces**. "
         "Después del segundo intento se desbloqueará la comprobación, aunque existan errores."
     )
+    st.info(
+        f'Dato entregado para el cálculo compuesto: la puerta seleccionada tiene '
+        f'**R = {expected["door_r500"]:.1f} dB a 500 Hz**.'
+    )
+    st.latex(r"f_c=\frac{c^2}{1.8\,c_L\,e}\qquad c_L=\sqrt{\frac{E}{\rho(1-\nu^2)}}")
     with st.form(f"{prefix}_calculation_form"):
         a, b = st.columns(2)
         with a:
             total_area = st.number_input("Superficie total (m²)", min_value=0.0, step=0.01)
             door_area = st.number_input("Superficie de la puerta (m²)", min_value=0.0, step=0.01)
             opaque_area = st.number_input("Superficie opaca descontando la puerta (m²)", min_value=0.0, step=0.01)
-            surface_mass = st.number_input("Masa superficial m′ (kg/m²)", min_value=0.0, step=0.1)
+            surface_mass = st.number_input(
+                "Masa superficial del muro o panel seleccionado, m′ (kg/m²)",
+                min_value=0.0,
+                step=0.1,
+            )
         with b:
             r125 = st.number_input("R del muro a 125 Hz (dB)", min_value=0.0, step=0.1)
             r500 = st.number_input("R del muro a 500 Hz (dB)", min_value=0.0, step=0.1)
             r2000 = st.number_input("R del muro a 2.000 Hz (dB)", min_value=0.0, step=0.1)
-            compound_r500 = st.number_input("R compuesto a 500 Hz (dB)", min_value=0.0, step=0.1)
+            compound_r500 = st.number_input(
+                "R del cerramiento compuesto (muro o panel + puerta) a 500 Hz (dB)",
+                min_value=0.0,
+                step=0.1,
+            )
+            critical_frequency = st.number_input(
+                "Frecuencia crítica estimada del muro o panel, f_c (Hz)",
+                min_value=0.0,
+                step=1.0,
+            )
         verify = st.form_submit_button(
             f'Verificar cálculos · intento {record["attempts"] + 1} de 2',
             type="primary",
@@ -614,23 +719,29 @@ def render_calculation_challenge(solution, prefix, teacher=False):
             "opaque_area": opaque_area, "surface_mass": surface_mass,
             "r125": r125, "r500": r500, "r2000": r2000,
             "compound_r500": compound_r500,
+            "critical_frequency": critical_frequency,
         }
         tolerances = {
             "total_area": .05, "door_area": .05, "opaque_area": .05,
             "surface_mass": .5, "r125": .5, "r500": .5,
             "r2000": .5, "compound_r500": .5,
+            "critical_frequency": 0.05 * expected["critical_frequency"],
+        }
+        scored_expected = {
+            key: value for key, value in expected.items() if key != "door_r500"
         }
         correct = {
             key: abs(submitted[key] - expected[key]) <= tolerances[key]
-            for key in expected
+            for key in scored_expected
         }
         attempts = record["attempts"] + 1
-        # 6 puntos: superficies 1, masa 1, ley de masa 3 y compuesto 1.
+        # 8 puntos: superficies 1, masa 1, ley de masa 3, f_c 1 y compuesto 2.
         points = (
             (1 if all(correct[key] for key in ("total_area", "door_area", "opaque_area")) else 0)
             + (1 if correct["surface_mass"] else 0)
             + sum(1 for key in ("r125", "r500", "r2000") if correct[key])
-            + (1 if correct["compound_r500"] else 0)
+            + (1 if correct["critical_frequency"] else 0)
+            + (2 if correct["compound_r500"] else 0)
         )
         record = {
             "attempts": attempts,
@@ -647,11 +758,11 @@ def render_calculation_challenge(solution, prefix, teacher=False):
 
     if record["attempts"]:
         hits = sum(record["correct"].values())
-        if hits == len(expected):
+        if hits == len(record["correct"]):
             st.success("Todos los resultados son correctos.")
         else:
             st.warning(
-                f'{hits} de {len(expected)} resultados están dentro de tolerancia. '
+                f'{hits} de {len(record["correct"])} resultados están dentro de tolerancia. '
                 f'Te queda {2 - record["attempts"]} verificación.'
             )
     return record
@@ -659,6 +770,12 @@ def render_calculation_challenge(solution, prefix, teacher=False):
 
 def render_practical_result(result, show_score=False):
     """Visualización interactiva del cerramiento y sus resultados por bandas."""
+    critical_frequency = result.get("critical_frequency")
+    if critical_frequency is None:
+        critical_frequency = _critical_frequency(
+            PRACTICAL_MATERIALS[result["material"]], result["thickness_mm"]
+        )
+    ideal_wall_curve = result.get("ideal_wall_curve", result["wall_curve"])
     door_percent = min(38, max(10, result["door_area"] / result["total_area"] * 100))
     sound_after = max(8, min(95, 100 - result["compound_index"] * 1.8))
     st.markdown(
@@ -682,19 +799,25 @@ def render_practical_result(result, show_score=False):
         """,
         unsafe_allow_html=True,
     )
-    st.plotly_chart(
-        plot_line(
-            PRACTICAL_FREQS,
-            [result["wall_curve"], result["door_curve"], result["compound_curve"]],
-            ["Muro o panel", "Puerta", "Cerramiento compuesto"],
-            "R o TL estimado (dB)",
-            "Aislamiento por bandas de tercio de octava",
-        ),
-        use_container_width=True,
+    figure = plot_line(
+        PRACTICAL_FREQS,
+        [ideal_wall_curve, result["wall_curve"], result["door_curve"], result["compound_curve"]],
+        ["Ley de masa ideal", "Muro con coincidencia", "Puerta", "Cerramiento compuesto"],
+        "R o TL estimado (dB)",
+        "Aislamiento por bandas de tercio de octava",
     )
+    figure.add_vline(
+        x=critical_frequency, line_dash="dash", line_color="#d62828",
+        annotation_text=f'f_c ≈ {critical_frequency:.0f} Hz',
+        annotation_position="top",
+    )
+    st.plotly_chart(figure, use_container_width=True)
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Masa superficial", f'{result["surface_mass"]:.1f} kg/m²')
-    m2.metric("Índice del muro", f'{result["wall_index"]} dB')
+    m1.metric(
+        "Masa superficial del muro o panel",
+        f'{result["surface_mass"]:.1f} kg/m²',
+    )
+    m2.metric("Frecuencia crítica estimada", f'{critical_frequency:.0f} Hz')
     m3.metric("Índice de la puerta", f'{result["door_index"]} dB')
     m4.metric(
         "Índice único compuesto", f'{result["compound_index"]} dB',
@@ -703,7 +826,7 @@ def render_practical_result(result, show_score=False):
     if show_score:
         st.metric("Puntaje de la configuración", f'{result["points"]}/{PRACTICAL_POINTS}')
 
-def make_evaluation_pdf(student, identifier, course_date, answers, score, practical=None):
+def make_evaluation_pdf(student, identifier, email, course_date, answers, score, practical=None):
     """Genera un PDF simple, multipágina y sin dependencias externas."""
     section_summary = []
     for section_name in dict.fromkeys(item[0] for item in FINAL_QUESTIONS):
@@ -717,6 +840,7 @@ def make_evaluation_pdf(student, identifier, course_date, answers, score, practi
         ("R", 10, ""),
         ("B", 11, f"Estudiante: {student}"),
         ("R", 10, f"Identificación: {identifier}"),
+        ("R", 10, f"Correo electrónico: {email}"),
         ("R", 10, f"Fecha: {course_date}"),
         ("B", 13, f"Preguntas 1 a 29: {score}/{CONCEPTUAL_POINTS} puntos"),
         ("B", 13, f"Resultado global: {score + (practical['points'] if practical else 0)}/{TOTAL_EVALUATION_POINTS} puntos"),
@@ -731,21 +855,24 @@ def make_evaluation_pdf(student, identifier, course_date, answers, score, practi
             ("R", 8, ""),
             ("B", 11, "PREGUNTA 30 · CERRAMIENTO COMPUESTO POR FRECUENCIAS"),
             ("R", 9, f"Resultado: {practical['points']}/{PRACTICAL_POINTS} · {practical['status']}"),
-            ("R", 9, f"Muro: {practical['material']} · {practical['thickness_mm']:.0f} mm · masa superficial {practical['surface_mass']:.1f} kg/m2"),
-            ("R", 9, f"Puerta: {practical['door_type']} · {practical['door_area']:.2f} m2"),
+            ("R", 9, f"Muro o panel: {practical['material']} · {practical['thickness_mm']:.0f} mm · masa superficial del muro o panel {practical['surface_mass']:.1f} kg/m2"),
+            ("R", 9, f"Puerta: {practical['door_type']} · {practical['door_area']:.2f} m2 · R a 500 Hz {practical['door_curve'][PRACTICAL_FREQS.index(500)]:.1f} dB"),
             ("R", 9, f"Área total: {practical['total_area']:.2f} m2 · área opaca: {practical['opaque_area']:.2f} m2"),
+            ("R", 9, f"Frecuencia crítica estimada del muro o panel: {practical.get('critical_frequency', _critical_frequency(PRACTICAL_MATERIALS[practical['material']], practical['thickness_mm'])):.0f} Hz"),
             ("R", 9, f"Índice único estimado: muro {practical['wall_index']} dB · puerta {practical['door_index']} dB · compuesto {practical['compound_index']} dB"),
             ("R", 9, f"Objetivo educativo: {PRACTICAL_TARGET} dB · componente dominante: {practical['dominant']}"),
             ("R", 9, f"Diagnóstico del estudiante: {practical['diagnosis_answer']}"),
-            ("R", 9, f"Interpretación de la curva: {practical['trend_answer']}"),
-            ("R", 9, f"Cálculos previos: {calculation.get('points', 0)}/6 · verificaciones utilizadas: {calculation.get('attempts', 0)}/2"),
+            ("R", 9, f"Interpretación de coincidencia: {practical.get('coincidence_answer', 'No registrada en esta versión')}"),
+            ("R", 9, f"Decisión técnica: {practical.get('decision_answer', 'No registrada en esta versión')}"),
+            ("R", 9, f"Cálculos previos: {calculation.get('points', 0)}/8 · verificaciones utilizadas: {calculation.get('attempts', 0)}/2"),
         ])
         if calculation.get("submitted"):
             submitted = calculation["submitted"]
             lines.extend([
                 ("R", 8, f"Resultados ingresados: S total {submitted['total_area']:.2f} m2 · puerta {submitted['door_area']:.2f} m2 · opaca {submitted['opaque_area']:.2f} m2"),
-                ("R", 8, f"m' {submitted['surface_mass']:.2f} kg/m2 · R125 {submitted['r125']:.1f} dB · R500 {submitted['r500']:.1f} dB · R2000 {submitted['r2000']:.1f} dB"),
-                ("R", 8, f"R compuesto ingresado a 500 Hz: {submitted['compound_r500']:.1f} dB"),
+                ("R", 8, f"m' del muro o panel {submitted['surface_mass']:.2f} kg/m2 · R muro 125 Hz {submitted['r125']:.1f} dB · R muro 500 Hz {submitted['r500']:.1f} dB · R muro 2000 Hz {submitted['r2000']:.1f} dB"),
+                ("R", 8, f"R puerta a 500 Hz (dato entregado): {practical['door_curve'][PRACTICAL_FREQS.index(500)]:.1f} dB · R compuesto ingresado a 500 Hz: {submitted['compound_r500']:.1f} dB"),
+                ("R", 8, f"Frecuencia crítica ingresada: {submitted.get('critical_frequency', 0):.0f} Hz"),
             ])
         lines.append(("R", 8, "Bandas (Hz) · R muro / R puerta / R compuesto (dB)"))
         for frequency, wall_r, door_r, compound_r in zip(
@@ -812,13 +939,530 @@ def make_evaluation_pdf(student, identifier, course_date, answers, score, practi
     out.write(f"trailer\n<< /Size {len(objects)+1} /Root {catalog_id} 0 R >>\nstartxref\n{xref}\n%%EOF".encode())
     return out.getvalue()
 
+
+CLASS_PLAN = [
+    ("Inicio y diagnóstico", 10),
+    ("Bloque 1 · Control del ruido, aislamiento y absorción", 25),
+    ("Aplicación Conceptual I", 25),
+    ("Bloque 2 · Costos, beneficios y decisión económica", 25),
+    ("Aplicación Conceptual II", 25),
+    ("Pausa", 10),
+    ("Bloque 3 · Parámetros y comportamiento acústico", 45),
+    ("Aplicación Conceptual III", 60),
+    ("Cierre y retroalimentación", 15),
+]
+
+FORMATIVE_MAX = 50
+
+
+def _class_state():
+    if "class_formative" not in st.session_state:
+        st.session_state.class_formative = {}
+    if "class_started_at" not in st.session_state:
+        st.session_state.class_started_at = None
+    return st.session_state.class_formative
+
+
+def _formative_score():
+    return sum(item.get("points", 0) for item in _class_state().values())
+
+
+def _save_formative(key, correct, max_points, explanation):
+    state = _class_state()
+    record = state.get(key, {"attempts": 0, "points": 0, "done": False})
+    if record["done"] or record["attempts"] >= 2:
+        return record
+    record["attempts"] += 1
+    if correct:
+        record["points"] = max_points if record["attempts"] == 1 else max_points * 0.5
+        record["done"] = True
+    elif record["attempts"] >= 2:
+        record["done"] = True
+    record["correct"] = bool(correct)
+    record["explanation"] = explanation
+    state[key] = record
+    return record
+
+
+def formative_mcq(key, question, options, correct, points, explanation):
+    state = _class_state()
+    record = state.get(key, {"attempts": 0, "points": 0, "done": False})
+    st.markdown(f"**{question}** · {points} pt")
+    choice = st.radio(
+        "Respuesta",
+        options,
+        index=None,
+        key=f"formative_choice_{key}",
+        disabled=record["done"],
+        label_visibility="collapsed",
+    )
+    if not record["done"] and st.button(
+        "Verificar", key=f"formative_check_{key}", use_container_width=True
+    ):
+        if choice is None:
+            st.warning("Selecciona una respuesta antes de verificar.")
+        else:
+            record = _save_formative(
+                key, options.index(choice) == correct, points, explanation
+            )
+            st.rerun()
+    record = _class_state().get(key, record)
+    if record.get("attempts"):
+        if record.get("correct"):
+            st.success(
+                f"Correcto · {record['points']:g}/{points} pt. {record['explanation']}"
+            )
+        elif record.get("done"):
+            st.error(f"Sin puntaje. {record['explanation']}")
+        else:
+            st.warning("Respuesta incorrecta. Queda un intento.")
+    st.caption(f"Intentos: {record.get('attempts', 0)}/2")
+
+
+def formative_number(key, question, answer, tolerance, points, explanation, unit=""):
+    state = _class_state()
+    record = state.get(key, {"attempts": 0, "points": 0, "done": False})
+    st.markdown(f"**{question}** · {points} pt")
+    value = st.number_input(
+        f"Resultado {unit}".strip(),
+        value=None,
+        key=f"formative_number_{key}",
+        disabled=record["done"],
+    )
+    if not record["done"] and st.button(
+        "Verificar", key=f"formative_number_check_{key}", use_container_width=True
+    ):
+        if value is None:
+            st.warning("Ingresa un resultado.")
+        else:
+            record = _save_formative(
+                key, abs(float(value) - answer) <= tolerance, points, explanation
+            )
+            st.rerun()
+    record = _class_state().get(key, record)
+    if record.get("attempts"):
+        if record.get("correct"):
+            st.success(
+                f"Correcto · {record['points']:g}/{points} pt. {record['explanation']}"
+            )
+        elif record.get("done"):
+            st.error(f"Resultado esperado: {answer:g} {unit}. {record['explanation']}")
+        else:
+            st.warning("Resultado incorrecto. Revisa el procedimiento; queda un intento.")
+    st.caption(f"Intentos: {record.get('attempts', 0)}/2")
+
+
+def _class_clock():
+    started = st.session_state.get("class_started_at")
+    if not started:
+        return 0
+    return max(0, int((time.time() - started) / 60))
+
+
+def render_four_hour_class():
+    state = _class_state()
+    score = _formative_score()
+    elapsed = _class_clock()
+    completed = sum(1 for item in state.values() if item.get("done"))
+
+    st.markdown(
+        '<div class="hero"><span class="tag">CLASE GUIADA · 4 HORAS</span>'
+        '<h1>Aislamiento a ruido aéreo</h1>'
+        '<p>Recorrido completo de la Clase 1: teoría, tres aplicaciones conceptuales '
+        'basadas en el PowerPoint, laboratorios y decisión técnico-económica.</p></div>',
+        unsafe_allow_html=True,
+    )
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Duración programada", "240 min")
+    m2.metric("Tiempo transcurrido", f"{elapsed} min")
+    m3.metric("Puntaje formativo", f"{score:g}/{FORMATIVE_MAX}")
+    m4.metric("Actividades cerradas", f"{completed}/20")
+    st.progress(min(score / FORMATIVE_MAX, 1.0))
+
+    if not st.session_state.class_started_at:
+        if st.button("Iniciar clase y cronómetro", type="primary", use_container_width=True):
+            st.session_state.class_started_at = time.time()
+            st.rerun()
+    else:
+        st.caption(
+            "El cronómetro registra el tiempo efectivo desde el inicio. "
+            "Los ejercicios permiten dos verificaciones; el segundo acierto obtiene 50 %."
+        )
+
+    with st.expander("Programa exacto de las 4 horas", expanded=False):
+        plan = pd.DataFrame(CLASS_PLAN, columns=["Etapa", "Minutos"])
+        plan["Acumulado"] = plan["Minutos"].cumsum()
+        st.dataframe(plan, hide_index=True, use_container_width=True)
+        st.caption("Total: 240 minutos, incluida una pausa de 10 minutos.")
+
+    tabs = st.tabs(
+        [
+            "1 · Control del ruido",
+            "Aplicación I · 10 pt",
+            "2 · Decisión económica",
+            "Aplicación II · 10 pt",
+            "3 · Fundamentos físicos",
+            "Aplicación III · 30 pt",
+            "Cierre",
+        ]
+    )
+
+    with tabs[0]:
+        module_head(
+            "BLOQUE 1 · 25 MIN",
+            "Control del ruido y aislamiento aéreo",
+            "El problema puede intervenirse en la fuente, la trayectoria o el receptor. "
+            "En esta clase el foco está en la trayectoria mediante particiones verticales y horizontales.",
+        )
+        st.markdown(
+            """
+            ### ¿Qué es el aislamiento acústico a ruido aéreo?
+            Es la capacidad de un muro, tabique, ventana, puerta o entrepiso para reducir
+            el sonido que viaja por el aire entre recintos. Voces, música, televisión,
+            tráfico y equipos son ejemplos de fuentes aéreas.
+
+            ### Aislamiento no es absorción
+            La **absorción** reduce reflexiones, eco y reverberación dentro de un recinto.
+            El **aislamiento** reduce la energía que atraviesa la separación. Instalar espuma
+            en una pared puede mejorar la acústica interior, pero no transforma esa pared
+            en una solución aislante.
+            """
+        )
+        c1, c2, c3 = st.columns(3)
+        c1.info("**Fuente:** reducir emisión o potencia sonora.")
+        c2.info("**Trayectoria:** aumentar masa, sellar, desacoplar o interponer barreras.")
+        c3.info("**Receptor:** proteger, aumentar distancia o reubicar.")
+        st.info("Tiempo del bloque: 25 minutos. Continúa con Aplicación Conceptual I.")
+
+    with tabs[1]:
+        module_head(
+            "APLICACIÓN CONCEPTUAL I · 25 MIN · 10 PUNTOS",
+            "Diagnóstico: absorción o aislamiento",
+            "Cinco situaciones profesionales del PowerPoint, contextualizadas como casos reales.",
+        )
+        cases_1 = [
+            ("i1", "En una sala de reuniones se cubren todas las paredes con espuma. Las conversaciones aún se escuchan en la oficina contigua. ¿Qué diagnóstico es correcto?",
+             ["La espuma mejoró principalmente la absorción, no el aislamiento entre recintos.", "La espuma duplicó la masa del muro.", "La oficina contigua necesita más reverberación."], 0,
+             "La espuma controla reflexiones interiores; la transmisión exige actuar sobre el cerramiento y sus fugas."),
+            ("i2", "Una oficina tiene eco excesivo, pero no existe queja de transmisión hacia otros recintos. ¿Qué intervención corresponde?",
+             ["Aumentar la masa del tabique.", "Incorporar absorción en cielo y paredes.", "Cambiar la puerta por una acústica."], 1,
+             "El problema está dentro del recinto y se aborda reduciendo la reverberación."),
+            ("i3", "Una vivienda mantiene la molestia del vecino después de pegar paneles de espuma en el muro medianero. ¿Cuál fue el error?",
+             ["Confundir absorción con aislamiento.", "Usar demasiada masa.", "Eliminar la transmisión flanqueante."], 0,
+             "El tratamiento no aumentó significativamente la pérdida por transmisión ni selló vías débiles."),
+            ("i4", "Un gimnasio afecta a oficinas contiguas con música y voces. ¿Cuál es la primera solución coherente?",
+             ["Solo paneles absorbentes decorativos.", "Cerramiento estanco, pesado o desacoplado y control de puertas.", "Aumentar el volumen de la música."], 1,
+             "La separación debe controlar la transmisión; la absorción interior puede complementar, pero no reemplazar el aislamiento."),
+            ("i5", "Dos salas de clases: A incorpora paneles absorbentes en el cielo; B incorpora un muro doble desacoplado entre salas. ¿Qué efecto principal tiene cada solución?",
+             ["A mejora inteligibilidad interior y B mejora aislamiento entre salas.", "Ambas solo mejoran aislamiento.", "A mejora aislamiento y B solo reduce eco."], 0,
+             "Cada solución responde a un fenómeno distinto: campo reverberante interior versus transmisión entre recintos."),
+        ]
+        for key, q, opts, correct, exp in cases_1:
+            with st.container(border=True):
+                formative_mcq(key, q, opts, correct, 2, exp)
+
+    with tabs[2]:
+        module_head(
+            "BLOQUE 2 · 25 MIN",
+            "Costos, beneficios, ROI y suficiencia técnica",
+            "Una solución debe ser viable técnica y económicamente. Más aislamiento no siempre significa una mejor decisión.",
+        )
+        st.markdown(
+            r"""
+            Los costos incluyen materialidad, montaje y mantenimiento. Los beneficios pueden
+            representar continuidad operacional, reducción de reclamos, menor riesgo de sanción,
+            bienestar, productividad y cumplimiento normativo.
+
+            \[
+            ROI=\frac{\text{beneficio acumulado}-\text{costo total}}
+            {\text{costo total}}\times100
+            \]
+
+            \[
+            Payback=\frac{\text{inversión inicial}}
+            {\text{beneficio anual}-\text{mantenimiento anual}}
+            \]
+
+            **Regla de decisión:** primero se descartan las alternativas que no cumplen el
+            objetivo acústico. Solo después se comparan costo por dB, ROI, recuperación,
+            vida útil y margen de seguridad.
+            """
+        )
+        st.warning(
+            "El punto de equilibrio no es necesariamente el mayor aislamiento disponible: "
+            "es el nivel donde el beneficio adicional deja de justificar el costo adicional."
+        )
+
+    with tabs[3]:
+        module_head(
+            "APLICACIÓN CONCEPTUAL II · 25 MIN · 10 PUNTOS",
+            "Decisión técnico-económica",
+            "Tres ejercicios del PowerPoint aplicados a una oficina administrativa expuesta a una sala de máquinas.",
+        )
+        with st.container(border=True):
+            formative_mcq(
+                "ii1",
+                "Se propone aumentar el aislamiento de 40 a 50 dB. ¿Qué evaluación permite decidir si es una buena inversión?",
+                [
+                    "Comprobar objetivo acústico, vías dominantes, costo incremental, beneficios y uso del recinto.",
+                    "Elegir siempre 50 dB porque el valor es mayor.",
+                    "Comparar únicamente el precio de los materiales.",
+                ],
+                0, 3,
+                "La decisión debe vincular necesidad acústica, desempeño efectivo y costo-beneficio.",
+            )
+        with st.container(border=True):
+            formative_number(
+                "ii2",
+                "Sistema A: $1.200.000 y 30 dB. Sistema B: $2.400.000 y 38 dB. "
+                "¿Cuál es el menor costo por dB entre ambos?",
+                40000, 1, 3,
+                "A cuesta $40.000/dB; B cuesta aproximadamente $63.158/dB. A es más eficiente por este indicador.",
+                "CLP/dB",
+            )
+        with st.container(border=True):
+            formative_number(
+                "ii3",
+                "Alternativa A: costo $500.000 y beneficio $700.000. "
+                "Calcula su ROI porcentual.",
+                40, 0.2, 2,
+                "ROI A = (700.000 − 500.000) / 500.000 × 100 = 40 %.",
+                "%",
+            )
+            formative_mcq(
+                "ii3b",
+                "Alternativa B cuesta $1.000.000, entrega 35 dB y genera beneficio de $950.000. "
+                "A entrega 25 dB y ROI 40 %. Si el objetivo mínimo es 30 dB, ¿cuál se recomienda?",
+                [
+                    "A, porque tiene mayor ROI aunque no cumple.",
+                    "B, porque es la única técnicamente suficiente, aunque su ROI sea −5 %.",
+                    "Ninguna comparación técnica es necesaria.",
+                ],
+                1, 2,
+                "La suficiencia acústica precede a la comparación económica.",
+            )
+
+    with tabs[4]:
+        module_head(
+            "BLOQUE 3 · 45 MIN",
+            "Parámetros, fórmulas y comportamiento acústico",
+            "Síntesis completa del bloque de definiciones del PowerPoint.",
+        )
+        sections = [
+            ("Niveles e índice de reducción",
+             r"\(R=L_1-L_2\) en el modelo introductorio. El índice de reducción sonora o Transmission Loss expresa en dB cuánto disminuye la energía transmitida por un elemento."),
+            ("Coeficiente de transmisión",
+             r"\(\tau=W_t/W_i\) y \(R=10\log_{10}(1/\tau)\). Los valores R no se promedian aritméticamente porque la energía se combina mediante \(\tau\)."),
+            ("Masa superficial y ley de masa",
+             r"\(m'=\rho e\) y \(R(f)=20\log_{10}(m'f)-47\). En la región ideal, duplicar la masa o duplicar la frecuencia aumenta aproximadamente 6 dB."),
+            ("Impedancia de radiación",
+             "Describe la oposición del medio a que el elemento vibrante radie sonido. La eficiencia de radiación depende de la relación entre la onda aérea y las ondas de flexión del panel."),
+            ("Frecuencia crítica y coincidencia",
+             "En torno a la frecuencia crítica puede producirse coincidencia y una caída del aislamiento respecto de la ley de masa ideal. No es correcto tratarla simplemente como una resonancia."),
+            ("Modelos de predicción",
+             "La ley de masa es el punto de partida. Modelos como Cremer, Josse–Lamure y David incorporan, con distintos alcances, rigidez, amortiguamiento, tamaño y coincidencia."),
+            ("Absorción total",
+             r"\(A=\sum S_i\alpha_i\), expresada en sabines. Es una propiedad del recinto y no reemplaza el índice de reducción del cerramiento."),
+            ("Elementos compuestos y vías indirectas",
+             r"\(\tau_c=\sum S_i\tau_i/\sum S_i\). Una puerta, ventana, rendija o transmisión flanqueante puede dominar el resultado global."),
+            ("Índices únicos Rw y STC",
+             "Resumir una curva en un solo número facilita comparar soluciones. Rw y STC no son equivalentes perfectos y deben asociarse al método normativo correspondiente."),
+            ("Ensayo, predicción y soluciones oficiales",
+             "El desempeño certificado proviene de ensayos normalizados. Las predicciones educativas no sustituyen informes de laboratorio. Para especificación en Chile deben revisarse las soluciones constructivas oficiales MINVU y los antecedentes de ensayo aplicables."),
+        ]
+        for title, body in sections:
+            with st.expander(title):
+                st.markdown(body)
+        st.info(
+            "Los laboratorios 2 a 6 del menú permiten manipular transmisión, ley de masa, "
+            "absorción, elementos compuestos y decisión económica antes de resolver la Aplicación III."
+        )
+
+    with tabs[5]:
+        module_head(
+            "APLICACIÓN CONCEPTUAL III · 60 MIN · 30 PUNTOS",
+            "Diagnóstico integral de una oficina junto a una sala de máquinas",
+            "Once ejercicios del PowerPoint conectados por un mismo caso profesional.",
+        )
+        exercises = [
+            ("iii1", "En la sala de máquinas se miden 85 dB y en la oficina 50 dB. Calcula R.", 35, .1, 2, "R = 85 − 50 = 35 dB.", "dB"),
+            ("iii2", "Para R = 40 dB, calcula τ.", 0.0001, 0.000001, 3, "τ = 10^(−40/10) = 0,0001.", ""),
+            ("iii3", "Un panel tiene m' = 30 kg/m². Calcula R ideal a 500 Hz con R=20log10(m'f)−47.", 36.52, .15, 3, "R ≈ 36,5 dB.", "dB"),
+        ]
+        for args in exercises:
+            with st.container(border=True):
+                formative_number(*args)
+        with st.container(border=True):
+            formative_mcq(
+                "iii4",
+                "La frecuencia crítica estimada del panel es 630 Hz. ¿Qué interpretación es correcta para la banda de 630 Hz?",
+                ["Puede aparecer coincidencia y el R real ser menor que la ley de masa ideal.", "El aislamiento debe ser infinito.", "La frecuencia crítica solo afecta a materiales absorbentes."],
+                0, 4,
+                "La coincidencia aumenta la eficiencia de radiación del panel y puede producir una caída de aislamiento.",
+            )
+        with st.container(border=True):
+            formative_number(
+                "iii5",
+                "Techo: 20 m², α=0,6; muros: 30 m², α=0,2; piso: 25 m², α=0,3. Calcula A.",
+                25.5, .05, 3,
+                "A = 20×0,6 + 30×0,2 + 25×0,3 = 25,5 sabines.",
+                "sabines",
+            )
+        with st.container(border=True):
+            formative_mcq(
+                "iii6",
+                "Ventana A: Rw 32 dB; ventana B: Rw 38 dB. ¿Cuál aísla mejor y cuánto cambia aproximadamente la energía transmitida?",
+                ["B; transmite cerca de 4 veces menos energía.", "A; transmite 6 veces menos.", "Son equivalentes."],
+                0, 2,
+                "Una diferencia de 6 dB corresponde aproximadamente a una razón energética de 4.",
+            )
+        with st.container(border=True):
+            formative_mcq(
+                "iii7",
+                "Si se duplica la masa superficial de un elemento simple en la región de ley de masa, ¿qué ocurre?",
+                ["R aumenta aproximadamente 6 dB.", "R disminuye 3 dB.", "R no cambia."],
+                0, 2,
+                "La relación logarítmica entrega aproximadamente +6 dB por duplicación de masa.",
+            )
+        with st.container(border=True):
+            formative_mcq(
+                "iii8",
+                "En un tabique de dos placas con cámara, ¿qué función principal cumple la lana mineral?",
+                ["Amortigua la resonancia de la cavidad y absorbe energía dentro de ella.", "Une rígidamente ambas hojas.", "Reemplaza la estanqueidad de las juntas."],
+                0, 2,
+                "La lana de la cámara ayuda a controlar resonancias; no corrige puentes rígidos ni fugas.",
+            )
+        with st.container(border=True):
+            formative_mcq(
+                "iii9",
+                "Un muro Rw 55 dB contiene una ventana Rw 28 dB que ocupa 20 % del área. ¿Qué efecto es esperable?",
+                ["La ventana domina la transmisión y reduce fuertemente el aislamiento global.", "El resultado global permanece en 55 dB.", "Se promedian 55 y 28 dB directamente."],
+                0, 3,
+                "La combinación se realiza por coeficientes de transmisión ponderados por superficie.",
+            )
+        with st.container(border=True):
+            formative_mcq(
+                "iii10",
+                "El cerramiento directo es bueno, pero el ruido sigue llegando a la oficina. ¿Qué debe investigarse?",
+                ["Transmisión flanqueante, ductos, encuentros, cielos y rendijas.", "Solo el color del muro.", "Únicamente la absorción del emisor."],
+                0, 2,
+                "La energía puede rodear la partición por vías indirectas.",
+            )
+        with st.container(border=True):
+            formative_mcq(
+                "iii11",
+                "Se instala una puerta Rw 32 dB en un muro Rw 50 dB. ¿Cuál es la decisión técnica correcta?",
+                ["Calcular el conjunto por τ y superficie; la puerta probablemente dominará.", "Promediar 50 y 32 para obtener 41 dB.", "Aumentar solo la masa del muro."],
+                0, 4,
+                "El elemento débil suele dominar; sellos y desempeño de la puerta pueden ser más eficaces que reforzar el muro.",
+            )
+
+    with tabs[6]:
+        module_head(
+            "CIERRE · 15 MIN",
+            "Síntesis y preparación para la evaluación",
+            "Revisa el desempeño formativo antes de iniciar la evaluación final independiente.",
+        )
+        st.metric("Puntaje formativo", f"{_formative_score():g}/{FORMATIVE_MAX}")
+        st.progress(min(_formative_score() / FORMATIVE_MAX, 1.0))
+        pending = [
+            key for key in
+            ["i1","i2","i3","i4","i5","ii1","ii2","ii3","ii3b",
+             "iii1","iii2","iii3","iii4","iii5","iii6","iii7","iii8","iii9","iii10","iii11"]
+            if not state.get(key, {}).get("done")
+        ]
+        if pending:
+            st.warning(
+                f"Quedan {len(pending)} actividades sin cerrar. "
+                "Vuelve a los bloques de aplicación antes de rendir la evaluación."
+            )
+        else:
+            st.success("Recorrido formativo completado. Ya puedes pasar a la evaluación final de 40 puntos.")
+        st.markdown(
+            """
+            **Ideas que deben quedar instaladas**
+
+            - absorción y aislamiento resuelven problemas diferentes;
+            - el sonido se combina en energía, no promediando dB;
+            - masa, frecuencia, rigidez, coincidencia y estanqueidad condicionan el desempeño;
+            - el elemento débil y las vías indirectas pueden dominar;
+            - primero se exige suficiencia acústica y después se optimiza la decisión económica;
+            - un resultado estimado no equivale a un valor certificado por ensayo.
+            """
+        )
+
+if not st.session_state.get("course_access_granted", False):
+    institutional_header()
+    st.markdown(
+        """
+        <div class="hero">
+          <span class="tag">ACCESO AL CURSO</span>
+          <h1>Identificación del alumno</h1>
+          <p>Completa tus datos personales para ingresar a la Clase 1.
+          Esta información acompañará tu progreso, puntajes e informe final.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    with st.form("student_course_access"):
+        access_name = st.text_input(
+            "Nombre completo",
+            placeholder="Ej.: Andrea González Pérez",
+        )
+        access_rut = st.text_input(
+            "RUT",
+            placeholder="Ej.: 12.345.678-5",
+            help="Se verificará el dígito verificador.",
+        )
+        access_email = st.text_input(
+            "Correo electrónico",
+            placeholder="nombre@correo.cl",
+        )
+        privacy_accept = st.checkbox(
+            "Confirmo que los datos ingresados son correctos y corresponden a mi identidad."
+        )
+        access_submit = st.form_submit_button(
+            "Ingresar al curso",
+            type="primary",
+            use_container_width=True,
+        )
+    if access_submit:
+        normalized_name = " ".join(access_name.split())
+        normalized_rut = _normalize_rut(access_rut)
+        normalized_email = access_email.strip().lower()
+        if len(normalized_name.split()) < 2:
+            st.error("Ingresa tu nombre completo, incluyendo al menos nombre y apellido.")
+        elif not _valid_rut(normalized_rut):
+            st.error("El RUT ingresado no es válido. Revisa el número y su dígito verificador.")
+        elif not _valid_email(normalized_email):
+            st.error("Ingresa un correo electrónico válido.")
+        elif not privacy_accept:
+            st.error("Debes confirmar que los datos ingresados son correctos.")
+        else:
+            st.session_state.student_name = normalized_name
+            st.session_state.student_rut = normalized_rut
+            st.session_state.student_email = normalized_email
+            st.session_state.course_access_granted = True
+            st.session_state.course_access_at = datetime.now().isoformat(timespec="seconds")
+            st.rerun()
+    st.info("El acceso queda vinculado al alumno durante esta sesión.")
+    st.stop()
+
+
 with st.sidebar:
     st.markdown("## ◉ LAB AÉREO")
     st.caption("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN")
     st.markdown("**Curso 1**")
     st.caption("AISLAMIENTO A RUIDO AÉREO")
     st.markdown("---")
-    pages = ["Inicio", "1 · Aislamiento vs. absorción", "2 · Transmisión sonora", "3 · Ley de masa", "4 · Absorción del recinto", "5 · Elementos compuestos", "6 · Decisión técnico-económica", "Evaluación final"]
+    st.caption("ALUMNO IDENTIFICADO")
+    st.markdown(f"**{st.session_state.student_name}**")
+    st.caption(
+        f"{st.session_state.student_rut}  \n"
+        f"{st.session_state.student_email}"
+    )
+    st.markdown("---")
+    pages = ["Inicio", "Clase interactiva · 4 horas", "1 · Aislamiento vs. absorción", "2 · Transmisión sonora", "3 · Ley de masa", "4 · Absorción del recinto", "5 · Elementos compuestos", "6 · Decisión técnico-económica", "Evaluación final"]
     page = st.radio("Ruta de aprendizaje", pages, label_visibility="collapsed")
     st.markdown("---")
     with st.expander("🔐 Acceso docente"):
@@ -879,6 +1523,9 @@ if page == "Inicio":
     with b: st.markdown('<div class="card"><div style="font-size:2.4rem">▥</div><h3>Trayectoria</h3><p>Interponer, sellar, aumentar masa y desacoplar.</p></div>',unsafe_allow_html=True)
     with c: st.markdown('<div class="card"><div style="font-size:2.4rem">👂</div><h3>Receptor</h3><p>Aumentar distancia, proteger o reubicar al receptor.</p></div>',unsafe_allow_html=True)
     st.info("En este curso nos concentraremos principalmente en la trayectoria: particiones verticales y horizontales frente al ruido transmitido por vía aérea.")
+
+elif page == "Clase interactiva · 4 horas":
+    render_four_hour_class()
 
 elif page.startswith("1 ·"):
     module_head("MÓDULO 1 · DISTINGUE", "Aislamiento aéreo vs. absorción acústica", "Interviene dos recintos contiguos y compara, dentro del recinto receptor, el efecto del aislamiento frente al efecto de la absorción acústica.")
@@ -2109,6 +2756,11 @@ else:
             teacher_calculation = render_calculation_challenge(
                 teacher_solution, "teacher_practical", teacher=True
             )
+            st.info(
+                "Pauta de interpretación: alrededor de f_c el aislamiento real puede "
+                "disminuir respecto de la ley de masa ideal. La intervención prioritaria "
+                "debe dirigirse al componente que domine la energía transmitida."
+            )
             teacher_result = evaluate_practical(teacher_solution, teacher_calculation)
             render_practical_result(teacher_result, show_score=True)
             if teacher_result["target_ok"]:
@@ -2173,17 +2825,20 @@ else:
             unsafe_allow_html=True,
         )
         with st.form("final_exam_identification"):
-            st.markdown("### Identificación del estudiante")
-            c1, c2, c3 = st.columns([1.4, 1, 0.8])
-            student = c1.text_input("Nombre completo")
-            identifier = c2.text_input("RUT o identificación")
-            course_date = c3.date_input("Fecha")
+            st.markdown("### Alumno que rendirá la evaluación")
+            student = st.session_state.student_name
+            identifier = st.session_state.student_rut
+            student_email = st.session_state.student_email
+            st.info(
+                f"**{student}**  \n"
+                f"RUT: {identifier}  \n"
+                f"Correo: {student_email}"
+            )
+            course_date = st.date_input("Fecha")
             accept = st.checkbox("Comprendo que cada respuesta podrá confirmarse una sola vez.")
             start_exam = st.form_submit_button("Comenzar evaluación", type="primary", use_container_width=True)
         if start_exam:
-            if not student.strip() or not identifier.strip():
-                st.error("Completa el nombre y la identificación para comenzar.")
-            elif not accept:
+            if not accept:
                 st.error("Confirma que comprendiste la modalidad de intento único.")
             else:
                 previous_attempt = load_attempt(identifier=identifier.strip())
@@ -2203,6 +2858,7 @@ else:
                     st.session_state.final_submitted = False
                     st.session_state.final_student = student.strip()
                     st.session_state.final_identifier = identifier.strip()
+                    st.session_state.final_email = student_email
                     st.session_state.final_date = course_date.strftime("%d-%m-%Y")
                     st.session_state.final_current = 0
                     st.session_state.final_answers = []
@@ -2306,8 +2962,9 @@ else:
                     f'Puntaje: {result["points"]}/{PRACTICAL_POINTS}.'
                 )
             st.caption(
-                "Criterio: cálculos previos 6 pt · cumplimiento del objetivo 2 pt · "
-                "elemento dominante 1 pt · tendencia por frecuencia 1 pt · margen de seguridad 1 pt."
+                "Criterio: geometría 1 pt · masa superficial 1 pt · ley de masa 3 pt · "
+                "frecuencia crítica 1 pt · aislamiento compuesto 2 pt · elemento dominante "
+                "1 pt · coincidencia 1 pt · decisión técnica 1 pt."
             )
             if st.button("Finalizar evaluación y generar PDF", type="primary", use_container_width=True):
                 score = sum(
@@ -2451,6 +3108,7 @@ else:
         pdf = make_evaluation_pdf(
             st.session_state.final_student,
             st.session_state.final_identifier,
+            st.session_state.get("final_email", st.session_state.student_email),
             st.session_state.final_date,
             st.session_state.final_answers,
             score,
