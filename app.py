@@ -287,7 +287,7 @@ def _academic_blocks(content):
     def flush():
         nonlocal title,body
         if title or body:
-            blocks.append((title or f"Concepto técnico {len(blocks)+1}", "\n\n".join(body)))
+            blocks.append((title or f"Fundamento para la explicación {len(blocks)+1}", "\n\n".join(body)))
         title,body="",[]
 
     for paragraph in useful:
@@ -323,7 +323,12 @@ def _student_card_body(body):
     return summary
 
 def full_matter(stage_number):
-    """Show learner cards and a genuinely role-protected teacher deep dive."""
+    """Render only the role-protected teaching guide.
+
+    Learners receive the curated lesson, figures, laboratories and answerable
+    activities defined in each stage. Raw Word/planning content is never
+    rendered in their session.
+    """
     content=ACADEMIC_CONTENT.get(stage_number,"").strip()
     if not content:
         return
@@ -332,47 +337,37 @@ def full_matter(stage_number):
         "Evaluación final del curso Aislamiento a Ruido Aéreo",
     )
     duration,blocks=_academic_blocks(content)
+    if st.session_state.get("role")!="Docente":
+        return
+
     st.markdown(
-        '<div class="matter-heading"><div class="matter-heading-icon">📚</div><div>'
-        '<h2>Materia esencial de la etapa</h2>'
-        '<p>Conceptos técnicos explicados en fichas breves antes de experimentar y responder.</p>'
-        '</div></div>',
+        '<div class="teacher-only"><b>🔐 Guía técnica exclusiva para el docente</b>'
+        '<span>Apoyo para explicar las figuras, conducir el laboratorio visual y formular preguntas a los estudiantes.</span></div>',
         unsafe_allow_html=True,
     )
-    if duration:
-        st.markdown(
-            f'<div class="didactic-duration">⏱️ {duration.replace("Duración propuesta:","Duración estimada:")}</div>',
-            unsafe_allow_html=True,
+    with st.expander("Abrir profundización y guía de enseñanza",expanded=False):
+        st.info(
+            "Contenido exclusivo del perfil Docente. No se crea ni se muestra en la sesión del alumno."
         )
-    icons=("💡","🔎","🎯","🧱","📐","🔊","🧠","✅")
-    columns=st.columns(2)
-    for index,(title,body) in enumerate(blocks):
-        with columns[index%2]:
-            with st.container(border=True):
-                icon=icons[index%len(icons)]
-                st.markdown(
-                    f'<div class="didactic-card-title"><span>{icon}</span>{title}</div>',
-                    unsafe_allow_html=True,
-                )
-                if body:
-                    st.markdown(_student_card_body(body))
-
-    if st.session_state.get("role")=="Docente":
-        st.markdown(
-            '<div class="teacher-only"><b>🔐 Profundización técnica exclusiva para el docente</b>'
-            '<span>Fundamentos completos, matices de interpretación y material de apoyo para desarrollar la explicación en clase.</span></div>',
-            unsafe_allow_html=True,
-        )
-        with st.expander("Abrir guía técnica docente",expanded=False):
-            st.info(
-                "Esta sección solo se genera para el perfil Docente. No aparece ni queda disponible "
-                "en la interfaz del alumno."
+        if duration:
+            st.caption(duration.replace("Duración propuesta:","Duración de referencia:"))
+        for index,(title,body) in enumerate(blocks):
+            st.markdown(f"### {index+1}. {title}")
+            if body:
+                st.markdown(body)
+            st.markdown("**Cómo abordarlo durante la clase**")
+            st.markdown(
+                "- Relacione este fundamento con la figura o el cambio visible del laboratorio de la etapa.\n"
+                "- Pida al estudiante identificar qué variable cambia, qué fenómeno permanece y cómo se interpreta el resultado.\n"
+                "- Distinga entre una representación didáctica y un valor aplicable a un proyecto real."
             )
-            for index,(title,body) in enumerate(blocks):
-                st.markdown(f"### {index+1}. {title}")
-                if body:
-                    st.markdown(body)
-                st.divider()
+            st.markdown("**Preguntas sugeridas para los estudiantes**")
+            st.markdown(
+                "1. ¿Qué fenómeno acústico representa esta figura o resultado?\n"
+                "2. ¿Qué cambiaría si se modifica la variable principal?\n"
+                "3. ¿Qué decisión técnica sería coherente y cómo la justificarías?"
+            )
+            st.divider()
 
 def lesson(title, text):
     st.markdown(f'<div class="lesson"><div class="overview-title">CONCEPTO CLAVE</div><h3>{title}</h3><span class="muted">{text}</span></div>',unsafe_allow_html=True)
