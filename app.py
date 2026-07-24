@@ -278,7 +278,7 @@ ROUTE_SUMMARIES = [
 ("Fundamentos físicos","Explora masa, frecuencia, resonancia, coincidencia y sistemas dobles."),
 ("Diseño práctico","Detecta bandas críticas, elementos débiles y vías dominantes."),
 ("Índices acústicos","Interpreta Rw, C, Ctr, STC, OITC y resultados de terreno."),
-("Aplicación de índices","Entenderás los índices y sus respectivos usos y normativas"),
+("Aplicación de índices","Trabaja con curvas, desviaciones, fuentes y fichas técnicas."),
 ("Evaluación final","Integra acústica y costo-beneficio en una decisión profesional."),
 ]
 
@@ -1427,9 +1427,12 @@ def stage6():
         )
         st.metric("R compuesto",f"{comp:.1f} dB")
         st.info("Los dB no se promedian: se combinan coeficientes de transmisión ponderados por superficie.")
-        check("e6_area_practical","¿Qué porcentaje del cerramiento corresponde a la puerta?",
-              ["12,0 %","16,7 %","20,0 %","2,0 %"],"16,7 %",
-              "El porcentaje se obtiene desde las áreas geométricas: (2 m²/12 m²)×100 = 16,7 %.")
+        st.markdown(
+            '<div class="good"><b>Comprobación geométrica:</b> la puerta representa '
+            '<b>16,7 %</b> del cerramiento, porque (2 m²/12 m²)×100 = 16,7 %. '
+            'La fracción que se utiliza en la ecuación es 2/12 = 0,1667.</div>',
+            unsafe_allow_html=True,
+        )
         check("e6_comp_practical",f"Al combinar energéticamente ambos elementos, el resultado es aproximadamente {comp:.1f} dB. ¿Por qué queda mucho más cerca de la puerta que del muro?",
               ["Porque se promediaron 55 y 25 dB","Porque la puerta tiene un τ mucho mayor y domina la energía transmitida","Porque la puerta ocupa más superficie que el muro"],
               "Porque la puerta tiene un τ mucho mayor y domina la energía transmitida",
@@ -1485,9 +1488,26 @@ def stage7():
         'En la ecuación se usa 2/15 = 0,1333.</div></div>',
         unsafe_allow_html=True,
     )
-    check("e7_guided_area","¿Qué porcentaje del área total ocupa la puerta?",
-          ["7,5 %","13,3 %","15,0 %","20,0 %"],"13,3 %",
-          "Se obtiene de los datos geométricos del caso: (2 m²/15 m²)×100 = 13,3 %.")
+    st.markdown(
+        '<div class="good"><b>Resultado del paso geométrico:</b> la puerta ocupa '
+        '<b>13,3 %</b> de la separación, porque (2 m²/15 m²)×100 = 13,3 %. '
+        'Este porcentaje proviene de las áreas del caso y no es un dato supuesto.</div>',
+        unsafe_allow_html=True,
+    )
+    formula_card(
+        "Combinación energética del muro y la puerta",
+        r"\tau_i=10^{-R_i/10}\qquad"
+        r"\tau_{\mathrm{total}}=\frac{S_{\mathrm{muro}}\tau_{\mathrm{muro}}+"
+        r"S_{\mathrm{puerta}}\tau_{\mathrm{puerta}}}{S_{\mathrm{total}}}"
+        r"\qquad R_{\mathrm{total}}=-10\log_{10}(\tau_{\mathrm{total}})",
+        "<b>Rᵢ</b>: reducción sonora de cada elemento (dB)<br>"
+        "<b>τᵢ</b>: coeficiente de transmisión de cada elemento (adimensional)<br>"
+        "<b>S<sub>muro</sub></b>: área efectiva del muro = 13 m²<br>"
+        "<b>S<sub>puerta</sub></b>: área de la puerta = 2 m²<br>"
+        "<b>S<sub>total</sub></b>: área total de la separación = 15 m²",
+        "Para combinar elementos con aislamientos diferentes. Los valores de R en dB "
+        "no se promedian; primero deben convertirse a coeficientes τ y ponderarse por área.",
+    )
     check("e7_guided_tau","¿Qué coeficientes de transmisión corresponden al muro y a la puerta?",
           ["τmuro=10⁻⁵ y τpuerta=10⁻³","τmuro=50 y τpuerta=30","τmuro=0,50 y τpuerta=0,30"],
           "τmuro=10⁻⁵ y τpuerta=10⁻³",
@@ -1515,10 +1535,56 @@ def stage7():
     expected=20*math.log10(30*500)-47
     s=f"**R ≈ 20 log₁₀(30×500) − 47 = {expected:.1f} dB**. Es una aproximación válida solo en la región controlada por masa."
     formative_numeric(7,"s7q3",q,[("r","R (dB)",0.0,0.1)],lambda v:(abs(v["r"]-expected)<=0.3,f"El resultado esperado es aproximadamente {expected:.1f} dB."),s);solutions["s7q3"]=s
-    q="Una placa tiene E = 2,5 GPa, h = 12 mm, ν = 0,30, m′ = 9,6 kg/m² y c = 343 m/s. Calcula primero D y luego fᶜ."
-    s="Con unidades SI: **D = Eh³/[12(1−ν²)] = 395,6 N·m**. Luego, **fᶜ = c²/(2π)√(m′/D) ≈ 2.917 Hz**."
+    st.markdown("#### Ejercicio guiado · Rigidez flexional y frecuencia crítica")
+    formula_card(
+        "Ecuaciones que debes aplicar",
+        r"D=\frac{Eh^3}{12(1-\nu^2)}"
+        r"\qquad"
+        r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}",
+        "<b>D</b>: rigidez flexional de la placa (N·m)<br>"
+        "<b>E</b>: módulo de Young (Pa)<br>"
+        "<b>h</b>: espesor de la placa (m)<br>"
+        "<b>ν</b>: coeficiente de Poisson (adimensional)<br>"
+        "<b>f<sub>c</sub></b>: frecuencia crítica o de coincidencia (Hz)<br>"
+        "<b>c</b>: velocidad del sonido en el aire (m/s)<br>"
+        "<b>m′</b>: masa superficial de la placa (kg/m²)",
+        "Primero calcula D con todas las magnitudes en el Sistema Internacional. "
+        "Después utiliza ese resultado en la ecuación de fᶜ.",
+    )
+    st.markdown(
+        '<div class="worked-example"><h3>Preparación de los datos</h3>'
+        '<div class="worked-step"><strong>Módulo de Young:</strong> '
+        'E = 2,5 GPa = <b>2,5×10⁹ Pa</b>.</div>'
+        '<div class="worked-step"><strong>Espesor:</strong> '
+        'h = 12 mm = <b>0,012 m</b>.</div>'
+        '<div class="worked-step"><strong>Datos que ya están en SI:</strong> '
+        'ν = 0,30; m′ = 9,6 kg/m²; c = 343 m/s.</div>'
+        '<div class="worked-result">Ruta de cálculo: convertir unidades → calcular D → '
+        'calcular fᶜ → interpretar el resultado.</div></div>',
+        unsafe_allow_html=True,
+    )
+    q=("Una placa tiene E = 2,5 GPa, h = 12 mm, ν = 0,30, m′ = 9,6 kg/m² "
+       "y c = 343 m/s. Calcula primero la rigidez flexional D y después la frecuencia "
+       "crítica fᶜ.")
+    s=("Con unidades SI: **D = Eh³/[12(1−ν²)] = 395,6 N·m**. Luego, "
+       "**fᶜ = c²/(2π)√(m′/D) ≈ 2.917 Hz**. Cerca de esa frecuencia puede producirse "
+       "el fenómeno de coincidencia: la placa radia con mayor eficiencia y aparece una "
+       "disminución o valle en su aislamiento.")
     formative_numeric(7,"s7q4",q,[("d","D (N·m)",0.0,1.0),("fc","fᶜ (Hz)",0.0,10.0)],
         lambda v:(abs(v["d"]-395.6)<=3 and abs(v["fc"]-2917)<=25,"Se esperaba D ≈ 395,6 N·m y fᶜ ≈ 2.917 Hz. Verifica convertir 12 mm a 0,012 m."),s);solutions["s7q4"]=s
+    check(
+        "s7q4_interpretation",
+        "¿Qué puede ocurrir con el aislamiento de la placa cerca de su frecuencia crítica fᶜ?",
+        [
+            "Puede disminuir y formar un valle por el fenómeno de coincidencia",
+            "Aumenta siempre 6 dB, sin importar el material",
+            "La placa deja de transmitir completamente",
+            "Solo cambia el tiempo de reverberación del recinto",
+        ],
+        "Puede disminuir y formar un valle por el fenómeno de coincidencia",
+        "Cerca de fᶜ aumenta la eficiencia de acoplamiento y radiación de la placa, "
+        "por lo que el aislamiento puede presentar una caída.",
+    )
     q="Un recinto posee 60 m² de superficie con α = 0,10 y agrega 25 m² de material con α = 0,80. Calcula la absorción equivalente total."
     s="**A = 60×0,10 + 25×0,80 = 6 + 20 = 26 m² sabin**."
     formative_numeric(7,"s7q5",q,[("a","A total (m² sabin)",0.0,1.0)],lambda v:(abs(v["a"]-26)<.1,"La absorción equivalente total es 26 m² sabin."),s);solutions["s7q5"]=s
