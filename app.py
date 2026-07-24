@@ -100,13 +100,18 @@ border:4px solid #087585;border-radius:6px;box-shadow:0 4px 10px #083f4b28}
 .concept-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin:1rem 0}
 .concept-result{background:white;border:1px solid var(--line);border-radius:15px;padding:1rem;text-align:center}
 .concept-result b{display:block;color:#0a2d52;font-size:1.18rem;margin:.25rem 0}.concept-result span{font-size:.79rem;color:var(--muted)}
-.learning-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:1rem 0 1.35rem}
-.learning-card{background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 9px 25px #17324d12}
-.learning-figure{aspect-ratio:16/9;min-height:210px;background:linear-gradient(145deg,#e8f6ff,#f8fbff);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.learning-grid{margin:1rem 0 .7rem}
+.learning-card{max-width:920px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:0 14px 34px #17324d1a}
+.learning-figure{aspect-ratio:16/9;min-height:300px;background:linear-gradient(145deg,#e8f6ff,#f8fbff);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .learning-figure img{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
-.learning-copy{padding:1.1rem 1.2rem 1.25rem}.learning-kicker{font-size:.72rem;letter-spacing:.11em;font-weight:900;color:#0871bd}
-.learning-copy h3{color:#092d53;margin:.3rem 0 .55rem;font-size:1.22rem}.learning-copy p{color:#40536b;line-height:1.55;margin:.35rem 0}
+.learning-copy{padding:1.35rem 1.55rem 1.5rem}.learning-kicker{font-size:.72rem;letter-spacing:.11em;font-weight:900;color:#0871bd}
+.learning-copy h3{color:#092d53;margin:.3rem 0 .55rem;font-size:1.5rem}.learning-copy p{color:#40536b;line-height:1.6;margin:.35rem 0;font-size:1rem}
 .observe{margin-top:.8rem;background:#eef8ff;border-left:4px solid #17a8d2;border-radius:10px;padding:.7rem .8rem;color:#294861;font-size:.88rem}
+.slide-status{text-align:center;color:#536b84;font-size:.85rem;font-weight:800;margin:.55rem 0 .2rem}
+.slide-dots{text-align:center;letter-spacing:.3rem;font-size:1.05rem;color:#bed2e3;margin:.2rem 0 .65rem}.slide-dots .active{color:#087bc1}
+.worked-example{background:linear-gradient(135deg,#062f55,#0b5385);color:#fff;border-radius:18px;padding:1.15rem 1.25rem;margin:1rem 0;box-shadow:0 10px 25px #0b355b22}
+.worked-example h3{margin:.1rem 0 .65rem;color:#fff}.worked-step{background:#ffffff12;border:1px solid #ffffff25;border-radius:12px;padding:.72rem .85rem;margin:.55rem 0;line-height:1.5}
+.worked-step strong{color:#82e7ff}.worked-result{background:#eaf9ff;color:#07375d;border-radius:12px;padding:.8rem .9rem;margin-top:.65rem;font-weight:800}
 .mini-scene{width:100%;height:100%;position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(#dff3ff 0 70%,#d9dee3 70%)}
 .mini-source,.mini-receiver,.mini-wall,.mini-wave,.mini-floorwave{position:absolute}.mini-source{left:8%;bottom:17%;font-size:3.3rem}
 .mini-receiver{right:8%;bottom:17%;font-size:3.2rem}.mini-wave{left:30%;top:39%;color:#0877c5;font-size:1.7rem;font-weight:900}
@@ -139,7 +144,7 @@ margin:.25rem 0 1rem;box-shadow:0 7px 25px #173b6810;overflow:hidden}
   .two-room-lab{grid-template-columns:1fr 46px 1fr;min-height:270px}.speaker-visual,.listener-visual{font-size:3rem}
   .incident-wave,.transmitted-wave{font-size:1.25rem}.absorber{transform:scale(.75)}
   .concept-grid{grid-template-columns:1fr}
-  .learning-grid,.teacher-grid{grid-template-columns:1fr}
+  .learning-grid,.teacher-grid{grid-template-columns:1fr}.learning-figure{min-height:210px}.learning-copy{padding:1rem}
 }
 </style>
 """, unsafe_allow_html=True)
@@ -347,10 +352,10 @@ STUDENT_LESSONS = {
 ("¿Dónde intervenir?","En la fuente: mantenimiento, encapsulamiento o antivibratorios. En la trayectoria: barrera acústica. En el receptor: protección auditiva, cabina o mejora de fachada. La distancia es una condición geométrica independiente.","Priorice la fuente cuando sea viable y compruebe siempre la vía dominante.","stage1_interventions.webp",None),
 ],
 2:[
-("Aislamiento acústico","Capacidad de un muro, puerta, ventana, piso o techo para reducir el sonido transmitido hacia otro recinto.","Mire el panel central: el resultado se evalúa al otro lado de la separación.","visual_05.webp",None),
-("Absorción acústica","Capacidad de una superficie para disipar parte de la energía incidente y reducir las reflexiones dentro del mismo recinto.","El panel absorbente modifica el campo interior, pero no aumenta por sí solo el R del muro.","visual_07.webp",None),
-("Tiempo de reverberación","T₆₀ es el tiempo que tarda el nivel en decaer 60 dB después de detener la fuente. Aumentar la absorción equivalente reduce ese tiempo.","Una sala menos reverberante mejora normalmente la claridad de la palabra.","visual_42.webp",None),
-("Inteligibilidad","Describe cuánto se comprende un mensaje hablado. Depende de reverberación, ruido de fondo, distancia y relación señal/ruido.","Escuchar una voz no significa necesariamente entenderla.",None,"🗣️ → 👂"),
+("Aislamiento acústico","Capacidad de un muro, puerta, ventana, piso o techo para reducir el sonido transmitido desde un recinto emisor hacia otro receptor. Se evalúa comparando lo que incide con lo que logra atravesar la separación.","Observe el panel central: las ondas son intensas en el recinto emisor y mucho más débiles después de atravesarlo.","stage2_insulation.png",None),
+("Absorción acústica","Capacidad de una superficie para disipar parte de la energía sonora incidente y reducir las reflexiones dentro del mismo recinto. No equivale a impedir el paso del sonido a otro espacio.","Compare el sector rígido, con muchas reflexiones, con el sector tratado, donde la energía se disipa en paneles y nubes acústicas.","stage2_absorption.png",None),
+("Tiempo de reverberación","T₆₀ es el tiempo necesario para que el nivel sonoro decaiga 60 dB después de detener la fuente. Si el volumen se mantiene, aumentar la absorción equivalente normalmente reduce ese tiempo.","Siga cómo las reflexiones pierden intensidad progresivamente después de que la fuente deja de emitir.","stage2_reverberation.png",None),
+("Inteligibilidad de la palabra","Expresa cuánto del mensaje hablado puede comprender el receptor. Depende del sonido directo, las reflexiones tardías, el ruido de fondo, la distancia y la relación señal/ruido.","Distinga la señal directa y nítida de las reflexiones tardías que llegan superpuestas y reducen la claridad.","stage2_intelligibility.png",None),
 ],
 4:[
 ("Suficiencia antes que rentabilidad","Una alternativa solo entra a la comparación económica si alcanza el objetivo acústico y actúa sobre la vía dominante. Primero se verifica el desempeño; después se optimiza el costo.","Compare las dos separaciones: la alternativa económicamente evaluable es la que realmente protege al receptor.","stage4_sufficiency.webp",None),
@@ -383,25 +388,69 @@ STAGE_INTROS = {
 
 TEACHER_GUIDES = {
 1:("Explique primero las siete figuras y recién después abra el laboratorio. Contraste propagación aérea con estructural y recalque que la distancia no es una medida ubicada en la trayectoria.",
-["¿Qué elemento es la fuente en esta escena?","¿Qué camino seguiría existiendo si se instala una barrera?","¿Por qué una orejera protege al trabajador pero no controla el ruido ambiental?"]),
+[
+("¿Qué elemento es la fuente en esta escena?","La máquina o equipo que genera la energía sonora y vibratoria."),
+("¿Qué camino seguiría existiendo si se instala una barrera?","La transmisión estructural y cualquier vía aérea indirecta que no quede interceptada por la barrera."),
+("¿Por qué una orejera protege al trabajador pero no controla el ruido ambiental?","Porque actúa únicamente en el receptor: reduce su exposición personal, pero la fuente continúa emitiendo y el ruido sigue propagándose al entorno."),
+]),
 2:("Use los dos recintos para separar tres magnitudes: R del panel, absorción equivalente del receptor y T₆₀. Al agregar absorbentes, R debe permanecer constante.",
-["¿Qué cambia al reemplazar el panel?","¿Qué cambia al revestir el recinto receptor?","¿Puede disminuir el nivel receptor sin haber mejorado el R del panel?"]),
+[
+("¿Qué cambia al reemplazar el panel?","Cambia la transmisión entre recintos y, por tanto, el valor R de la separación. También puede cambiar el nivel recibido."),
+("¿Qué cambia al revestir el recinto receptor?","Aumenta la absorción equivalente, disminuyen las reflexiones y baja T₆₀; el R propio del panel no cambia."),
+("¿Puede disminuir el nivel receptor sin haber mejorado el R del panel?","Sí. Al reducir el campo reverberante puede bajar el nivel medio del recinto receptor, aunque la propiedad aislante del panel permanezca igual."),
+("¿Por qué una sala puede oírse menos ruidosa sin estar mejor aislada?","Porque el acondicionamiento absorbente reduce la energía reflejada dentro de la sala, pero no necesariamente la energía que atraviesa la separación."),
+]),
 3:("Pida justificaciones breves y detecte si el estudiante clasifica por el objeto o por el mecanismo físico predominante.",
-["¿Cuál es la vía dominante?","¿La solución controla transmisión o reverberación?","¿Qué dato adicional pedirías antes de diseñar?"]),
+[
+("¿Cuál es la vía dominante?","La que aporta la mayor energía al receptor; debe determinarse con inspección, medición por bandas y pruebas de intervención cuando corresponda."),
+("¿La solución controla transmisión o reverberación?","Si modifica la separación entre espacios controla transmisión; si modifica reflexiones dentro del recinto controla reverberación."),
+("¿Qué dato adicional pedirías antes de diseñar?","Espectro por bandas, geometría, composición constructiva, área de elementos débiles, encuentros, sellos, uso y meta acústica."),
+]),
 4:("Explique las cuatro figuras en orden: filtro de suficiencia, costo del ciclo, rendimiento decreciente y recuperación. En la primera figura haga que el curso descarte la separación que no protege al receptor. En la segunda identifique costos omitidos. Use la tercera para buscar el punto de mejora marginal y la cuarta solo después de verificar el desempeño acústico.",
-["¿Cuál alternativa puede entrar a la comparación económica y por qué?","¿Qué costo del ciclo podría cambiar la decisión?","¿En qué punto la mejora adicional deja de justificar el aumento de complejidad?","¿Por qué un buen ROI no rescata una solución acústicamente insuficiente?"]),
+[
+("¿Cuál alternativa puede entrar a la comparación económica y por qué?","Solo una alternativa que cumpla la meta acústica y controle la vía dominante; la economía compara soluciones técnicamente suficientes."),
+("¿Qué costo del ciclo podría cambiar la decisión?","Mantención, reposición, consumo energético, detenciones, accesibilidad, pérdida de producción o una vida útil menor que la prevista."),
+("¿En qué punto la mejora adicional deja de justificar el aumento de complejidad?","Cuando el costo marginal de obtener más reducción supera el beneficio marginal y la solución ya satisface la meta con un margen de seguridad razonable."),
+("¿Por qué un buen ROI no rescata una solución acústicamente insuficiente?","Porque el beneficio económico supuesto depende de resolver el problema. Si no alcanza la meta, no entrega el servicio para el cual se invierte."),
+("¿Qué diferencia existe entre ROI y payback?","El ROI expresa rentabilidad acumulada respecto del costo total; el payback expresa tiempo para recuperar la inversión inicial con el flujo anual neto."),
+]),
 5:("Conduzca la comparación como una decisión en dos etapas: filtro acústico y optimización económica.",
-["¿Qué alternativa se elimina primero?","¿Qué indicador económico ayuda, pero no decide por sí solo?"]),
+[
+("¿Qué alternativa se elimina primero?","La que no cumple la meta acústica o no controla la vía dominante."),
+("¿Qué indicador económico ayuda, pero no decide por sí solo?","ROI, payback o costo del ciclo: todos deben interpretarse junto con suficiencia técnica, riesgo y vida útil."),
+]),
 6:("Recorra las figuras desde la energía hasta el sistema construido. Relacione τ con R; compare hoja liviana y pesada; identifique la transmisión adicional en coincidencia; explique las dos masas desacopladas; y cierre siguiendo la fuga o el elemento débil. Después use cada pestaña del simulador para comprobar el fenómeno.",
-["¿Qué ocurre con R cuando disminuye τ?","¿Bajo qué condiciones duplicar masa aporta cerca de 6 dB?","¿Por qué aparece un valle en coincidencia?","¿Qué se pierde si ambas hojas quedan unidas rígidamente?","¿Por qué una rendija pequeña puede dominar el resultado?"]),
+[
+("¿Qué ocurre con R cuando disminuye τ?","R aumenta logarítmicamente, porque una fracción menor de la energía incidente logra transmitirse."),
+("¿Bajo qué condiciones duplicar masa aporta cerca de 6 dB?","En la región ideal de ley de masa de una hoja simple, lejos de resonancias, coincidencia, fugas y transmisiones laterales."),
+("¿Por qué aparece un valle en coincidencia?","Porque el acoplamiento entre la onda aérea y las ondas de flexión del panel vuelve más eficiente su radiación hacia el recinto receptor."),
+("¿Qué se pierde si ambas hojas quedan unidas rígidamente?","Se pierde desacoplamiento y aparecen puentes que transmiten vibración, reduciendo la ventaja del sistema doble."),
+("¿Por qué una rendija pequeña puede dominar el resultado?","Porque presenta una transmisión mucho mayor que el paño opaco y su contribución energética puede dominar la combinación global."),
+]),
 7:("Solicite que cada propuesta nombre la banda crítica, la vía dominante y la variable que se modificará antes de volver a verificar la meta.",
-["¿Qué banda controla el diseño?","¿Conviene reforzar el muro o el elemento débil?","¿Cómo comprobarías la mejora?"]),
+[
+("¿Qué banda controla el diseño?","La banda que produce el incumplimiento o el mayor nivel receptor, considerando también el espectro real de la fuente."),
+("¿Conviene reforzar el muro o el elemento débil?","El elemento o vía que domina la transmisión; reforzar el componente que ya funciona bien suele entregar poca mejora global."),
+("¿Cómo comprobarías la mejora?","Repitiendo la evaluación en condiciones comparables y revisando la curva por bandas, no solo un índice único."),
+]),
 8:("Empiece por R(f), porque el índice único solo tiene sentido después de comprender la curva. Explique visualmente el ajuste de Rw, compare la cámara de ensayo con las vías laterales de obra y termine contrastando voz con tránsito. Vincule después cada fila de la tabla con método, lugar y espectro.",
-["¿Por qué Rw no representa el mismo aislamiento en todas las bandas?","¿Qué incorpora la prima en R′w?","¿Qué combinación revisarías frente a buses y camiones?","¿Cuándo la curva completa es más importante que el índice único?"]),
+[
+("¿Por qué Rw no representa el mismo aislamiento en todas las bandas?","Porque es un índice único calculado ajustando una curva de referencia; la curva R(f) conserva las diferencias reales por frecuencia."),
+("¿Qué incorpora la prima en R′w?","El comportamiento aparente en obra, incluidas transmisiones laterales, encuentros, montaje y otras vías presentes en el edificio."),
+("¿Qué combinación revisarías frente a buses y camiones?","Rw+Ctr y la curva en bajas frecuencias; bajo ASTM también puede ser pertinente OITC."),
+("¿Cuándo la curva completa es más importante que el índice único?","Ante fuentes tonales, espectros graves o irregulares, valles pronunciados y decisiones donde una banda específica controla el resultado."),
+]),
 9:("Pida primero leer la curva y luego el número único. Enfatice que dos soluciones con igual Rw pueden responder distinto frente a tránsito.",
-["¿Dónde están las desviaciones desfavorables?","¿Qué partición conviene para voz?","¿Cuál conviene para bajas frecuencias y por qué?"]),
+[
+("¿Dónde están las desviaciones desfavorables?","En las bandas donde la curva medida queda por debajo de la curva de referencia desplazada."),
+("¿Qué partición conviene para voz?","La que presenta mejor Rw+C y desempeño en bandas medias, siempre que corresponda al problema evaluado."),
+("¿Cuál conviene para bajas frecuencias y por qué?","La que tenga mejor Rw+Ctr y una curva más robusta en graves, aunque ambas compartan el mismo Rw."),
+]),
 10:("Use los resultados para retroalimentación final. En el caso 30 exija suficiencia acústica, bandas críticas, costo incremental y vida útil.",
-["¿La recomendación se apoya en el índice correcto?","¿El mayor Rw es necesariamente la mejor solución?"]),
+[
+("¿La recomendación se apoya en el índice correcto?","Debe corresponder al método, al lugar de evaluación y al espectro de la fuente; para ruido grave se debe revisar además la curva completa."),
+("¿El mayor Rw es necesariamente la mejor solución?","No. Puede rendir peor frente a la fuente real, costar más sin beneficio útil o no resolver elementos débiles y flancos."),
+]),
 }
 
 def _visual_path(filename):
@@ -419,17 +468,29 @@ def student_lesson(stage_number):
     lessons=STUDENT_LESSONS.get(stage_number,[])
     if lessons:
         st.markdown('<div class="section-band"><span>🖼️</span><h3>Conceptos explicados con figuras</h3></div>',unsafe_allow_html=True)
-        st.caption("Revisa estas definiciones antes de utilizar el laboratorio visual.")
-        html='<div class="learning-grid">'
-        for title,definition,observe,image_name,symbol in lessons:
-            path=_visual_path(image_name)
-            visual=f'<img src="{image_data_uri(path)}" alt="{title}">' if path else _fallback_figure(symbol)
-            html+=(
-                f'<article class="learning-card"><div class="learning-figure">{visual}</div>'
-                f'<div class="learning-copy"><div class="learning-kicker">DEFINICIÓN ILUSTRADA</div>'
-                f'<h3>{title}</h3><p>{definition}</p><div class="observe"><b>Qué observar:</b> {observe}</div></div></article>'
-            )
-        st.markdown(html+'</div>',unsafe_allow_html=True)
+        st.caption("Avanza como en una presentación: revisa una figura y su explicación antes de pasar a la siguiente.")
+        key=f"lesson_slide_{stage_number}"
+        if key not in st.session_state:
+            st.session_state[key]=0
+        index=max(0,min(st.session_state[key],len(lessons)-1))
+        title,definition,observe,image_name,symbol=lessons[index]
+        path=_visual_path(image_name)
+        visual=f'<img src="{image_data_uri(path)}" alt="{title}">' if path else _fallback_figure(symbol)
+        st.markdown(
+            f'<div class="learning-grid"><article class="learning-card"><div class="learning-figure">{visual}</div>'
+            f'<div class="learning-copy"><div class="learning-kicker">DIAPOSITIVA {index+1} DE {len(lessons)} · DEFINICIÓN ILUSTRADA</div>'
+            f'<h3>{title}</h3><p>{definition}</p><div class="observe"><b>Qué observar:</b> {observe}</div></div></article></div>',
+            unsafe_allow_html=True,
+        )
+        dots="".join(f'<span class="{"active" if i==index else ""}">●</span>' for i in range(len(lessons)))
+        st.markdown(f'<div class="slide-status">{index+1} / {len(lessons)}</div><div class="slide-dots">{dots}</div>',unsafe_allow_html=True)
+        previous,next_col=st.columns(2)
+        if previous.button("← Anterior",key=f"prev_slide_{stage_number}",use_container_width=True,disabled=index==0):
+            st.session_state[key]=index-1
+            st.rerun()
+        if next_col.button("Siguiente →",key=f"next_slide_{stage_number}",use_container_width=True,disabled=index==len(lessons)-1):
+            st.session_state[key]=index+1
+            st.rerun()
     elif stage_number in STAGE_INTROS:
         title,text=STAGE_INTROS[stage_number]
         st.markdown(f'<div class="lesson"><div class="overview-title">ANTES DE COMENZAR</div><h3>{title}</h3><span class="muted">{text}</span></div>',unsafe_allow_html=True)
@@ -451,8 +512,8 @@ def full_matter(stage_number):
     with st.expander("Abrir guía docente de esta etapa",expanded=False):
         st.markdown('<div class="teacher-grid">',unsafe_allow_html=True)
         st.markdown(f'<div class="teacher-card"><b>Cómo explicar las figuras y el laboratorio</b><p>{explanation}</p></div>',unsafe_allow_html=True)
-        qhtml="".join(f"<li>{q}</li>" for q in questions)
-        st.markdown(f'<div class="teacher-card"><b>Preguntas para plantear al curso</b><ol>{qhtml}</ol></div>',unsafe_allow_html=True)
+        qhtml="".join(f"<li><strong>{q}</strong><br><span>Respuesta esperada: {answer}</span></li>" for q,answer in questions)
+        st.markdown(f'<div class="teacher-card"><b>Preguntas y soluciones para el docente</b><ol>{qhtml}</ol></div>',unsafe_allow_html=True)
         st.markdown('</div>',unsafe_allow_html=True)
 
 def lesson(title, text):
@@ -697,6 +758,23 @@ def stage4():
                  r"ROI=\frac{B-C}{C}\,100 \qquad Payback=\frac{I_0}{B_a-M_a}",
                  "<b>B</b>: beneficio acumulado ($)<br><b>C</b>: costo total ($)<br><b>I₀</b>: inversión inicial ($)<br><b>Bₐ−Mₐ</b>: beneficio anual neto ($/año)",
                  "Después de comprobar que la alternativa cumple la meta acústica. La rentabilidad nunca reemplaza la suficiencia técnica.")
+    st.markdown(
+        '<div class="worked-example"><h3>Ejemplo resuelto · ¿Qué significan ROI y payback?</h3>'
+        '<div class="worked-step"><strong>1 · Verificación técnica.</strong> Un encapsulamiento cuesta $2.000.000 y cumple la meta acústica. '
+        'Recién ahora corresponde analizar su economía.</div>'
+        '<div class="worked-step"><strong>2 · Flujo anual neto.</strong> Evita costos por $700.000 al año y requiere $100.000 de mantención. '
+        'Beneficio anual neto = $700.000 − $100.000 = <b>$600.000/año</b>.</div>'
+        '<div class="worked-step"><strong>3 · Payback.</strong> $2.000.000 ÷ $600.000/año = <b>3,33 años</b>. '
+        'Significa que al cabo de aproximadamente 3 años y 4 meses se recupera la inversión inicial.</div>'
+        '<div class="worked-step"><strong>4 · ROI a 5 años.</strong> Beneficio acumulado = $700.000 × 5 = $3.500.000. '
+        'Costo total = $2.000.000 + ($100.000 × 5) = $2.500.000. '
+        'ROI = ($3.500.000 − $2.500.000) ÷ $2.500.000 × 100 = <b>40 %</b>.</div>'
+        '<div class="worked-result">Interpretación: al terminar los 5 años, el proyecto recuperó todos sus costos y generó un beneficio neto equivalente al 40 % del costo total. '
+        'El ROI no indica cuándo se recuperó el dinero; ese dato lo entrega el payback.</div></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown("### Ahora modifica el ejemplo")
+    st.caption("Los controles siguientes recalculan ambos indicadores. Cambia un valor a la vez y observa qué resultado responde a cada pregunta.")
     meta=st.slider("Meta de diseño (dB)",25,55,38)
     cost=st.slider("Costo de la solución ($)",500000,5000000,1800000,100000)
     benefit=st.slider("Beneficio anual ($)",100000,2000000,650000,50000)
