@@ -9,6 +9,7 @@ import hashlib
 import unicodedata
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from future_labs import COURSE_LABS, FUTURE_LABS
 
 import numpy as np
 import pandas as pd
@@ -87,7 +88,16 @@ APPLICATION_POINTS = {
     10: {"final_exam": 100},
 }
 APPLICATION_TOTAL = sum(sum(stage.values()) for stage in APPLICATION_POINTS.values())
-LAB_ACTIVITY_STAGES = {1: [3, 5, 7, 9], 2: [7]}
+LAB_POINT_SCHEMAS = {
+    1: {stage: APPLICATION_POINTS[stage] for stage in [3, 5, 7, 9, 10]},
+    2: {
+        6: {"direccion_guiada": 10},
+        7: {"compare_solutions": 10},
+        8: {"compound_door": 10},
+        10: {"final_exam": 100},
+    },
+}
+LAB_ACTIVITY_STAGES = {1: [3, 5, 7, 9], 2: [6, 7, 8]}
 FINAL_EXAM_STAGE = 10
 
 st.markdown("""
@@ -836,14 +846,20 @@ def _authorized_student(name, identification):
     try:
         rows=(client.table("authorized_students").select("*")
               .eq("course_id",COURSE_ID)
-              .eq("normalized_name",normalized_name)
               .eq("normalized_identification",normalized_id)
               .eq("active",True).limit(1).execute().data or [])
     except Exception:
-        return False,"Falta ejecutar la actualización V25 en Supabase."
+        return False,"No fue posible consultar la nómina autorizada en Supabase."
     if not rows:
         return False,"El nombre y el RUT o cédula no coinciden con la nómina autorizada."
-    return True,rows[0]
+    row=rows[0]
+    accepted_names={
+        _normalize_name(row.get("display_name")),
+        _normalize_name(row.get("email")),
+    }
+    if normalized_name not in accepted_names:
+        return False,"El nombre o correo y el RUT o cédula no coinciden con la nómina autorizada."
+    return True,row
 
 def _progress_value(value):
     """Return a JSON-safe widget value, or None when it should not be persisted."""
@@ -977,7 +993,7 @@ def projection_view():
         st.rerun()
 
 def _question_points(stage,key):
-    return float(APPLICATION_POINTS.get(stage,{}).get(key,0))
+    return float(LAB_POINT_SCHEMAS.get(ACTIVE_LAB,{}).get(stage,{}).get(key,0))
 
 def _score_from_level(level,max_score):
     return max_score if level=="Correcta" else max_score*.5 if level=="Parcialmente correcta" else 0.0
@@ -1069,10 +1085,10 @@ def _result_summary():
     for lab_number,rows in lab_rows.items():
         activity_stages=LAB_ACTIVITY_STAGES[lab_number]
         activity_rows=[r for r in rows if r[0] in activity_stages]
-        activity_max=sum(sum(APPLICATION_POINTS[s].values()) for s in activity_stages)
+        activity_max=sum(sum(LAB_POINT_SCHEMAS[lab_number][s].values()) for s in activity_stages)
         activity_earned=sum(_effective_score(r) for r in activity_rows)
         answered=len({r[1] for r in activity_rows})
-        expected=sum(len(APPLICATION_POINTS[s]) for s in activity_stages)
+        expected=sum(len(LAB_POINT_SCHEMAS[lab_number][s]) for s in activity_stages)
         summaries[lab_number]={
             "earned":activity_earned,"maximum":activity_max,
             "answered":answered,"expected":expected,
@@ -1097,18 +1113,18 @@ def score_counter(stage=None,compact=False):
     rows=_student_scores()
     if stage is not None:
         rows=[row for row in rows if row[0]==stage]
-        maximum=sum(APPLICATION_POINTS.get(stage,{}).values())
+        maximum=sum(LAB_POINT_SCHEMAS.get(ACTIVE_LAB,{}).get(stage,{}).values())
         title=f"Puntaje de la Etapa {stage}"
     else:
         activity_stages=LAB_ACTIVITY_STAGES[ACTIVE_LAB]+(
             [FINAL_EXAM_STAGE] if ACTIVE_LAB==2 else [])
         rows=[row for row in rows if row[0] in activity_stages]
-        maximum=sum(sum(APPLICATION_POINTS[s].values()) for s in activity_stages)
+        maximum=sum(sum(LAB_POINT_SCHEMAS[ACTIVE_LAB][s].values()) for s in activity_stages)
         title=f"Puntaje Laboratorio {ACTIVE_LAB}"
     earned=sum((row[4] if row[4] is not None else row[2]) or 0 for row in rows)
     completed=len({row[1] for row in rows})
-    expected=(len(APPLICATION_POINTS.get(stage,{})) if stage is not None else
-              sum(len(APPLICATION_POINTS[s]) for s in activity_stages))
+    expected=(len(LAB_POINT_SCHEMAS.get(ACTIVE_LAB,{}).get(stage,{})) if stage is not None else
+              sum(len(LAB_POINT_SCHEMAS[ACTIVE_LAB][s]) for s in activity_stages))
     pct=100*earned/maximum if maximum else 0
     if compact:
         st.markdown(
@@ -1396,7 +1412,7 @@ def teacher_publication_management():
 
 def formula_reference():
     """Reference view separated from activities so students can consult it safely."""
-    header("FORMULARIO DEL CURSO","Fórmulas de aislamiento a ruido aéreo",
+    header(f"FORMULARIO · LABORATORIO {ACTIVE_LAB}","Fórmulas de aislamiento a ruido aéreo",
            "Consulta ecuaciones, símbolos y unidades. Al volver a la clase, tus respuestas seguirán exactamente donde las dejaste.")
     st.info("Esta pestaña es solo de consulta. Las respuestas se guardan automáticamente por usuario.")
     tab1,tab2,tab3,tab4=st.tabs([
@@ -3347,6 +3363,226 @@ def lab1_stage10():
     score_counter(10)
     teacher_group_review(10, {'final_exam': 'La evaluación suma 80 puntos teóricos y 20 puntos del caso integrador. La aprobación interna se alcanza con 60/100; el docente puede revisar y ajustar el puntaje con fundamento.'})
 
+# ---------------------------------------------------------------------------
+# Laboratorio 2 · ruta profesional MINVU / CES / ISO 12354
+# Esta ruta es independiente del Laboratorio 1. No reutiliza sus etapas.
+# ---------------------------------------------------------------------------
+LAB2_MINUTES = [15, 20, 25, 35, 35, 25, 35, 20, 20, 10, 60]
+
+def _lab2_heading(stage, title, purpose):
+    header(f"ETAPA {stage} · LABORATORIO 2", title, purpose)
+    st.caption(f"Tiempo sugerido: {LAB2_MINUTES[stage]} minutos")
+
+def lab2_stage0():
+    _lab2_heading(0, "Ruta profesional de cuatro horas",
+                  "Del requerimiento acústico a una recomendación verificable, construible y defendible.")
+    st.markdown(r"""
+    ### Resultado de aprendizaje
+    Al finalizar podrás transformar un requerimiento CES/MINVU en una solución de separación interior,
+    distinguir el descriptor correcto, estimar el desempeño instalado y controlar los puntos débiles.
+    """)
+    st.dataframe(pd.DataFrame([
+        ["00:00–00:15","Apertura, objetivos y antecedentes del encargo"],
+        ["00:15–00:35","Requerimientos CES usados en la asesoría MINVU"],
+        ["00:35–01:00","Rw, C, Ctr, R′w, DnT,w y DnT,A"],
+        ["01:00–01:35","Modelos: placa simple, coincidencia, Sharp y masa–aire–masa"],
+        ["01:35–02:10","Cinco problemas numéricos resueltos"],
+        ["02:10–02:20","Pausa"],
+        ["02:20–02:45","Aplicación didáctica de ISO 12354"],
+        ["02:45–03:20","Caso guiado: Sala de Reuniones Dirección"],
+        ["03:20–03:40","TA-01 y comparación de tres soluciones"],
+        ["03:40–04:00","Puertas, aislamiento compuesto y preparación de evaluación"],
+    ], columns=["Minutos","Actividad"]), hide_index=True, use_container_width=True)
+    st.info("La evaluación individual de la Sala de Reuniones Licitaciones se abre únicamente cuando el docente la publica.")
+
+def lab2_stage1():
+    _lab2_heading(1, "Del requerimiento CES al criterio de diseño",
+                  "Separar exigencia, descriptor, recinto, condición de ensayo y margen de proyecto.")
+    st.markdown(r"""
+    ### Lectura correcta del encargo
+
+    1. Identifica el par de recintos y el elemento separador.
+    2. Confirma si el valor corresponde a laboratorio, edificio terminado o diferencia entre recintos.
+    3. Conserva el descriptor escrito en el requerimiento: no reemplaces automáticamente \(D_{nT,A}\) por \(R_w\).
+    4. Registra el espectro relevante: voz, tránsito, instalaciones u otra fuente.
+    5. Define un margen de diseño y las pérdidas previsibles de obra.
+
+    **Regla profesional:** una solución no cumple porque su ficha tenga un \(R_w\) mayor que la meta.
+    Debe existir una cadena de cálculo que conecte el elemento ensayado con la condición instalada.
+    """)
+    st.warning("Los valores del caso MINVU se usan como antecedentes de una asesoría específica. No deben presentarse como exigencias universales para todo edificio.")
+
+def lab2_stage2():
+    _lab2_heading(2, "Descriptores sin confusiones",
+                  "Elegir el indicador que responde a la pregunta técnica real.")
+    st.dataframe(pd.DataFrame([
+        ["R(f)","Laboratorio, por banda","Reducción sonora del elemento ensayado"],
+        ["Rw","Laboratorio, índice único","Valor ponderado ISO 717-1 del elemento"],
+        ["C / Ctr","Adaptación espectral","Corrección según familia de espectro; Ctr penaliza más el contenido grave de tránsito"],
+        ["R′w","Edificio terminado","Reducción aparente; incorpora montaje y transmisiones laterales"],
+        ["DnT,w","Entre recintos","Diferencia de niveles normalizada al tiempo de reverberación"],
+        ["DnT,A","Entre recintos, ponderación A","Valor asociado al espectro normalizado que exige el encargo"],
+    ], columns=["Descriptor","Ámbito","Qué representa"]), hide_index=True, use_container_width=True)
+    st.latex(r"D_{nT}=L_1-L_2+10\log_{10}\left(\frac{T}{T_0}\right),\qquad T_0=0.5\ \mathrm{s}")
+    st.markdown(r"**No existe una conversión universal fija** entre \(R_w\), \(R'_w\) y \(D_{nT,w}\). La geometría, absorción, montaje y flancos cambian el resultado.")
+
+def lab2_stage3():
+    _lab2_heading(3, "Modelos de predicción de la tesis",
+                  "Reconocer el alcance y las limitaciones de cada modelo antes de calcular.")
+    st.dataframe(pd.DataFrame([
+        ["Ley de masa","Placa simple, zona controlada por masa",r"R≈20 log10(m·f)−47","No representa resonancia ni coincidencia"],
+        ["Coincidencia","Placas delgadas",r"fc depende de masa, rigidez y espesor","Produce una pérdida localizada de aislamiento"],
+        ["Sharp","Placas simples reales","Ajuste por regiones alrededor de fc","Útil como modelo semiempírico, no sustituye un ensayo"],
+        ["Masa–aire–masa","Sistemas dobles","Dos hojas + cámara + absorbente","La resonancia puede degradar bajas frecuencias"],
+    ], columns=["Modelo","Uso","Idea de cálculo","Advertencia"]), hide_index=True, use_container_width=True)
+    m=st.slider("Masa superficial de la placa (kg/m²)",5,80,25,key="lab2_model_m")
+    f=st.select_slider("Frecuencia (Hz)",options=[100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150],value=500,key="lab2_model_f")
+    st.metric("Predicción ideal por ley de masa",f"{float(mass_r(m,f)):.1f} dB")
+    st.caption("Es una referencia ideal por banda; no es Rw ni desempeño garantizado en obra.")
+
+def lab2_stage4():
+    _lab2_heading(4, "Cinco problemas numéricos resueltos",
+                  "Seguir datos, fórmula, sustitución, unidad e interpretación.")
+    problems=[
+        ("1 · Ley de masa","m=25 kg/m²; f=500 Hz",r"R=20\log_{10}(25·500)-47=34.9\ \mathrm{dB}","Predicción ideal por banda, no Rw."),
+        ("2 · Término espectral","Rw=52 dB; C=−3 dB",r"R_w+C=52-3=49\ \mathrm{dB}","La adaptación espectral reduce el valor útil para ese espectro."),
+        ("3 · Diferencia normalizada","L1=85 dB; L2=48 dB; T=0.8 s",r"D_{nT}=85-48+10\log_{10}(0.8/0.5)=39.0\ \mathrm{dB}","Normalizar permite comparar recintos con distinta reverberación."),
+        ("4 · Elemento compuesto","Muro 8.11 m² a 49 dB; puerta 1.89 m² a 31 dB",r"R_{comp}=-10\log_{10}\frac{8.11·10^{-4.9}+1.89·10^{-3.1}}{10}=38.1\ \mathrm{dB}","La puerta domina pese a ocupar menos área."),
+        ("5 · Paso a desempeño estimado","Rcomp,A=38.1 dB; Kgeo=3.2 dB; obra=3 dB",r"D_{nT,A}\approx38.1+3.2-3.0=38.3\ \mathrm{dB}","El margen debe verificarse, no suponerse."),
+    ]
+    for title,data,development,meaning in problems:
+        with st.expander(title, expanded=title.startswith("1")):
+            st.write(f"**Datos:** {data}")
+            st.latex(development)
+            st.write(f"**Interpretación:** {meaning}")
+    check("lab2_p4","¿Qué componente suele controlar una separación compuesta?",["El de mayor área","El de menor aislamiento ponderado por su área","El más caro"],"El de menor aislamiento ponderado por su área","La combinación debe hacerse energéticamente; los dB no se promedian.")
+
+def lab2_stage5():
+    _lab2_heading(5, "ISO 12354 como puente de diseño",
+                  "Pasar del dato del elemento al comportamiento esperado del edificio.")
+    st.markdown("""
+    ### Secuencia didáctica simplificada
+
+    **1. Entrada:** curva o índice del elemento ensayado.  
+    **2. Geometría:** área separadora, volumen receptor y absorción/tiempo de reverberación.  
+    **3. Caminos:** transmisión directa más contribuciones laterales.  
+    **4. Resultado:** aislamiento aparente o diferencia normalizada, según la magnitud requerida.  
+    **5. Verificación:** comparar con la meta, margen y condiciones reales de ejecución.
+
+    La aplicación usa una aproximación pedagógica para seguir la cadena de decisiones.
+    No debe etiquetarse como cálculo normativo completo cuando no se modelan todas las uniones y vías laterales.
+    """)
+    st.latex(r"R'=-10\log_{10}\left(\tau_d+\sum \tau_{flanco}\right)")
+    st.info("La contribución total se suma en energía. Una vía lateral débil puede limitar el desempeño aunque el tabique directo sea excelente.")
+
+def lab2_stage6():
+    _lab2_heading(6, "Ejercicio guiado · Sala de Reuniones Dirección",
+                  "Resolver el caso junto al docente y documentar cada decisión.")
+    st.image(str(ROOT/"assets/course_visuals/stage6_double_wall.webp"),use_container_width=True)
+    st.markdown("""
+    ### Ficha de trabajo
+
+    - Delimita emisor, receptor y separación.
+    - Calcula volumen receptor, superficie total, puerta y paño opaco.
+    - Selecciona el descriptor exigido.
+    - Compara el valor de laboratorio con la estimación instalada.
+    - Declara margen, pérdida de obra y controles de constructibilidad.
+    """)
+    response=st.text_area("Conclusión guiada del equipo",key="lab2_direccion_conclusion",
+                          placeholder="Descriptor, solución, resultado, margen, punto débil y controles de obra.")
+    if st.button("Guardar conclusión guiada",key="lab2_save_direccion"):
+        if len(response.strip())<40:
+            st.warning("Desarrolla una conclusión técnica más completa.")
+        else:
+            _save_formative(6,"direccion_guiada","Caso guiado · Sala de Reuniones Dirección",
+                            response,"Correcta","Conclusión enviada para revisión docente.",score=10,max_score=10)
+            st.success("Conclusión guardada.")
+    score_counter(6)
+
+def lab2_stage7():
+    _lab2_heading(7, "Comparación de tres soluciones",
+                  "Contrastar la TA-01 original con alternativas técnicamente viables.")
+    st.dataframe(pd.DataFrame([
+        ["Solución 1","TA-01 original",60,-4,56,140,92000],
+        ["Solución 2","Tabique reforzado desacoplado",52,-3,49,140,68000],
+        ["Solución 3","Tabique básico mejorado",47,-2,45,100,45000],
+    ],columns=["Alternativa","Sistema","Rw","C","Rw+C","Espesor (mm)","Costo ($/m²)"]),
+        hide_index=True,use_container_width=True)
+    choice=st.radio("¿Qué solución debe recomendarse?",[
+        "Siempre TA-01 porque tiene el Rw más alto",
+        "La de menor costo que cumpla con margen después de considerar puerta y obra",
+        "Siempre la alternativa más barata",
+    ],index=None,key="lab2_solution_choice")
+    reason=st.text_area("Justificación",key="lab2_solution_reason")
+    if st.button("Enviar comparación",key="lab2_solution_submit"):
+        correct=choice=="La de menor costo que cumpla con margen después de considerar puerta y obra"
+        score=(6 if correct else 0)+(4 if len(reason.strip())>=50 else 2 if reason.strip() else 0)
+        _save_formative(7,"compare_solutions","Comparación TA-01 y alternativas",
+                        json.dumps({"seleccion":choice,"justificacion":reason},ensure_ascii=False),
+                        "Correcta" if score>=6 else "Parcialmente correcta",
+                        "La selección final depende del sistema compuesto, margen y constructibilidad.",score=score,max_score=10)
+        st.success(f"Respuesta guardada: {score}/10 puntos.")
+    score_counter(7)
+
+def lab2_stage8():
+    _lab2_heading(8, "Aislamiento compuesto y efecto de puertas",
+                  "Comprobar por qué una abertura pequeña puede controlar el resultado.")
+    wall_area=8.11
+    door_area=1.89
+    rw_wall=st.slider("Rw+C del paño opaco (dB)",35,60,49,key="lab2_wall_rating")
+    rw_door=st.slider("Rw+C de la puerta (dB)",15,45,31,key="lab2_door_rating")
+    result=compound_r([wall_area,door_area],[rw_wall,rw_door])
+    st.metric("Aislamiento compuesto estimado",f"{result:.1f} dB")
+    st.caption(f"Paño opaco: {wall_area:.2f} m² · Puerta: {door_area:.2f} m².")
+    st.latex(r"R_{comp}=-10\log_{10}\left(\frac{\sum S_i10^{-R_i/10}}{\sum S_i}\right)")
+    answer=st.text_area("¿Qué especificación constructiva agregarías a la puerta?",key="lab2_door_control")
+    if st.button("Guardar análisis de puerta",key="lab2_door_submit"):
+        hits=sum(k in answer.lower() for k in ["sello","marco","inferior","burlete","umbral"])
+        score=10 if hits>=3 else 6 if hits>=1 else 2
+        _save_formative(8,"compound_door","Aislamiento compuesto y puerta",answer,
+                        "Correcta" if score>=6 else "Parcialmente correcta",
+                        f"Resultado compuesto calculado: {result:.1f} dB.",score=score,max_score=10)
+        st.success(f"Análisis guardado: {score}/10 puntos.")
+    score_counter(8)
+
+def lab2_stage9():
+    _lab2_heading(9, "Preparación de la evaluación individual",
+                  "Practicar el método sin revelar el caso evaluado.")
+    st.markdown("""
+    ### Lista de comprobación
+
+    - Descriptor y meta correctamente identificados.
+    - Geometría y áreas netas calculadas.
+    - Conversión energética de muro y puerta.
+    - Paso justificado desde laboratorio a estimación instalada.
+    - Comparación de alternativas con margen.
+    - Controles de obra verificables.
+    - Conclusión breve con resultado, costo, riesgo y recomendación.
+    """)
+    with st.expander("Banco de práctica"):
+        st.markdown(r"""
+        1. ¿Por qué \(R_w\) no debe compararse directamente con \(D_{nT,A}\)?  
+        2. ¿Qué cambia al reemplazar una puerta hueca por una puerta sellada?  
+        3. ¿Cuándo usarías \(C\) y cuándo \(C_{tr}\)?  
+        4. ¿Qué representa una pérdida de obra?  
+        5. ¿Por qué una solución de mayor \(R_w\) puede no ser la recomendación óptima?
+        """)
+    if st.session_state.get("role")=="Docente":
+        with st.expander("🔐 Guion docente y fichas"):
+            st.markdown("""
+            **Guion de 30 diapositivas:** apertura (1–3), encargo CES/MINVU (4–7),
+            descriptores (8–12), modelos de tesis (13–17), problemas resueltos (18–22),
+            ISO 12354 (23–25), caso Dirección y alternativas (26–28), evaluación y cierre (29–30).
+
+            **Fichas:** requerimiento; geometría; componentes; comparación; control de obra;
+            conclusión profesional. Las soluciones y la evaluación futura permanecen protegidas.
+            """)
+
+def lab2_stage10():
+    _lab2_heading(10, "Evaluación individual · Sala de Reuniones Licitaciones",
+                  "Resolver un caso equivalente con intento único y rúbrica analítica de 100 puntos.")
+    stage10()
+
 LAB1_STAGE_TITLES = [
     ("Etapa 0","Introducción y ruta del curso"),
     ("Etapa 1","Control del ruido: fuente, trayectoria y receptor"),
@@ -3360,12 +3596,25 @@ LAB1_STAGE_TITLES = [
     ("Etapa 9","Aplicación práctica de los índices"),
     ("Etapa 10","Evaluación final del Laboratorio 1"),
 ]
-LAB2_STAGE_TITLES = STAGES
+LAB2_STAGE_TITLES = [
+    ("Etapa 0","Cronograma y ruta de cuatro horas"),
+    ("Etapa 1","Requerimientos CES y asesoría MINVU"),
+    ("Etapa 2","Rw, C, Ctr, R′w, DnT,w y DnT,A"),
+    ("Etapa 3","Modelos de la tesis"),
+    ("Etapa 4","Cinco problemas numéricos resueltos"),
+    ("Etapa 5","Aplicación didáctica de ISO 12354"),
+    ("Etapa 6","Caso guiado · Sala de Reuniones Dirección"),
+    ("Etapa 7","Comparación de tres soluciones · TA-01"),
+    ("Etapa 8","Aislamiento compuesto y puertas"),
+    ("Etapa 9","Banco, fichas y preparación"),
+    ("Etapa 10","Evaluación · Sala de Reuniones Licitaciones"),
+]
 LAB_STAGE_TITLES = {1: LAB1_STAGE_TITLES, 2: LAB2_STAGE_TITLES}
 LAB_STAGE_FUNCTIONS = {
     1: [lab1_stage0,lab1_stage1,lab1_stage2,lab1_stage3,lab1_stage4,lab1_stage5,
         lab1_stage6,lab1_stage7,lab1_stage8,lab1_stage9,lab1_stage10],
-    2: [stage0,stage1,stage2,stage3,stage4,stage5,stage6,stage7,stage8,stage9,stage10],
+    2: [lab2_stage0,lab2_stage1,lab2_stage2,lab2_stage3,lab2_stage4,lab2_stage5,
+        lab2_stage6,lab2_stage7,lab2_stage8,lab2_stage9,lab2_stage10],
 }
 
 def course_dashboard():
@@ -3393,13 +3642,19 @@ def course_dashboard():
         item=class_by_number.get(number,{})
         opening=item.get("opens_at") or lab["opens_at"]
         released=item.get("status") in ("published","archived")
+        if st.session_state.get("role")=="Alumno" and not released:
+            continue
         available=released and _is_open(opening)
         if st.session_state.get("role")=="Docente":
             available=True
         summary=summaries[number]
         progress_status=("Pendiente" if summary["answered"]==0 else
                          "Completado" if summary["answered"]>=summary["expected"] else "En progreso")
-        availability="Disponible" if available else f"Habilitación: {_opening_label(opening)}"
+        if st.session_state.get("role")=="Docente":
+            availability=("Publicado para alumnos" if released else
+                          "Borrador · oculto para alumnos")
+        else:
+            availability="Disponible" if available else f"Habilitación: {_opening_label(opening)}"
         st.markdown(
             f'<div class="lesson"><div class="overview-title">LABORATORIO {number}</div>'
             f'<span class="muted">{availability}</span><hr>'
@@ -3416,8 +3671,11 @@ def course_dashboard():
             st.session_state["_open_lab_requested"]=True
             st.rerun()
 
+    lab2_released=class_by_number.get(2,{}).get("status") in ("published","archived")
     st.markdown("#### Resultado del curso")
-    if not course_result["final_done"]:
+    if st.session_state.get("role")=="Alumno" and not lab2_released:
+        st.info("El curso continúa en desarrollo. Tu avance del laboratorio publicado se conserva.")
+    elif not course_result["final_done"]:
         st.warning(
             f'**Evaluación final: Pendiente.** Puntaje acumulado actual: '
             f'{course_result["earned"]:g}/{course_result["maximum"]:g} puntos. '
@@ -3432,21 +3690,168 @@ def course_dashboard():
         )
 
     st.markdown("---")
-    for course_index,course in enumerate(ACADEMIC_COURSES[1:],start=2):
-        st.markdown(f"### {course['title']}")
+    for course in COURSE_LABS:
+        visible_labs=[]
+        for lab in course["labs"]:
+            row=next((r for r in classes if r.get("id")==lab["id"]),{})
+            published=row.get("status") in ("published","archived")
+            if st.session_state.get("role")=="Docente" or (published and _is_open(row.get("opens_at") or lab["opens_at"])):
+                visible_labs.append((lab,row,published))
+        if not visible_labs:
+            continue
+        st.markdown(f"### {course['course']}")
         columns=st.columns(2)
-        for column,lab in zip(columns,course["labs"]):
+        for column,(lab,row,published) in zip(columns,visible_labs):
             with column:
+                state=("Publicado para alumnos" if published else "Borrador · oculto para alumnos")
                 st.markdown(
                     f'<div class="lesson"><div class="overview-title">LABORATORIO {lab["number"]}</div>'
-                    f'<span class="muted">Habilitación: {_opening_label(lab["opens_at"])}</span><hr>'
-                    '<b>Estado: Pendiente</b><br><span class="muted">'
-                    'El contenido se habilitará en la fecha programada.</span></div>',
+                    f'<span class="muted">Programado: {_opening_label(row.get("opens_at") or lab["opens_at"])}</span><hr>'
+                    f'<b>{state}</b><br><span class="muted">{lab["focus"]}</span></div>',
                     unsafe_allow_html=True,
                 )
+                if st.button("Abrir laboratorio",key=f'open_{lab["id"]}',use_container_width=True):
+                    st.session_state["future_lab_id"]=lab["id"]
+                    st.rerun()
+
+def _future_saved(class_id):
+    """Return the saved state for the selected student and future class."""
+    client=_supabase()
+    if client is None:
+        return st.session_state.get(f"future_saved_{class_id}",{})
+    try:
+        rows=(client.table("user_progress").select("state_json")
+              .eq("class_id",class_id).eq("user_key",st.session_state.user_key)
+              .limit(1).execute().data or [])
+        state=rows[0].get("state_json",{}) if rows else {}
+        return json.loads(state) if isinstance(state,str) else state
+    except Exception:
+        return {}
+
+def _save_future_state(class_id,state):
+    client=_supabase()
+    st.session_state[f"future_saved_{class_id}"]=state
+    if client is None:
+        return
+    client.table("user_progress").upsert({
+        "course_id":COURSE_ID,"class_id":class_id,
+        "user_key":st.session_state.user_key,
+        "role":st.session_state.get("role","Alumno"),
+        "display_name":st.session_state.get("name",""),
+        "state_json":state,"updated_at":_now(),
+    },on_conflict="class_id,user_key").execute()
+
+def future_lab_view(lab):
+    """Data-driven renderer for the eight laboratories developed from the source material."""
+    class_id=lab["id"]
+    saved=_future_saved(class_id)
+    with st.sidebar:
+        uc=ROOT/"assets/logos/logo_uc.png"; decon=ROOT/"assets/logos/logo_decon_uc.png"
+        if uc.exists(): st.image(str(uc),width=75)
+        if decon.exists(): st.image(str(decon),width=130)
+        st.markdown("## ◉ LABORATORIO")
+        st.markdown(
+            f'<div style="background:#0b4f83;border:1px solid #59d4ef;border-radius:12px;'
+            f'padding:.75rem .85rem;margin:.35rem 0 .8rem"><b>LABORATORIO {lab["number"]}</b><br>'
+            f'<span style="font-size:.78rem;color:#d9f5ff">{lab["course_short"]}</span></div>',
+            unsafe_allow_html=True)
+        st.caption("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN")
+        st.markdown(f"**{st.session_state.name}**  \n{st.session_state.role}")
+        answered=sum(1 for i in range(11) if saved.get(f"done_{i}"))
+        st.progress(answered/11)
+        st.caption(f"Avance: {answered}/11 etapas · {answered*10}/110 puntos formativos")
+        selected=st.radio(
+            "Ruta de aprendizaje",
+            list(range(11)),
+            format_func=lambda i:f"Etapa {i} · {lab['stages'][i][0]}",
+            key=f"future_stage_{class_id}",
+        )
+        if st.button("← Volver a Mis clases",use_container_width=True):
+            st.session_state.pop("future_lab_id",None); st.rerun()
+        if st.session_state.get("role")=="Docente":
+            client=_supabase()
+            if client is not None:
+                row=(client.table("classes").select("status").eq("id",class_id)
+                     .limit(1).execute().data or [{}])[0]
+                published=row.get("status")=="published"
+                st.caption("Publicado para alumnos" if published else "Borrador · oculto para alumnos")
+                if st.button("Ocultar laboratorio" if published else "Publicar laboratorio",
+                             key=f"future_publish_{class_id}",use_container_width=True):
+                    client.table("classes").update({
+                        "status":"draft" if published else "published","updated_at":_now()
+                    }).eq("id",class_id).execute()
+                    st.rerun()
+        if st.button("Cerrar sesión",use_container_width=True):
+            st.session_state.clear(); st.rerun()
+
+    title,objective,concept,activity=lab["stages"][selected]
+    header(f"ETAPA {selected} · LABORATORIO {lab['number']}",title,objective)
+    st.caption(f"{lab['course']} · Fuente base: {lab['source']} · 4 horas totales")
+    left,right=st.columns([1.25,.75])
+    with left:
+        st.markdown("### Desarrollo técnico")
+        st.markdown(concept)
+        if selected in (2,3,4,5,8):
+            st.markdown("#### Regla de trabajo")
+            if "ambiental" in lab["id"]:
+                st.latex(r"L_{eq}=10\log_{10}\left(\frac{1}{T}\sum_i t_i\,10^{L_i/10}\right)")
+            elif "construccion" in lab["id"]:
+                st.latex(r"L_p(r_2)=L_p(r_1)-20\log_{10}(r_2/r_1)")
+            elif "impacto" in lab["id"]:
+                st.latex(r"L'_{nT}=L_i-10\log_{10}(T/T_0)")
+            else:
+                st.latex(r"D_{nT}=L_1-L_2+10\log_{10}(T/T_0)")
+        st.info("Criterio profesional: registra dato, método, unidad, supuesto e interpretación. Un resultado sin trazabilidad no es verificable.")
+    with right:
+        st.markdown("### Mapa de decisión")
+        st.markdown(f"""
+        1. **Fenómeno:** {title}  
+        2. **Magnitud:** elegir el indicador correcto.  
+        3. **Método:** separar cálculo, medición y estimación.  
+        4. **Decisión:** comparar con el criterio aplicable.  
+        5. **Verificación:** definir cómo comprobar la medida.
+        """)
+        st.metric("Tiempo de etapa",f"{20 if selected not in (9,10) else 35} min")
+
+    st.markdown("### Actividad interactiva")
+    st.write(activity)
+    answer=st.text_area(
+        "Desarrollo del alumno",
+        value=saved.get(f"answer_{selected}",""),
+        height=150,key=f"future_answer_{class_id}_{selected}",
+        placeholder="Describe datos, procedimiento, resultado e interpretación.",
+    )
+    c1,c2,c3=st.columns(3)
+    magnitude=c1.selectbox("Magnitud principal",["Seleccionar","Nivel por bandas","Índice único","Tiempo / duración","Vibración","Clase / cumplimiento"],key=f"mag_{class_id}_{selected}")
+    method=c2.selectbox("Tipo de evidencia",["Seleccionar","Cálculo","Medición","Modelación","Inspección","Combinación"],key=f"method_{class_id}_{selected}")
+    confidence=c3.slider("Confianza en la respuesta",1,5,3,key=f"conf_{class_id}_{selected}")
+    if st.button("Guardar y completar etapa",type="primary",key=f"complete_{class_id}_{selected}"):
+        if len(answer.strip())<40 or magnitude=="Seleccionar" or method=="Seleccionar":
+            st.warning("Completa un desarrollo de al menos 40 caracteres y selecciona magnitud y evidencia.")
+        else:
+            saved.update({
+                f"answer_{selected}":answer,f"magnitude_{selected}":magnitude,
+                f"method_{selected}":method,f"confidence_{selected}":confidence,
+                f"done_{selected}":True,f"updated_{selected}":_now(),
+            })
+            _save_future_state(class_id,saved)
+            st.success("Etapa guardada. El avance pertenece únicamente a este laboratorio.")
+            st.rerun()
+
+    if st.session_state.get("role")=="Docente":
+        with st.expander("🔐 Orientación docente y respuesta esperada"):
+            st.markdown(f"""
+            **Evidencia mínima:** identificación correcta del fenómeno; selección coherente
+            de magnitud y método; procedimiento trazable; resultado con unidad; decisión
+            vinculada al criterio; medida verificable.
+
+            **Retroalimentación sugerida:** revisar si la respuesta distingue propiedad de
+            elemento, desempeño en terreno, exposición y percepción. Penalizar promedios
+            aritméticos de decibeles, símbolos intercambiados y conclusiones normativas sin fuente.
+            """)
 
 def calculation_notebook():
-    header("MESA DE CÁLCULO","Cuaderno técnico personal",
+    header(f"MESA DE CÁLCULO · LABORATORIO {ACTIVE_LAB}","Cuaderno técnico personal",
            "Desarrolla el ejercicio dentro de la plataforma y guarda datos, conversiones, fórmula, sustitución, resultado e interpretación.")
     question_key=st.text_input("Código o nombre del ejercicio",key="notebook_question")
     title=st.text_input("Título del desarrollo",value="Desarrollo de ejercicio",key="notebook_title")
@@ -3534,6 +3939,28 @@ st.session_state.pop("projection_mode",None)
 if not st.session_state.get("access"):
     login();st.stop()
 
+# Laboratories 3–10 use their own renderer and class identifier.
+future_lab_id=st.session_state.get("future_lab_id")
+if future_lab_id in FUTURE_LABS:
+    future_lab=FUTURE_LABS[future_lab_id]
+    if st.session_state.get("role")=="Alumno":
+        client=_supabase()
+        allowed=False
+        if client is not None:
+            try:
+                rows=(client.table("classes").select("status,opens_at")
+                      .eq("id",future_lab_id).limit(1).execute().data or [])
+                allowed=bool(rows and rows[0].get("status")=="published" and
+                             _is_open(rows[0].get("opens_at") or future_lab["opens_at"]))
+            except Exception:
+                allowed=False
+        if not allowed:
+            st.session_state.pop("future_lab_id",None)
+            st.warning("Ese laboratorio todavía no está publicado para alumnos.")
+            st.rerun()
+    future_lab_view(future_lab)
+    st.stop()
+
 # A student can never keep or reopen a laboratory that the teacher has hidden.
 if st.session_state.get("role")=="Alumno":
     client=_supabase()
@@ -3560,20 +3987,33 @@ if st.session_state.get("_loaded_lab") != ACTIVE_LAB:
     load_user_progress(st.session_state.get("user_key"))
     st.session_state["_loaded_lab"]=ACTIVE_LAB
 if st.session_state.pop("_open_lab_requested",False):
-    st.session_state["main_view"]="📚 Laboratorio y actividades"
+    st.session_state["main_view"]=f"📚 Laboratorio {ACTIVE_LAB} y actividades"
 
 with st.sidebar:
     uc=ROOT/"assets/logos/logo_uc.png";decon=ROOT/"assets/logos/logo_decon_uc.png"
     if uc.exists(): st.image(str(uc),width=75)
     if decon.exists(): st.image(str(decon),width=130)
     st.markdown("## ◉ LABORATORIO")
-    st.caption(f"LABORATORIO {ACTIVE_LAB} · AISLAMIENTO A RUIDO AÉREO")
+    st.markdown(
+        f'<div style="background:#0b4f83;border:1px solid #59d4ef;border-radius:12px;'
+        f'padding:.75rem .85rem;margin:.35rem 0 .8rem"><b>LABORATORIO {ACTIVE_LAB}</b><br>'
+        f'<span style="font-size:.78rem;color:#d9f5ff">AISLAMIENTO A RUIDO AÉREO</span></div>',
+        unsafe_allow_html=True,
+    )
     st.caption("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN")
     st.markdown(f"**{st.session_state.name}**  \n{st.session_state.role}")
     score_counter(compact=True)
+    view_options=[
+        "🏠 Mis clases",
+        f"📚 Laboratorio {ACTIVE_LAB} y actividades",
+        f"📐 Fórmulas · Laboratorio {ACTIVE_LAB}",
+        f"🧮 Mesa de cálculo · Laboratorio {ACTIVE_LAB}",
+    ]
+    if st.session_state.get("main_view") not in view_options:
+        st.session_state["main_view"]="🏠 Mis clases"
     view=st.radio(
         "Vista",
-        ["🏠 Mis clases","📚 Laboratorio y actividades","📐 Formulario de fórmulas","🧮 Mesa de cálculo"],
+        view_options,
         key="main_view",
         help="Puedes consultar las fórmulas y regresar sin perder lo que estabas respondiendo.",
     )
@@ -3592,7 +4032,7 @@ with st.sidebar:
         )
         if st.button("Mostrar etapa en Zoom",use_container_width=True):
             _set_projection(stage=projection_stage)
-            st.success(f"{STAGES[projection_stage][0]} enviada a la pantalla Zoom.")
+            st.success(f"{LAB_STAGE_TITLES[ACTIVE_LAB][projection_stage][0]} del Laboratorio {ACTIVE_LAB} enviada a Zoom.")
         with st.expander("⚙️ Gestión de alumnos"):
             teacher_student_management()
         with st.expander("🔒 Publicación de laboratorios"):
@@ -3600,7 +4040,7 @@ with st.sidebar:
     active_titles=LAB_STAGE_TITLES[ACTIVE_LAB]
     labels=[f"{n} · {t} · {STAGE_MINUTES[i]} min" for i,(n,t) in enumerate(active_titles)]
     selected=None
-    if view=="📚 Laboratorio y actividades":
+    if view==view_options[1]:
         lab_stages=LABORATORIES[ACTIVE_LAB]["stages"]
         lab_labels=[labels[i] for i in lab_stages]
         selected=st.radio("Ruta de aprendizaje",lab_labels,label_visibility="collapsed",
@@ -3611,9 +4051,9 @@ with st.sidebar:
 
 if view=="🏠 Mis clases":
     course_dashboard()
-elif view=="📐 Formulario de fórmulas":
+elif view==view_options[2]:
     formula_reference()
-elif view=="🧮 Mesa de cálculo":
+elif view==view_options[3]:
     calculation_notebook()
 else:
     idx=labels.index(selected)
