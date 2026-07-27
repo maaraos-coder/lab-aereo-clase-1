@@ -1510,62 +1510,112 @@ def formula_popup_button():
     """Open a self-contained reference window without creating a second login session."""
     title=f"Formulario · Laboratorio {ACTIVE_LAB}"
     formulae=[
-        ("Absorción equivalente","A = Σ αᵢ·Sᵢ","A [m² sabin], α [-], S [m²]"),
-        ("Sabine","T₆₀ = 0,161·V/A","T₆₀ [s], V [m³], A [m² sabin]"),
-        ("Transmisión","τ = 10^(−R/10)","τ [-], R [dB]"),
-        ("Elemento compuesto","τₜ = Σ(Sᵢ·τᵢ)/ΣSᵢ   |   Rₜ = −10·log₁₀(τₜ)","S [m²], R [dB]"),
-        ("Diferencia normalizada","DₙT = L₁ − L₂ + 10·log₁₀(T/T₀)","T₀ = 0,5 s"),
-        ("Ley de masa","R ≈ 20·log₁₀(m′·f) − 47","m′ [kg/m²], f [Hz], R [dB]"),
-        ("Rigidez flexional","D = E·h³ / [12·(1−ν²)]","D [N·m], E [Pa], h [m]"),
-        ("Frecuencia crítica","f꜀ = c²/(2π) · √(m′/D)","f꜀ [Hz], c [m/s]"),
-        ("Masa–aire–masa","f₀ ≈ 60·√[(1/d)·(1/m′₁+1/m′₂)]","d [m], m′ [kg/m²]"),
-        ("Payback","Payback = I₀/Fₙₑₜₒ","I₀ [$], Fₙₑₜₒ [$/año]"),
-        ("ROI","ROI = (Bₜₒₜₐₗ−I₀)/I₀ · 100","ROI [%]"),
+        ("Absorción equivalente","A = Σ α<sub>i</sub> · S<sub>i</sub>",[
+            ("A","área de absorción acústica equivalente","m² sabin"),
+            ("α<sub>i</sub>","coeficiente de absorción de la superficie i","adimensional"),
+            ("S<sub>i</sub>","área de la superficie i","m²")]),
+        ("Tiempo de reverberación de Sabine","T<sub>60</sub> = 0,161 · V / A",[
+            ("T<sub>60</sub>","tiempo para que el nivel sonoro decaiga 60 dB","s"),
+            ("V","volumen del recinto","m³"),
+            ("A","área de absorción acústica equivalente","m² sabin")]),
+        ("Coeficiente de transmisión","τ = 10<sup>−R/10</sup>",[
+            ("τ","relación entre potencia sonora transmitida e incidente","adimensional"),
+            ("R","índice de reducción sonora del elemento","dB")]),
+        ("Elemento compuesto","τ<sub>t</sub> = Σ(S<sub>i</sub>·τ<sub>i</sub>) / ΣS<sub>i</sub><br>R<sub>t</sub> = −10·log<sub>10</sub>(τ<sub>t</sub>)",[
+            ("τ<sub>t</sub>","coeficiente de transmisión total del cerramiento","adimensional"),
+            ("S<sub>i</sub>","área de cada elemento (muro, puerta o ventana)","m²"),
+            ("τ<sub>i</sub>","coeficiente de transmisión de cada elemento","adimensional"),
+            ("R<sub>t</sub>","índice de reducción sonora del elemento compuesto","dB")]),
+        ("Diferencia de nivel estandarizada","D<sub>nT</sub> = L<sub>1</sub> − L<sub>2</sub> + 10·log<sub>10</sub>(T/T<sub>0</sub>)",[
+            ("D<sub>nT</sub>","diferencia de nivel estandarizada entre recintos","dB"),
+            ("L<sub>1</sub>","nivel promedio en el recinto emisor","dB"),
+            ("L<sub>2</sub>","nivel promedio en el recinto receptor","dB"),
+            ("T","tiempo de reverberación medido en el receptor","s"),
+            ("T<sub>0</sub>","tiempo de reverberación de referencia; usualmente 0,5 s","s")]),
+        ("Ley de masa (aproximación)","R ≈ 20·log<sub>10</sub>(m′·f) − 47",[
+            ("R","índice de reducción sonora aproximado","dB"),
+            ("m′","masa superficial de la placa","kg/m²"),
+            ("f","frecuencia","Hz")]),
+        ("Rigidez flexional","D = E·h<sup>3</sup> / [12·(1−ν<sup>2</sup>)]",[
+            ("D","rigidez flexional por unidad de ancho","N·m"),
+            ("E","módulo de Young del material","Pa"),
+            ("h","espesor de la placa","m"),
+            ("ν","coeficiente de Poisson","adimensional")]),
+        ("Frecuencia crítica","f<sub>c</sub> = c<sup>2</sup>/(2π) · √(m′/D)",[
+            ("f<sub>c</sub>","frecuencia crítica o de coincidencia","Hz"),
+            ("c","velocidad del sonido en el aire","m/s"),
+            ("m′","masa superficial de la placa","kg/m²"),
+            ("D","rigidez flexional de la placa","N·m")]),
+        ("Resonancia masa–aire–masa","f<sub>0</sub> ≈ 60·√[(1/d)·(1/m′<sub>1</sub>+1/m′<sub>2</sub>)]",[
+            ("f<sub>0</sub>","frecuencia de resonancia del sistema doble","Hz"),
+            ("d","profundidad de la cámara de aire","m"),
+            ("m′<sub>1</sub>, m′<sub>2</sub>","masas superficiales de las dos hojas","kg/m²")]),
+        ("Periodo de recuperación","Payback = I<sub>0</sub> / F<sub>neto</sub>",[
+            ("I<sub>0</sub>","inversión inicial","$"),
+            ("F<sub>neto</sub>","flujo neto anual atribuible a la solución","$/año"),
+            ("Payback","tiempo necesario para recuperar la inversión","años")]),
+        ("Retorno sobre la inversión","ROI = (B<sub>total</sub> − I<sub>0</sub>) / I<sub>0</sub> · 100",[
+            ("B<sub>total</sub>","beneficio económico acumulado en el periodo analizado","$"),
+            ("I<sub>0</sub>","inversión inicial","$"),
+            ("ROI","retorno sobre la inversión","%")]),
     ]
-    cards="".join(
-        f"<article><h3>{name}</h3><div class='eq'>{equation}</div><small>{variables}</small></article>"
-        for name,equation,variables in formulae)
+    cards=""
+    for name,equation,variables in formulae:
+        rows="".join(
+            f"<tr><th>{symbol}</th><td>{meaning}</td><td>{unit}</td></tr>"
+            for symbol,meaning,unit in variables)
+        cards+=(
+            f"<article><h3>{name}</h3><div class='eq'>{equation}</div>"
+            f"<table><thead><tr><th>Símbolo</th><th>Corresponde a</th><th>Unidad</th></tr></thead>"
+            f"<tbody>{rows}</tbody></table></article>")
     popup=f"""<!doctype html><html><head><meta charset='utf-8'><title>{title}</title>
     <style>body{{font-family:Arial,sans-serif;background:#f4f8fc;color:#102b49;margin:0;padding:18px}}
     header{{position:sticky;top:0;background:linear-gradient(135deg,#07172b,#0878bd);color:white;
     border-radius:14px;padding:16px 18px;box-shadow:0 8px 22px #07172b33}}header b{{font-size:20px}}
     article{{background:white;border:1px solid #d8e6f3;border-left:5px solid #0a75bd;
     border-radius:12px;padding:12px 14px;margin:10px 0}}h3{{font-size:14px;margin:0 0 8px;color:#0a4f86}}
-    .eq{{font-size:18px;font-weight:800;line-height:1.45}}small{{display:block;margin-top:7px;color:#60718a}}</style>
+    .eq{{font-size:20px;font-weight:800;line-height:1.55;margin-bottom:10px}}
+    table{{width:100%;border-collapse:collapse;font-size:13px}}th,td{{padding:6px 7px;border-top:1px solid #e1eaf2;text-align:left;vertical-align:top}}
+    thead th{{color:#53657a;font-size:11px;text-transform:uppercase}}tbody th{{color:#083f6b;white-space:nowrap}}
+    small{{display:block;margin-top:7px;color:#60718a}}</style>
     </head><body><header><b>📐 {title}</b><br><small style='color:#d9f5ff'>Ventana de consulta independiente</small></header>{cards}</body></html>"""
-    encoded=base64.b64encode(popup.encode("utf-8")).decode("ascii")
+    popup_json=json.dumps(popup,ensure_ascii=False)
     components.html(f"""
     <button id="open-formulas">📐 Abrir fórmulas</button>
     <style>body{{margin:0}}button{{width:100%;height:42px;background:#0b4f83;color:white;
     border:1px solid #59d4ef;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer}}
     button:hover{{background:#0878bd;border-color:#8ee9ff}}</style>
     <script>document.getElementById('open-formulas').onclick=()=>{{
-      const html=atob('{encoded}');const blob=new Blob([html],{{type:'text/html'}});
-      window.open(URL.createObjectURL(blob),'formulario_laboratorio','popup=yes,width=650,height=820,resizable=yes,scrollbars=yes');
+      const win=window.open('','formulario_laboratorio','popup=yes,width=720,height=840,resizable=yes,scrollbars=yes');
+      win.document.open();win.document.write({popup_json});win.document.close();
     }};</script>""",height=48,scrolling=False)
 
 CAD_BUCKET = "cad-plans"
 
 def _dxf_preview(file_bytes):
-    """Render a DXF to PNG for the browser viewer; the original remains downloadable."""
+    """Render DXF and return its preview plus drawing-units-per-image-pixel."""
     if ezdxf is None or plt is None:
         raise RuntimeError("Falta instalar ezdxf o matplotlib.")
     with tempfile.NamedTemporaryFile(suffix=".dxf") as source:
         source.write(file_bytes)
         source.flush()
         document=ezdxf.readfile(source.name)
-    fig=plt.figure(figsize=(14,9),dpi=150)
+    dpi=150
+    fig=plt.figure(figsize=(14,9),dpi=dpi)
     axis=fig.add_axes([0.01,0.01,0.98,0.98])
     axis.set_facecolor("#ffffff")
     Frontend(RenderContext(document),MatplotlibBackend(axis)).draw_layout(
         document.modelspace(),finalize=True)
     axis.set_aspect("equal")
     axis.axis("off")
+    fig.canvas.draw()
+    xmin,xmax=axis.get_xlim()
+    _,_,axis_width,_=axis.get_window_extent().bounds
+    drawing_units_per_pixel=abs(xmax-xmin)/axis_width
     output=io.BytesIO()
-    fig.savefig(output,format="png",dpi=150,bbox_inches="tight",pad_inches=.04,
-                facecolor="white")
+    fig.savefig(output,format="png",dpi=dpi,facecolor="white")
     plt.close(fig)
-    return output.getvalue()
+    return output.getvalue(),drawing_units_per_pixel
 
 def _cad_record(stage):
     client=_supabase()
@@ -1588,18 +1638,15 @@ def _cad_signed_url(path):
     except Exception:
         return None
 
-def _save_cad_document(stage,uploaded,display_name,units_per_pixel,unit_label):
+def _save_cad_document(stage,uploaded,display_name,unit_label):
     client=_supabase()
     if client is None:
         raise RuntimeError("Supabase no está conectado.")
     raw=uploaded.getvalue()
     suffix=Path(uploaded.name).suffix.lower()
-    if suffix==".dxf":
-        preview=_dxf_preview(raw)
-    elif suffix in (".png",".jpg",".jpeg",".webp"):
-        preview=raw
-    else:
-        raise RuntimeError("Para medir en pantalla sube un DXF o una imagen PNG/JPG/WEBP.")
+    if suffix!=".dxf":
+        raise RuntimeError("El plano medible debe estar en formato DXF.")
+    preview,drawing_units_per_pixel=_dxf_preview(raw)
     stamp=dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S")
     base=f"{LABORATORIES[2]['id']}/stage-{stage}/{stamp}"
     original_path=f"{base}{suffix}"
@@ -1612,7 +1659,7 @@ def _save_cad_document(stage,uploaded,display_name,units_per_pixel,unit_label):
         "class_id":LABORATORIES[2]["id"],"stage":stage,
         "display_name":display_name.strip() or uploaded.name,
         "original_name":uploaded.name,"original_path":original_path,
-        "preview_path":preview_path,"units_per_pixel":float(units_per_pixel),
+        "preview_path":preview_path,"units_per_pixel":float(drawing_units_per_pixel),
         "unit_label":unit_label.strip() or "m","updated_at":_now(),
     }
     client.table("cad_documents").upsert(data,on_conflict="class_id,stage").execute()
@@ -1668,24 +1715,20 @@ def cad_viewer_dialog(stage):
     record=_cad_record(stage)
     if st.session_state.get("role")=="Docente":
         with st.expander("Subir o reemplazar plano",expanded=record is None):
-            uploaded=st.file_uploader("Plano",type=["dxf","png","jpg","jpeg","webp"],
+            uploaded=st.file_uploader("Plano medible (DXF)",type=["dxf"],
                                       key=f"cad_upload_{stage}")
             display_name=st.text_input("Nombre visible",value=(record or {}).get("display_name",""),
                                        key=f"cad_name_{stage}")
-            c1,c2=st.columns(2)
-            units=c1.number_input("Unidades reales por píxel",min_value=0.000001,
-                                  value=float((record or {}).get("units_per_pixel") or 0.01),
-                                  format="%.6f",key=f"cad_scale_{stage}")
-            unit=c2.selectbox("Unidad",["m","cm","mm"],index=["m","cm","mm"].index((record or {}).get("unit_label","m"))
+            unit=st.selectbox("Unidad utilizada al dibujar el DXF",["m","cm","mm"],index=["m","cm","mm"].index((record or {}).get("unit_label","m"))
                               if (record or {}).get("unit_label","m") in ["m","cm","mm"] else 0,
                               key=f"cad_unit_{stage}")
-            st.caption("Calibra la escala con una distancia conocida del plano antes de publicarlo.")
+            st.caption("La escala se obtiene automáticamente de las coordenadas del DXF. Verifica la unidad antes de publicarlo.")
             if st.button("Publicar plano",type="primary",key=f"cad_publish_{stage}"):
                 if uploaded is None:
                     st.warning("Selecciona un archivo.")
                 else:
                     try:
-                        _save_cad_document(stage,uploaded,display_name,units,unit)
+                        _save_cad_document(stage,uploaded,display_name,unit)
                         st.success("Plano publicado para este caso.")
                         st.rerun()
                     except Exception as exc:
