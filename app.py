@@ -4505,13 +4505,16 @@ with st.sidebar:
         )
         labels.append(f"{number} · {editable['title']} · {editable['minutes']} min")
     selected=None
-    if view==view_options[1]:
+    if view==view_options[2]:
         lab_stages=LABORATORIES[ACTIVE_LAB]["stages"]
         lab_labels=[labels[i] for i in lab_stages]
+        stage_state_key=f"selected_stage_lab_{ACTIVE_LAB}"
+        if st.session_state.get(stage_state_key) not in lab_labels:
+            st.session_state[stage_state_key]=lab_labels[0]
         selected=st.radio("Ruta de aprendizaje",lab_labels,label_visibility="collapsed",
-                          key=f"selected_stage_lab_{ACTIVE_LAB}")
+                          key=stage_state_key)
         if st.session_state.role=="Docente":
-            current_stage=lab_labels.index(selected)
+            current_stage=lab_stages[lab_labels.index(selected)]
             cms_editor_button(_supabase(),_cms_catalog(),_now,CLASS_ID,current_stage)
     if st.button("Cerrar sesión",use_container_width=True):
         st.session_state.clear();st.rerun()
@@ -4521,7 +4524,10 @@ if view=="🏠 Mis clases":
     course_dashboard()
 elif view=="📊 Mis resultados":
     results_view(_supabase(), _cms_catalog(), st.session_state.get("user_key", ""))
-else:
+elif view==view_options[2]:
+    lab_stages=LABORATORIES[ACTIVE_LAB]["stages"]
+    if selected not in labels:
+        selected=labels[lab_stages[0]]
     idx=labels.index(selected)
     st.caption(f"Curso: Aislamiento a ruido aéreo · Laboratorio {ACTIVE_LAB} de 2")
     if not cms_render_override(_supabase(),CLASS_ID,idx,st.session_state.get("role","Alumno")):
