@@ -22,7 +22,8 @@ ROOT = Path(__file__).parent
 FREQS = np.array([100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150])
 ACTIVITY_DB = ROOT / "formative_responses.sqlite3"
 COURSE_ID = "diplomado-acustica-edificacion"
-CLASS_ID = "clase-01-aislamiento-ruido-aereo"
+CLASS_ID = "clase-02-aislamiento-ruido-aereo-minvu"
+CLASS_NUMBER = 2
 APPLICATION_POINTS = {
     3: {"s3q1": 2, "s3q2": 2, "s3q3": 2, "s3q4": 2, "s3q5": 2},
     5: {"s5q1": 4, "s5q2": 3, "s5q3": 3},
@@ -2737,7 +2738,15 @@ def course_dashboard():
     client=_supabase()
     if client is None:
         st.warning("Supabase todavía no está configurado. La aplicación está usando almacenamiento local de prueba.")
-        classes=[{"class_number":1,"title":"Aislamiento a ruido aéreo","description":"Laboratorio interactivo de 4 horas","status":"published","due_at":None}]
+        classes=[
+            {"id":"clase-01-aislamiento-ruido-aereo","class_number":1,
+             "title":"Fundamentos del aislamiento a ruido aéreo",
+             "description":"Clase inicial y laboratorio interactivo","status":"published","due_at":None},
+            {"id":CLASS_ID,"class_number":CLASS_NUMBER,
+             "title":"Diseño profesional de aislamiento a ruido aéreo",
+             "description":"Caso MINVU Magallanes · SONARA · Quirt · ISO 12354 · 4 horas",
+             "status":"published","due_at":None},
+        ]
     else:
         classes=client.table("classes").select("*").eq("course_id",COURSE_ID).order("class_number").execute().data or []
     if st.session_state.get("role")!="Docente":
@@ -2753,7 +2762,7 @@ def course_dashboard():
             f'<h3>{item.get("title","Clase")}</h3><span class="muted">{item.get("description") or ""}'
             f'{due_text}</span></div>',unsafe_allow_html=True)
         if item.get("id")==CLASS_ID:
-            st.info("Selecciona “Clase y actividades” en el menú para comenzar o continuar exactamente donde quedaste.")
+            st.success("Esta es la clase activa. Selecciona “Clase y actividades” en el menú para comenzar o continuar exactamente donde quedaste.")
         elif item.get("status")=="published":
             st.caption("El contenido de esta clase se incorporará a la plataforma sin borrar las clases anteriores.")
 
@@ -2800,7 +2809,7 @@ def calculation_notebook():
 
 def login():
     institutional_header()
-    header("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN","Laboratorio · Aislamiento a Ruido Aéreo","Ingresa como alumno o docente para acceder a la plataforma.")
+    header("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN","Clase 2 · Aislamiento a Ruido Aéreo","MINVU Magallanes · SONARA · Quirt · ISO 12354")
     role=st.radio("Perfil",["Alumno","Docente"],horizontal=True)
     name=st.text_input("Nombre completo")
     if role=="Alumno":
@@ -2839,7 +2848,7 @@ with st.sidebar:
     if uc.exists(): st.image(str(uc),width=75)
     if decon.exists(): st.image(str(decon),width=130)
     st.markdown("## ◉ LABORATORIO")
-    st.caption("AISLAMIENTO A RUIDO AÉREO")
+    st.caption("CLASE 2 · AISLAMIENTO A RUIDO AÉREO")
     st.caption("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN")
     st.markdown(f"**{st.session_state.name}**  \n{st.session_state.role}")
     score_counter(compact=True)
