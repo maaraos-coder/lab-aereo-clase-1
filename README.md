@@ -1,46 +1,31 @@
-# LAB AÉREO — Clase 1
+# Plataforma Diplomado - Clase de Aislamiento a Ruido Aéreo
 
-Laboratorio Interactivo de Aislamiento a Ruido Aéreo para el Diplomado en Acústica en la Edificación.
+Versión V21 basada en la asesoría real del Edificio Institucional MINVU Magallanes.
 
-## Ejecutar
+## Contenido incorporado
 
-### Windows (forma sencilla)
+- Modelo de placas simples de la tesis AKUZOFT.
+- Sistemas dobles mediante Sharp.
+- Ventanas dobles mediante Quirt, con las ecuaciones 2.28 y 2.29 de la tesis.
+- Ejercicio profesional guiado: Sala de Reuniones Dirección.
+- Aplicación didáctica de ISO 12354 y verificación de DnT,A.
+- Comparación G-01, G-02 y solución real TA-01.
+- Evaluación individual equivalente: Sala de Reuniones Licitaciones.
+- Aislamiento compuesto de tabique y puerta.
+- Optimización por cumplimiento, margen y costo.
+- Intento único de evaluación, reiniciable solo desde la gestión docente.
+- Clases en borrador completamente ocultas para los alumnos.
 
-Haz doble clic en `INICIAR_APP.bat`. La primera ejecución instala automáticamente los componentes necesarios y luego abre la aplicación en el navegador.
+## Ejecución local
 
-### Terminal
+1. Instalar Python.
+2. Instalar las dependencias:
 
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
+   `pip install -r requirements.txt`
 
-La aplicación incluye:
+3. Configurar Supabase según `CONFIGURACION_SUPABASE.md`.
+4. Ejecutar:
 
-- acceso inicial independiente para alumnos y docentes;
-- una clase interactiva completa de 4 horas (240 minutos);
-- tres aplicaciones conceptuales basadas en los ejercicios del PowerPoint;
-- dibujos, ecuaciones rasterizadas y animaciones didácticas visibles tanto
-  para alumnos como para el docente;
-- 20 actividades formativas, dos intentos y 50 puntos;
-- seis laboratorios interactivos de profundización;
-- decisión técnico-económica con costo por dB, ROI y payback;
-- evaluación final independiente de 40 puntos;
-- vista docente e informe PDF del intento final.
+   `streamlit run app.py`
 
-Al subir el proyecto a GitHub, incluye la carpeta `assets/course_visuals`
-completa. La aplicación la necesita para mostrar las ilustraciones y ecuaciones.
-
-## Configurar el acceso docente en Streamlit Cloud
-
-En **Manage app → Settings → Secrets**, agrega:
-
-```toml
-[teacher]
-email = "maaraos@gmail.com"
-password = "TU_CLAVE_DOCENTE_SEGURA"
-```
-
-El correo y la clave no deben escribirse en `app.py` ni subirse a GitHub.
-
-Los cálculos son didácticos y no sustituyen una predicción normalizada, un ensayo de laboratorio ni una medición en terreno.
+La clave docente de prueba es `docente123`. Cámbiela mediante los secretos de Streamlit antes de publicar.

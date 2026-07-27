@@ -5,22 +5,28 @@ import math
 import mimetypes
 import re
 import sqlite3
+import hashlib
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+try:
+    from supabase import create_client
+except ImportError:
+    create_client = None
 
 st.set_page_config(page_title="Laboratorio | Aislamiento a Ruido Aéreo", page_icon="🔊", layout="wide")
 ROOT = Path(__file__).parent
 FREQS = np.array([100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150])
 ACTIVITY_DB = ROOT / "formative_responses.sqlite3"
+COURSE_ID = "diplomado-acustica-edificacion"
+CLASS_ID = "clase-01-aislamiento-ruido-aereo"
 APPLICATION_POINTS = {
     3: {"s3q1": 2, "s3q2": 2, "s3q3": 2, "s3q4": 2, "s3q5": 2},
     5: {"s5q1": 4, "s5q2": 3, "s5q3": 3},
-    7: {"s7q1": 2, "s7q2": 2, "s7q3": 2, "s7q4": 2, "s7q5": 2,
-        "s7q6": 2, "s7q7": 2, "s7q8": 2, "s7q9": 1, "s7q10": 1, "s7q11": 2},
+    7: {"minvu_guided": 20},
     9: {"e9_pairs": 20},
     10: {"final_exam": 100},
 }
@@ -220,11 +226,11 @@ STAGES = [
 ("Etapa 3","Aplicación: absorción, reverberación e inteligibilidad"),
 ("Etapa 4","Aislamiento y análisis costo-beneficio"),
 ("Etapa 5","Aplicación conceptual técnico-económica"),
-("Etapa 6","Fundamentos físicos del aislamiento acústico"),
-("Etapa 7","Aplicación práctica del aislamiento acústico"),
-("Etapa 8","Índices de aislamiento acústico"),
-("Etapa 9","Aplicación práctica de los índices"),
-("Etapa 10","Evaluación final · Aislamiento a Ruido Aéreo"),
+("Etapa 6","Modelos de la tesis: placas, Sharp y ventanas Quirt"),
+("Etapa 7","Ejercicio profesional guiado · MINVU Magallanes"),
+("Etapa 8","Del elemento al edificio · ISO 12354"),
+("Etapa 9","Aplicación práctica de los descriptores"),
+("Etapa 10","Evaluación profesional final · Caso MINVU"),
 ]
 
 # La sesión completa dura 4 horas: 230 minutos de trabajo y 10 minutos de pausa.
@@ -252,21 +258,21 @@ STAGE_GUIDE = {
 5:("⚖️","ANALIZARÁS","Alternativas técnico-económicas bajo una meta acústica común.",
    "📈","EVALUARÁS","Costo del ciclo, ROI, payback, riesgo y suficiencia técnica.",
    "✅","RECOMENDARÁS","La opción justificable, no simplemente la más barata o la de mayor aislamiento."),
-6:("🌊","COMPRENDERÁS","Transmisión, ley de masa, resonancia, coincidencia y sistemas dobles.",
-   "🧪","EXPERIMENTARÁS","Masa, frecuencia, cámaras, absorbentes, sellos y elementos débiles.",
-   "📉","INTERPRETARÁS","Curvas por bandas y las causas físicas de sus valles y pendientes."),
-7:("🛠️","RESOLVERÁS","Ejercicios prácticos de cerramientos simples, dobles y compuestos.",
-   "🔎","DIAGNOSTICARÁS","La banda crítica, el elemento débil y la vía dominante.",
-   "✅","VERIFICARÁS","El cumplimiento de una meta sin sobredimensionar componentes secundarios."),
-8:("📏","CONOCERÁS","R, Rw, C, Ctr, STC, OITC e índices de laboratorio, terreno y fachada.",
-   "🗂️","INTERPRETARÁS","Fichas técnicas, normas, contextos y adaptaciones espectrales.",
-   "🎯","SELECCIONARÁS","El indicador que representa correctamente la fuente y el problema real."),
+6:("🌊","COMPRENDERÁS","Placas simples, método de Sharp y el modelo de ventanas dobles de Quirt desarrollado en AKUZOFT.",
+   "🪟","EXPERIMENTARÁS","Espesores de vidrio, cámara, dimensiones del marco, resonancia f₁ y curva TL(f).",
+   "📉","INTERPRETARÁS","Por qué una ventana no debe modelarse como un tabique doble con cavidad absorbente."),
+7:("🏢","RESOLVERÁS","El encargo real de la Sala de Reuniones Dirección del MINVU Magallanes.",
+   "📐","CALCULARÁS","Volumen, superficie, Kgeo, objetivo Rw+C y desempeño DnT,A.",
+   "✅","DECIDIRÁS","La solución mínima robusta, comparándola finalmente con TA-01."),
+8:("📏","DIFERENCIARÁS","R(f), Rw, C, Ctr, R'w, DnT,w y DnT,A.",
+   "🗂️","CONECTARÁS","El resultado de SONARA con geometría, pérdida de obra y rutas laterales.",
+   "🎯","SELECCIONARÁS","El descriptor compatible con la fuente y la exigencia CES del caso."),
 9:("📉","CALCULARÁS","Rw mediante la curva de referencia y sus desviaciones desfavorables.",
    "🔄","COMPARARÁS","Particiones con igual índice global pero distinto comportamiento espectral.",
    "✅","DECIDIRÁS","Según voz, tránsito, bajas frecuencias, laboratorio o terreno."),
-10:("📝","RESPONDERÁS","29 preguntas teórico-aplicadas de todas las etapas.",
-    "🏢","RESOLVERÁS","Un caso profesional con T60, bandas críticas e índices acústicos.",
-    "💰","JUSTIFICARÁS","La solución final mediante desempeño, costo, vida útil y objetivo de diseño."),
+10:("📝","RESOLVERÁS","Una evaluación individual equivalente al ejercicio profesional guiado.",
+    "🏢","DISEÑARÁS","La separación de Sala de Reuniones Licitaciones, incorporando una puerta.",
+    "💰","OPTIMIZARÁS","La combinación de menor costo que cumpla DnT,A y el margen requerido."),
 }
 
 ROUTE_SUMMARIES = [
@@ -275,11 +281,11 @@ ROUTE_SUMMARIES = [
 ("Aplicación acústica interior","Calcula T₆₀ y mejora la inteligibilidad mediante decisiones concretas."),
 ("Costo-beneficio","Relaciona meta acústica, inversión, ROI, vida útil y costos evitados."),
 ("Decisión técnico-económica","Compara alternativas y descarta las que no cumplen técnicamente."),
-("Fundamentos físicos","Explora masa, frecuencia, resonancia, coincidencia y sistemas dobles."),
-("Diseño práctico","Detecta bandas críticas, elementos débiles y vías dominantes."),
-("Índices acústicos","Interpreta Rw, C, Ctr, STC, OITC y resultados de terreno."),
+("Modelos de la tesis","Explora placas, Sharp, resonancia, coincidencia y ventanas dobles con Quirt."),
+("Caso guiado MINVU","Diseña la separación Dirección–Oficina y verifica DnT,A."),
+("Del elemento al edificio","Interpreta Rw, C, Ctr, R'w, DnT,w, DnT,A y pérdidas de obra."),
 ("Aplicación de índices","Trabaja con curvas, desviaciones, fuentes y fichas técnicas."),
-("Evaluación final","Integra acústica y costo-beneficio en una decisión profesional."),
+("Evaluación final MINVU","Transfiere el método a Licitaciones y optimiza tabique más puerta."),
 ]
 
 def stage_overview(stage_number):
@@ -681,6 +687,11 @@ def _activity_db():
         (id,stage,question,answer,solution,show_answer,show_solution,updated_at)
         VALUES(1,NULL,'','','',0,0,'')"""
     )
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS user_progress(
+        user_key TEXT PRIMARY KEY, role TEXT NOT NULL, display_name TEXT NOT NULL,
+        state_json TEXT NOT NULL DEFAULT '{}', updated_at TEXT NOT NULL)"""
+    )
     existing={row[1] for row in con.execute("PRAGMA table_info(formative_responses)")}
     for column,definition in (
         ("auto_score","REAL DEFAULT 0"),("max_score","REAL DEFAULT 0"),
@@ -691,22 +702,154 @@ def _activity_db():
     con.commit()
     return con
 
+@st.cache_resource
+def _supabase():
+    """Server-side Supabase client. The service key never reaches the browser."""
+    if create_client is None:
+        return None
+    try:
+        return create_client(
+            str(st.secrets["supabase"]["url"]),
+            str(st.secrets["supabase"]["service_role_key"]),
+        )
+    except (KeyError, FileNotFoundError):
+        return None
+
+def _now():
+    return dt.datetime.now(dt.timezone.utc).isoformat()
+
+def _remote_rows(table, **filters):
+    client=_supabase()
+    if client is None:
+        return None
+    query=client.table(table).select("*")
+    for key,value in filters.items():
+        query=query.eq(key,value)
+    return query.execute().data or []
+
+def _register_user(user_key, role, name, rut="", email=""):
+    client=_supabase()
+    if client is None:
+        return
+    client.table("users").upsert({
+        "user_key":user_key,"role":role,"display_name":name,
+        "rut":rut or None,"email":email or None,"last_login_at":_now(),
+    },on_conflict="user_key").execute()
+    client.table("enrollments").upsert({
+        "course_id":COURSE_ID,"user_key":user_key,"active":True,
+    },on_conflict="course_id,user_key").execute()
+
+def _make_user_key(role, name, identification=""):
+    """Stable private identifier: responses do not depend only on the visible name."""
+    source=f"{role}|{identification.strip().lower() or name.strip().lower()}"
+    return hashlib.sha256(source.encode("utf-8")).hexdigest()
+
+def _progress_value(value):
+    """Return a JSON-safe widget value, or None when it should not be persisted."""
+    if isinstance(value,(str,int,float,bool)) or value is None:
+        return value
+    if isinstance(value,(list,tuple)):
+        return [_progress_value(v) for v in value]
+    if isinstance(value,dict):
+        return {str(k):_progress_value(v) for k,v in value.items()}
+    return None
+
+def _is_answer_state(key):
+    key=str(key)
+    blocked=("access","role","name","user_key","projection_mode","manage_",
+             "projection_","review_","anon_","reveal_","teacher_")
+    if key.startswith(blocked):
+        return False
+    return (
+        key.startswith(("ans_","checked_","sent_","exam_","q","s3","s5","s7","s9","e9_","final_"))
+        or key in {"case_V","case_A","case_calc","case_diff","case_pct",
+                   "case_bands","case_choice","case_justification"}
+    )
+
+def save_user_progress():
+    if not st.session_state.get("access") or st.session_state.get("projection_mode"):
+        return
+    user_key=st.session_state.get("user_key")
+    if not user_key:
+        return
+    state={str(k):_progress_value(v) for k,v in st.session_state.items() if _is_answer_state(k)}
+    client=_supabase()
+    if client is not None:
+        client.table("user_progress").upsert({
+            "course_id":COURSE_ID,"class_id":CLASS_ID,"user_key":user_key,
+            "role":st.session_state.get("role","Alumno"),
+            "display_name":st.session_state.get("name",""),
+            "state_json":state,"updated_at":_now(),
+        },on_conflict="class_id,user_key").execute()
+    else:
+        with _activity_db() as con:
+            con.execute(
+            """INSERT INTO user_progress(user_key,role,display_name,state_json,updated_at)
+            VALUES(?,?,?,?,?)
+            ON CONFLICT(user_key) DO UPDATE SET role=excluded.role,
+            display_name=excluded.display_name,state_json=excluded.state_json,
+            updated_at=excluded.updated_at""",
+            (user_key,st.session_state.get("role","Alumno"),
+             st.session_state.get("name",""),json.dumps(state,ensure_ascii=False),
+             dt.datetime.now().isoformat(timespec="seconds")),
+            )
+
+def load_user_progress(user_key):
+    client=_supabase()
+    if client is not None:
+        rows=_remote_rows("user_progress",class_id=CLASS_ID,user_key=user_key)
+        if not rows: return
+        saved=rows[0].get("state_json") or {}
+    else:
+        with _activity_db() as con:
+            row=con.execute("SELECT state_json FROM user_progress WHERE user_key=?",(user_key,)).fetchone()
+        if not row: return
+        try:
+            saved=json.loads(row[0])
+        except (TypeError,json.JSONDecodeError):
+            return
+    try:
+        if isinstance(saved,str): saved=json.loads(saved)
+    except json.JSONDecodeError:
+        return
+    for key,value in saved.items():
+        if key=="exam_answers" and isinstance(value,dict):
+            value={int(k):v for k,v in value.items()}
+        if _is_answer_state(key) and key not in st.session_state:
+            st.session_state[key]=value
+
 def _set_projection(stage=None,question="",answer="",solution="",show_answer=False,show_solution=False):
-    with _activity_db() as con:
-        con.execute(
+    client=_supabase()
+    if client is not None:
+        client.table("projection_state").upsert({
+            "course_id":COURSE_ID,"class_id":CLASS_ID,"stage":stage,
+            "question":question,"answer":answer,"solution":solution,
+            "show_answer":bool(show_answer),"show_solution":bool(show_solution),
+            "updated_at":_now(),
+        },on_conflict="course_id,class_id").execute()
+    else:
+        with _activity_db() as con:
+            con.execute(
             """UPDATE projection_state SET stage=?,question=?,answer=?,solution=?,
             show_answer=?,show_solution=?,updated_at=? WHERE id=1""",
             (stage,question,answer,solution,int(show_answer),int(show_solution),
              dt.datetime.now().isoformat(timespec="seconds")),
-        )
+            )
 
 def projection_view():
     """Complete student-facing class screen intended for a separate Zoom window."""
-    with _activity_db() as con:
-        row=con.execute(
-            "SELECT stage,question,answer,solution,show_answer,show_solution,updated_at "
-            "FROM projection_state WHERE id=1"
-        ).fetchone()
+    client=_supabase()
+    if client is not None:
+        rows=_remote_rows("projection_state",course_id=COURSE_ID,class_id=CLASS_ID)
+        item=rows[0] if rows else {}
+        row=(item.get("stage"),item.get("question"),item.get("answer"),item.get("solution"),
+             item.get("show_answer"),item.get("show_solution"),item.get("updated_at"))
+    else:
+        with _activity_db() as con:
+            row=con.execute(
+                "SELECT stage,question,answer,solution,show_answer,show_solution,updated_at "
+                "FROM projection_state WHERE id=1"
+            ).fetchone()
     stage=row[0] if row else None
     if stage is None:
         st.markdown(
@@ -738,14 +881,37 @@ def _question_points(stage,key):
 def _score_from_level(level,max_score):
     return max_score if level=="Correcta" else max_score*.5 if level=="Parcialmente correcta" else 0.0
 
-def _save_formative(stage,key,question,answer,level,feedback,score=None,max_score=None):
+def _save_formative(stage,key,question,answer,level,feedback,score=None,max_score=None,correct_answer=""):
     if st.session_state.get("projection_mode"):
         return
     student=st.session_state.get("name","Alumno")
+    user_key=st.session_state.get("user_key") or _make_user_key("Alumno",student)
     max_score=_question_points(stage,key) if max_score is None else float(max_score)
     score=_score_from_level(level,max_score) if score is None else float(score)
-    with _activity_db() as con:
-        con.execute(
+    client=_supabase()
+    if client is not None:
+        question_id=f"{CLASS_ID}-{key}-v1"
+        client.table("questions").upsert({
+            "id":question_id,"class_id":CLASS_ID,"stage":stage,
+            "question_key":key,"question_text":question,
+            "correct_answer":correct_answer or feedback,"max_score":max_score,
+            "content_version":1,"active":True,"updated_at":_now(),
+        },on_conflict="id").execute()
+        try:
+            answer_json=json.loads(str(answer))
+        except (json.JSONDecodeError,TypeError):
+            answer_json={"value":str(answer)}
+        client.table("responses").upsert({
+            "course_id":COURSE_ID,"class_id":CLASS_ID,"user_key":user_key,
+            "stage":stage,"question_key":key,"question_text":question,
+            "correct_answer":correct_answer or feedback,"answer":answer_json,
+            "auto_level":level,"feedback":feedback,"auto_score":score,
+            "max_score":max_score,"status":"submitted",
+            "updated_at":_now(),"submitted_at":_now(),
+        },on_conflict="class_id,user_key,question_key").execute()
+    else:
+        with _activity_db() as con:
+            con.execute(
             """INSERT INTO formative_responses
             (created_at,student,stage,question_key,question,answer,auto_level,feedback,auto_score,max_score)
             VALUES(?,?,?,?,?,?,?,?,?,?)
@@ -754,10 +920,20 @@ def _save_formative(stage,key,question,answer,level,feedback,score=None,max_scor
             answer=excluded.answer,auto_level=excluded.auto_level,feedback=excluded.feedback,
             auto_score=excluded.auto_score,max_score=excluded.max_score""",
             (dt.datetime.now().isoformat(timespec="seconds"),student,stage,key,question,str(answer),level,feedback,score,max_score),
-        )
+            )
 
 def _student_scores(student=None):
     student=student or st.session_state.get("name","Alumno")
+    client=_supabase()
+    if client is not None:
+        if student==st.session_state.get("name"):
+            rows=_remote_rows("responses",class_id=CLASS_ID,user_key=st.session_state.get("user_key"))
+        else:
+            users=_remote_rows("users",display_name=student)
+            rows=_remote_rows("responses",class_id=CLASS_ID,user_key=users[0]["user_key"]) if users else []
+        return [(r["stage"],r["question_key"],float(r.get("auto_score") or 0),
+                 float(r.get("max_score") or 0),
+                 None if r.get("teacher_score") is None else float(r["teacher_score"])) for r in rows]
     with _activity_db() as con:
         rows=con.execute(
             """SELECT stage,question_key,auto_score,max_score,teacher_score
@@ -824,7 +1000,7 @@ def formative_development(stage,key,question,solution,groups,error_note):
                 feedback=f"Hay una confusión conceptual. {error_note}"
                 st.error(f"Respuesta incorrecta. {feedback}")
             st.session_state[f"checked_{key}"]=(level,feedback)
-            _save_formative(stage,key,question,answer,level,feedback)
+            _save_formative(stage,key,question,answer,level,feedback,correct_answer=solution)
     if st.session_state.get(f"checked_{key}"):
         with st.expander("Ver solución desarrollada"):
             st.markdown(solution)
@@ -842,7 +1018,7 @@ def formative_numeric(stage,key,question,inputs,checker,solution):
         level="Correcta" if ok else "Incorrecta"
         (st.success if ok else st.error)(("Correcto. " if ok else "Revisa el procedimiento. ")+feedback)
         st.session_state[f"checked_{key}"]=(level,feedback)
-        _save_formative(stage,key,question,json.dumps(values,ensure_ascii=False),level,feedback)
+        _save_formative(stage,key,question,json.dumps(values,ensure_ascii=False),level,feedback,correct_answer=solution)
     if st.session_state.get(f"checked_{key}"):
         with st.expander("Ver desarrollo paso a paso"):
             st.markdown(solution)
@@ -853,8 +1029,21 @@ def teacher_group_review(stage,solutions):
     st.markdown('<div class="teacher-only"><b>👥 Revisión grupal de respuestas</b>'
                 '<span>Seleccione una respuesta y revele la pauta solamente cuando decida discutirla con el curso.</span></div>',
                 unsafe_allow_html=True)
-    with _activity_db() as con:
-        rows=con.execute(
+    client=_supabase()
+    remote=client is not None
+    if remote:
+        raw=client.table("responses").select("*,users(display_name)").eq(
+            "class_id",CLASS_ID).eq("stage",stage).order("question_key").order("updated_at").execute().data or []
+        rows=[(r["id"],r.get("updated_at",""),(r.get("users") or {}).get("display_name","Alumno"),
+               r["question_key"],r["question_text"],
+               (r.get("answer") or {}).get("value",json.dumps(r.get("answer") or {},ensure_ascii=False)),
+               r.get("auto_level"),r.get("feedback"),r.get("teacher_level"),
+               float(r.get("auto_score") or 0),float(r.get("max_score") or 0),
+               None if r.get("teacher_score") is None else float(r["teacher_score"]),
+               r.get("teacher_note")) for r in raw]
+    else:
+        with _activity_db() as con:
+            rows=con.execute(
             "SELECT id,created_at,student,question_key,question,answer,auto_level,feedback,teacher_level,"
             "auto_score,max_score,teacher_score,teacher_note "
             "FROM formative_responses WHERE stage=? ORDER BY question_key,created_at",(stage,)).fetchall()
@@ -896,21 +1085,36 @@ def teacher_group_review(stage,solutions):
     )
     note=st.text_area("Observación para el alumno",value=teacher_note or "",key=f"teacher_note_{stage}_{rid}")
     if st.button("Guardar evaluación docente",key=f"save_mark_{stage}_{rid}"):
-        with _activity_db() as con:
-            con.execute(
+        if remote:
+            client.table("responses").update({
+                "teacher_level":mark,"teacher_score":manual,"teacher_note":note,
+                "status":"reviewed","updated_at":_now(),
+            }).eq("id",rid).execute()
+        else:
+            with _activity_db() as con:
+                con.execute(
                 "UPDATE formative_responses SET teacher_level=?,teacher_score=?,teacher_note=? WHERE id=?",
                 (mark,manual,note,rid),
-            )
+                )
         st.success("Evaluación docente y puntaje guardados.")
-    with _activity_db() as con:
-        summary=pd.read_sql_query(
+    if remote:
+        summary_rows={}
+        for r in raw:
+            name=(r.get("users") or {}).get("display_name","Alumno")
+            item=summary_rows.setdefault(name,{"Alumno":name,"Puntaje":0.0,"Respondido_sobre":0.0,"Actividades":0})
+            item["Puntaje"]+=float(r.get("teacher_score") if r.get("teacher_score") is not None else r.get("auto_score") or 0)
+            item["Respondido_sobre"]+=float(r.get("max_score") or 0);item["Actividades"]+=1
+        summary=pd.DataFrame(summary_rows.values())
+    else:
+        with _activity_db() as con:
+            summary=pd.read_sql_query(
             """SELECT student AS Alumno,
             ROUND(SUM(COALESCE(teacher_score,auto_score)),1) AS Puntaje,
             ROUND(SUM(max_score),1) AS Respondido_sobre,
             COUNT(*) AS Actividades
             FROM formative_responses WHERE stage=? GROUP BY student ORDER BY Puntaje DESC""",
-            con,params=(stage,),
-        )
+                con,params=(stage,),
+            )
     with st.expander("Panel de resultados de la etapa"):
         st.dataframe(summary,hide_index=True,use_container_width=True)
         st.download_button(
@@ -922,10 +1126,19 @@ def teacher_student_management():
     """Reset one stage, reset all work, or remove a test student."""
     if st.session_state.get("role")!="Docente":
         return
-    with _activity_db() as con:
-        students=[r[0] for r in con.execute(
+    client=_supabase()
+    remote=client is not None
+    if remote:
+        response_users=client.table("responses").select("user_key").eq("class_id",CLASS_ID).execute().data or []
+        keys=sorted({r["user_key"] for r in response_users})
+        users=client.table("users").select("user_key,display_name").in_("user_key",keys).execute().data if keys else []
+        student_map={u["display_name"]:u["user_key"] for u in users}
+        students=sorted(student_map)
+    else:
+        with _activity_db() as con:
+            students=[r[0] for r in con.execute(
             "SELECT DISTINCT student FROM formative_responses ORDER BY student"
-        ).fetchall()]
+            ).fetchall()]
     if not students:
         st.info("Todavía no hay alumnos con respuestas guardadas.")
         return
@@ -941,22 +1154,112 @@ def teacher_student_management():
     )
     c1,c2=st.columns(2)
     if c1.button("Reiniciar respuestas",disabled=not confirm,use_container_width=True):
-        with _activity_db() as con:
+        if remote:
+            user_key=student_map[student]
+            query=client.table("responses").delete().eq("class_id",CLASS_ID).eq("user_key",user_key)
+            if scope!="Curso completo":
+                query=query.eq("stage",int(scope.split()[-1]))
+            query.execute()
+            if scope=="Curso completo":
+                client.table("user_progress").delete().eq("class_id",CLASS_ID).eq("user_key",user_key).execute()
+        else:
+          with _activity_db() as con:
             if scope=="Curso completo":
                 con.execute("DELETE FROM formative_responses WHERE student=?",(student,))
+                con.execute("DELETE FROM user_progress WHERE display_name=?",(student,))
             else:
                 stage_number=int(scope.split()[-1])
                 con.execute(
                     "DELETE FROM formative_responses WHERE student=? AND stage=?",
                     (student,stage_number),
                 )
+                rows=con.execute(
+                    "SELECT user_key,state_json FROM user_progress WHERE display_name=?",(student,)
+                ).fetchall()
+                prefixes={
+                    3:("s3","ans_s3","checked_s3"),5:("s5","ans_s5","checked_s5"),
+                    7:("s7","ans_s7","checked_s7"),9:("s9","e9_","ans_e9","checked_e9"),
+                    10:("q","exam_","case_","final_"),
+                }.get(stage_number,(f"s{stage_number}",f"ans_s{stage_number}",f"checked_s{stage_number}"))
+                for user_key,state_json in rows:
+                    try:
+                        state=json.loads(state_json)
+                    except (TypeError,json.JSONDecodeError):
+                        state={}
+                    state={k:v for k,v in state.items() if not k.startswith(prefixes)}
+                    con.execute(
+                        "UPDATE user_progress SET state_json=?,updated_at=? WHERE user_key=?",
+                        (json.dumps(state,ensure_ascii=False),
+                         dt.datetime.now().isoformat(timespec="seconds"),user_key),
+                    )
         st.success(f"Se reiniciaron las respuestas de {student} en: {scope.lower()}.")
         st.rerun()
     if c2.button("Eliminar alumno de prueba",disabled=not confirm,use_container_width=True):
-        with _activity_db() as con:
-            con.execute("DELETE FROM formative_responses WHERE student=?",(student,))
+        if remote:
+            user_key=student_map[student]
+            client.table("responses").delete().eq("class_id",CLASS_ID).eq("user_key",user_key).execute()
+            client.table("user_progress").delete().eq("class_id",CLASS_ID).eq("user_key",user_key).execute()
+            client.table("enrollments").delete().eq("course_id",COURSE_ID).eq("user_key",user_key).execute()
+            client.table("users").delete().eq("user_key",user_key).execute()
+        else:
+            with _activity_db() as con:
+                con.execute("DELETE FROM formative_responses WHERE student=?",(student,))
+                con.execute("DELETE FROM user_progress WHERE display_name=?",(student,))
         st.success(f"Se eliminó el registro de prueba de {student}.")
         st.rerun()
+
+def formula_reference():
+    """Reference view separated from activities so students can consult it safely."""
+    header("FORMULARIO DEL CURSO","Fórmulas de aislamiento a ruido aéreo",
+           "Consulta ecuaciones, símbolos y unidades. Al volver a la clase, tus respuestas seguirán exactamente donde las dejaste.")
+    st.info("Esta pestaña es solo de consulta. Las respuestas se guardan automáticamente por usuario.")
+    tab1,tab2,tab3,tab4=st.tabs([
+        "Recintos y absorción","Transmisión y aislamiento",
+        "Placas y sistemas dobles","Evaluación económica",
+    ])
+    with tab1:
+        formula_card("Área de absorción equivalente",r"A=\sum_i \alpha_i S_i",
+                     "<b>A</b>: absorción equivalente [m² sabin]<br><b>αᵢ</b>: coeficiente de absorción [-]<br><b>Sᵢ</b>: superficie [m²]",
+                     "Para sumar la absorción aportada por las superficies de un recinto.")
+        formula_card("Tiempo de reverberación de Sabine",r"T_{60}=0.161\,\frac{V}{A}",
+                     "<b>T₆₀</b>: tiempo [s]<br><b>V</b>: volumen [m³]<br><b>A</b>: absorción equivalente [m² sabin]",
+                     "Para estimar la reverberación cuando el campo es suficientemente difuso.")
+    with tab2:
+        formula_card("Coeficiente de transmisión",r"\tau=10^{-R/10}",
+                     "<b>τ</b>: coeficiente de transmisión [-]<br><b>R</b>: índice de reducción sonora [dB]",
+                     "Para transformar un aislamiento en una fracción de energía transmitida.")
+        formula_card("Elemento compuesto",r"\tau_{\mathrm{total}}=\frac{\sum_i S_i\tau_i}{\sum_i S_i}\quad;\quad R_{\mathrm{total}}=-10\log_{10}(\tau_{\mathrm{total}})",
+                     "<b>Sᵢ</b>: área de cada elemento [m²]<br><b>τᵢ</b>: transmisión de cada elemento [-]<br><b>Rtotal</b>: reducción compuesta [dB]",
+                     "Para muros con puertas, ventanas, rendijas u otros elementos de distinto aislamiento.")
+        formula_card("Porcentaje de área débil",r"p_{\mathrm{débil}}=\frac{S_{\mathrm{débil}}}{S_{\mathrm{total}}}\,100",
+                     "<b>pdébil</b>: porcentaje [%]<br><b>Sdébil</b>: área débil [m²]<br><b>Stotal</b>: área total [m²]",
+                     "Para cuantificar qué parte del cerramiento corresponde al elemento de menor aislamiento.")
+        formula_card("Diferencia de nivel simplificada",r"\Delta L=L_{\mathrm{emisor}}-L_{\mathrm{receptor}}",
+                     "<b>ΔL</b>: diferencia de nivel [dB]<br><b>L</b>: nivel sonoro [dB]",
+                     "Relación didáctica. En evaluación normalizada también intervienen geometría y reverberación.")
+    with tab3:
+        formula_card("Ley de masa (aproximación)",r"R\approx20\log_{10}(m'f)-47",
+                     "<b>R</b>: reducción sonora [dB]<br><b>m′</b>: masa superficial [kg/m²]<br><b>f</b>: frecuencia [Hz]",
+                     "Para observar la tendencia ideal de una placa simple fuera de resonancias y coincidencia.")
+        formula_card("Rigidez flexional",r"D=\frac{Eh^3}{12(1-\nu^2)}",
+                     "<b>D</b>: rigidez [N·m]<br><b>E</b>: módulo de Young [Pa]<br><b>h</b>: espesor [m]<br><b>ν</b>: Poisson [-]",
+                     "Paso previo al cálculo de la frecuencia crítica de una placa.")
+        formula_card("Frecuencia crítica",r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}",
+                     "<b>fc</b>: frecuencia crítica [Hz]<br><b>c</b>: velocidad del sonido [m/s]<br><b>m′</b>: masa superficial [kg/m²]<br><b>D</b>: rigidez [N·m]",
+                     "Para ubicar la zona de coincidencia donde puede caer el aislamiento.")
+        formula_card("Resonancia masa–aire–masa",r"f_0\approx60\sqrt{\frac{1}{d}\left(\frac{1}{m'_1}+\frac{1}{m'_2}\right)}",
+                     "<b>f₀</b>: resonancia [Hz]<br><b>d</b>: cámara [m]<br><b>m′₁,m′₂</b>: masas superficiales [kg/m²]",
+                     "Estimación para sistemas dobles separados por una cámara de aire.")
+    with tab4:
+        formula_card("Flujo neto anual",r"F_{\mathrm{neto}}=B_{\mathrm{bruto}}-C_{\mathrm{anual}}",
+                     "<b>Fneto</b>: flujo anual disponible [$ /año]<br><b>Bbruto</b>: beneficio bruto [$ /año]<br><b>Canual</b>: costos recurrentes [$ /año]",
+                     "Es el dinero anual que efectivamente queda para recuperar la inversión.")
+        formula_card("Payback",r"\mathrm{Payback}=\frac{I_0}{F_{\mathrm{neto}}}",
+                     "<b>I₀</b>: inversión inicial [$]<br><b>Fneto</b>: flujo neto [$ /año]",
+                     "Indica cuántos años tarda en recuperarse la inversión.")
+        formula_card("Retorno sobre la inversión",r"ROI=\frac{B_{\mathrm{total}}-I_0}{I_0}\,100",
+                     "<b>ROI</b>: rentabilidad [%]<br><b>Btotal</b>: beneficio acumulado [$]<br><b>I₀</b>: inversión inicial [$]",
+                     "Indica cuánto se ganó o perdió en relación con lo invertido.")
 
 def line_chart(x, series, title, ytitle):
     fig=go.Figure()
@@ -1347,11 +1650,35 @@ def stage5():
 
 def mass_r(m,f): return 20*np.log10(np.maximum(m*f,1))-47
 
+def compound_r(areas, ratings):
+    """Energetic combination of components expressed in decibels."""
+    total_area=float(sum(areas))
+    tau=sum(float(s)*10**(-float(r)/10) for s,r in zip(areas,ratings))/total_area
+    return -10*math.log10(max(tau,1e-30))
+
+def geometry_term(volume, separating_area):
+    """Didactic V/S term for T0=0.5 s used in the MINVU exercise."""
+    return 10*math.log10(0.32*float(volume)/float(separating_area))
+
+def quirt_window_curve(m1,m2,gap,height,width,alpha,freqs=FREQS):
+    """Didactic implementation of thesis equations 2.28 and 2.29 (Quirt)."""
+    rho0=1.21
+    c=343.0
+    f1=(1/(2*math.pi))*math.sqrt(((m1+m2)*rho0*c**2)/(gap*m1*m2))
+    low=mass_r(m1+m2,freqs)
+    leaf1=mass_r(m1,freqs)
+    leaf2=mass_r(m2,freqs)
+    high=(
+        leaf1+leaf2+10*math.log10(alpha)+10*math.log10(gap)
+        +10*math.log10((height+width)/(height*width))+3
+    )
+    return np.where(freqs<f1,low,high),f1
+
 def stage6():
     header("ETAPA 6 · MATERIA + SIMULADORES","Fundamentos físicos del aislamiento acústico",
-           "Masa, frecuencia, transmisión, coincidencia, sistemas dobles, estanqueidad y elementos débiles.")
+           "Modelos de tu tesis AKUZOFT: placas simples, Sharp, resonancia y ventanas dobles mediante Quirt.")
     full_matter(6)
-    tabs=st.tabs(["Transmisión y R","Ley de masa","Coincidencia","Sistemas dobles","Elementos compuestos"])
+    tabs=st.tabs(["Transmisión y R","Ley de masa","Coincidencia","Sharp · panel doble","Quirt · ventanas","Elementos compuestos"])
     with tabs[0]:
         formula_card("Coeficiente de transmisión y reducción sonora",
                      r"\tau=\frac{W_t}{W_i} \qquad R=10\log_{10}\left(\frac{1}{\tau}\right)",
@@ -1395,11 +1722,88 @@ def stage6():
         line_chart(FREQS,[("Ley de masa ideal",ideal),("Con coincidencia",dip)],"Efecto didáctico de coincidencia","R (dB)")
         st.warning("Cerca de fᶜ el panel radia con mayor eficiencia y puede aparecer una caída de aislamiento.")
     with tabs[3]:
+        st.markdown("#### Panel doble con cavidad absorbente · método de Sharp")
+        formula_card(
+            "Resonancia masa-aire-masa",
+            r"f_0\approx60\sqrt{\frac{1/m_1+1/m_2}{d}}",
+            "<b>m₁, m₂</b>: masas superficiales de las hojas (kg/m²)<br>"
+            "<b>d</b>: separación entre hojas (m)<br><b>f₀</b>: frecuencia de resonancia (Hz)",
+            "Para identificar el valle de baja frecuencia antes de interpretar la mejora del sistema doble.",
+        )
         gap=st.slider("Cámara (mm)",20,300,80); absorb=st.checkbox("Absorbente en cámara",True)
+        m1=st.slider("Masa hoja 1 (kg/m²)",5,80,20,key="sharp_m1")
+        m2=st.slider("Masa hoja 2 (kg/m²)",5,80,20,key="sharp_m2")
+        f0=60*math.sqrt((1/m1+1/m2)/(gap/1000))
         gain=8+min(gap/30,8)+(5 if absorb else 0)
-        st.metric("Mejora didáctica sobre hoja simple",f"{gain:.1f} dB")
-        st.caption("El desempeño real depende de masas, rigidez de uniones, frecuencia masa–aire–masa y puentes estructurales.")
+        c1,c2=st.columns(2)
+        c1.metric("f₀ aproximada",f"{f0:.0f} Hz")
+        c2.metric("Mejora didáctica sobre hoja simple",f"{gain:.1f} dB")
+        st.caption("Sharp es apropiado para paneles dobles cuya cavidad contiene absorbente. El desempeño depende además de conexiones de línea, separación de montantes, frecuencias críticas y puentes estructurales.")
     with tabs[4]:
+        st.markdown("#### Ventana doble · modelo de Quirt de tu tesis")
+        st.info(
+            "Una ventana doble no se trata como un tabique con lana mineral. Su cavidad no está rellena y "
+            "los modos interiores dependen también de la altura y el ancho del marco."
+        )
+        formula_card(
+            "Frecuencia de resonancia f₁ · ecuación 2.28",
+            r"f_1=\frac{1}{2\pi}\sqrt{\frac{(\rho_{s1}+\rho_{s2})\rho_0c^2}{d\,\rho_{s1}\rho_{s2}}}",
+            "<b>ρs₁, ρs₂</b>: masa superficial de cada vidrio (kg/m²)<br>"
+            "<b>ρ₀</b>: densidad del aire (kg/m³)<br><b>c</b>: velocidad del sonido (m/s)<br>"
+            "<b>d</b>: cámara entre vidrios (m)",
+            "Separa los dos regímenes del modelo de ventana doble.",
+        )
+        formula_card(
+            "Régimen superior a f₁ · ecuación 2.29",
+            r"TL=TL_{\rho s1}+TL_{\rho s2}+10\log_{10}\alpha+10\log_{10}d+"
+            r"10\log_{10}\left(\frac{h+w}{hw}\right)+3",
+            "<b>α</b>: absorción a incidencia aleatoria del perímetro<br>"
+            "<b>h, w</b>: alto y ancho de la cavidad (m)<br>"
+            "<b>TLρs₁, TLρs₂</b>: pérdida de cada vidrio por banda",
+            "Sobre f₁, la cavidad se considera un espacio reverberante. Bajo f₁ se usa una placa equivalente con la suma de masas.",
+        )
+        q1,q2,q3=st.columns(3)
+        glass1=q1.number_input("Vidrio 1 (mm)",2.0,12.0,3.0,.5,key="quirt_g1")
+        glass2=q2.number_input("Vidrio 2 (mm)",2.0,12.0,3.0,.5,key="quirt_g2")
+        q3.number_input("Densidad vidrio (kg/m³)",2000.,2800.,2500.,50.,key="quirt_density",disabled=True)
+        q4,q5,q6=st.columns(3)
+        gap_mm=q4.number_input("Cámara d (mm)",4.0,100.0,6.0,1.0,key="quirt_gap")
+        height=q5.number_input("Alto h (m)",.30,4.00,1.75,.05,key="quirt_h")
+        width=q6.number_input("Ancho w (m)",.30,4.00,.62,.05,key="quirt_w")
+        alpha=st.slider("Absorción perimetral α",.02,.30,.10,.01,key="quirt_alpha")
+        density=2500.0
+        qm1=density*glass1/1000
+        qm2=density*glass2/1000
+        curve,f1=quirt_window_curve(qm1,qm2,gap_mm/1000,height,width,alpha)
+        base=mass_r(qm1+qm2,FREQS)
+        c1,c2,c3=st.columns(3)
+        c1.metric("Masa vidrio 1",f"{qm1:.1f} kg/m²")
+        c2.metric("Masa vidrio 2",f"{qm2:.1f} kg/m²")
+        c3.metric("Resonancia f₁",f"{f1:.0f} Hz")
+        line_chart(
+            FREQS,
+            [("Ventana doble · Quirt",curve),("Placa equivalente bajo f₁",base)],
+            f"Predicción didáctica {glass1:g}({gap_mm:g}){glass2:g}",
+            "TL (dB)",
+        )
+        st.markdown(
+            '<div class="good"><b>Lectura del modelo:</b> bajo f₁ las dos hojas se estiman como una placa '
+            'con la suma de masas. Sobre f₁ intervienen cada vidrio, la cámara, el perímetro y las dimensiones '
+            'del marco. SONARA debe entregar además Rw, C y Ctr mediante ISO 717-1.</div>',
+            unsafe_allow_html=True,
+        )
+        check(
+            "e6_quirt",
+            "¿Por qué no corresponde aplicar sin cambios el método de Sharp a una ventana doble?",
+            [
+                "Porque la cavidad de la ventana no lleva absorbente y sus modos dependen también del marco",
+                "Porque el vidrio no posee masa superficial",
+                "Porque las ventanas solo se evalúan con absorción Sabine",
+            ],
+            "Porque la cavidad de la ventana no lleva absorbente y sus modos dependen también del marco",
+            "Tu tesis adopta Quirt para representar la cavidad sin absorbente y la influencia de h y w.",
+        )
+    with tabs[5]:
         formula_card("Aislamiento de elementos compuestos",
                      r"\tau_{\mathrm{total}}=\frac{\sum_i S_i\tau_i}{\sum_i S_i}\qquad R_{\mathrm{total}}=-10\log_{10}(\tau_{\mathrm{total}})",
                      "<b>Sᵢ</b>: área del elemento i (m²)<br><b>τᵢ=10^{-Rᵢ/10}</b>: coeficiente de transmisión de cada elemento",
@@ -1445,7 +1849,7 @@ def stage6():
         "La ley de masa ideal predice aproximadamente 6 dB de aumento de R al duplicar la masa superficial, para una misma frecuencia.",
     )
 
-def stage7():
+def _legacy_stage7():
     header("ETAPA 7 · APLICACIÓN PRÁCTICA","Diseño de aislamiento acústico",
            "Aplica las ecuaciones de la etapa anterior siguiendo una ruta de cálculo clara y verificable.")
     full_matter(7)
@@ -1635,6 +2039,205 @@ def stage7():
     score_counter(7)
     teacher_group_review(7,solutions)
 
+def stage7():
+    header(
+        "ETAPA 7 · EJERCICIO PROFESIONAL GUIADO",
+        "MINVU Magallanes · Sala de Reuniones Dirección",
+        "Sigue el proceso completo: requerimiento → geometría → objetivo del elemento → SONARA → DnT,A → decisión de obra.",
+    )
+    st.image(
+        str(ROOT/"assets/course_visuals/minvu_direccion_guided.jpg"),
+        caption="Recorte pedagógico del nivel 4. El recinto guiado está marcado en rojo y la longitud compartida es 5,55 m.",
+        use_container_width=True,
+    )
+    st.markdown(
+        '<div class="question-box"><div class="question-label">ENCARGO REAL ADAPTADO</div>'
+        '<div class="question-text">Diseñar la separación entre Sala de Reuniones Dirección y Oficina Director.</div>'
+        '<p>Meta: <b>DnT,A ≥ 35 dB</b>; margen mínimo: <b>5 dB</b>; pérdida de obra: <b>3 dB</b>; '
+        'espesor máximo: <b>150 mm</b>. Para actividad interior se utilizará <b>Rw + C</b>.</p></div>',
+        unsafe_allow_html=True,
+    )
+    st.dataframe(
+        pd.DataFrame(
+            [
+                ["Área Sala de Reuniones Dirección","20,98 m²","Plano nivel 4"],
+                ["Área Oficina Director","27,46 m²","Plano nivel 4"],
+                ["Longitud del separador","5,55 m","Cota del plano"],
+                ["Altura libre","2,70 m","Dato docente"],
+                ["Pérdida de obra","3 dB","Supuesto pedagógico"],
+                ["Margen mínimo","5 dB","Criterio del encargo"],
+            ],
+            columns=["Dato","Valor","Origen"],
+        ),
+        hide_index=True,
+        use_container_width=True,
+    )
+
+    area_floor=20.98
+    height=2.70
+    length=5.55
+    volume=area_floor*height
+    surface=length*height
+    kgeo=geometry_term(volume,surface)
+    target=35.0
+    margin=5.0
+    work_loss=3.0
+    objective=target+margin+work_loss-kgeo
+
+    st.markdown("### Paso 1 · Identificar el requerimiento")
+    descriptor=st.radio(
+        "¿Qué descriptor debe verificarse?",
+        ["Rw del tabique","DnT,A entre recintos","Tiempo de reverberación"],
+        index=None,
+        key="minvu_guided_descriptor",
+        horizontal=True,
+    )
+    st.info("La exigencia corresponde al desempeño entre recintos. Rw y Rw+C son entradas del elemento; no son la meta final del edificio.")
+
+    st.markdown("### Paso 2 · Levantar la geometría")
+    c1,c2,c3=st.columns(3)
+    v_answer=c1.number_input("Volumen receptor V (m³)",0.0,500.0,0.0,.01,key="minvu_guided_v")
+    s_answer=c2.number_input("Superficie separadora S (m²)",0.0,200.0,0.0,.01,key="minvu_guided_s")
+    k_answer=c3.number_input("Kgeo (dB)",-20.0,20.0,0.0,.01,key="minvu_guided_k")
+    with st.expander("Ver fórmula de geometría"):
+        formula_card(
+            "Geometría del recinto receptor",
+            r"V=A_{\mathrm{piso}}h\qquad S=Lh\qquad K_{\mathrm{geo}}=10\log_{10}\left(\frac{0,32V}{S}\right)",
+            "<b>V</b>: volumen receptor (m³)<br><b>S</b>: superficie total del separador (m²)<br>"
+            "<b>h</b>: altura libre (m)<br><b>L</b>: longitud compartida (m)",
+            "Para conectar el aislamiento del elemento con la diferencia estandarizada entre estos recintos.",
+        )
+
+    st.markdown("### Paso 3 · Calcular el objetivo del elemento")
+    objective_answer=st.number_input(
+        "Rw + C objetivo mínimo (dB), incluyendo margen y pérdida de obra",
+        0.0,100.0,0.0,.01,key="minvu_guided_objective",
+    )
+    st.caption("Despeje: (Rw+C)objetivo = meta + margen + pérdida de obra - Kgeo.")
+
+    alternatives=pd.DataFrame(
+        [
+            ["G-01","Hoja simple reforzada, montante común",40,-2,-7,100,45000],
+            ["G-02","Doble placa, cámara con lana, montante alternado",50,-3,-9,140,68000],
+            ["TA-01","Solución real: 2 placas/cara y montantes al tresbolillo",60,-4,-11,140,92000],
+        ],
+        columns=["Código","Descripción","Rw","C","Ctr","Espesor (mm)","Costo ref. ($/m²)"],
+    )
+    alternatives["Rw+C"]=alternatives["Rw"]+alternatives["C"]
+    alternatives["DnT,A estimado"]=alternatives["Rw+C"]+kgeo-work_loss
+    alternatives["Margen sobre meta"]=alternatives["DnT,A estimado"]-target
+
+    st.markdown("### Paso 4 · Diseñar y comparar en SONARA")
+    st.dataframe(
+        alternatives[["Código","Descripción","Rw","C","Ctr","Rw+C","Espesor (mm)","Costo ref. ($/m²)"]],
+        hide_index=True,
+        use_container_width=True,
+    )
+    st.markdown(
+        "En SONARA registra las capas, la cámara, el absorbente y el tipo de conexión. "
+        "Revisa la curva R(f), la resonancia masa-aire-masa y las frecuencias críticas antes de aceptar el número único."
+    )
+    selected=st.radio(
+        "¿Qué alternativa es la solución mínima que cumple la meta y el margen?",
+        ["G-01","G-02","TA-01"],
+        index=None,
+        key="minvu_guided_choice",
+        horizontal=True,
+    )
+    dnta_answer=st.number_input(
+        "DnT,A estimado de la alternativa elegida (dB)",
+        0.0,100.0,0.0,.01,key="minvu_guided_dnta",
+    )
+    reason=st.text_area(
+        "Justificación profesional breve",
+        placeholder="Nombra el descriptor, el margen, el espesor, el costo y al menos un riesgo de ejecución.",
+        key="minvu_guided_reason",
+    )
+
+    st.markdown("### Paso 5 · Elementos débiles y modelo de ventanas")
+    st.markdown(
+        "Si aparece una ventana doble, SONARA debe utilizar el modelo de **Quirt** de tu tesis. "
+        "Si aparece una puerta u otro componente, el paño se combina energéticamente por superficies."
+    )
+    quirt_choice=st.radio(
+        "¿Qué dato distingue al modelo Quirt de una simple suma de dos vidrios?",
+        [
+            "Solo el color del vidrio",
+            "La cámara sin absorbente, f₁ y las dimensiones h y w del marco",
+            "Únicamente el costo de la ventana",
+        ],
+        index=None,
+        key="minvu_guided_quirt",
+    )
+
+    if st.button("Comprobar y guardar ejercicio guiado",type="primary",key="minvu_guided_submit"):
+        required=[
+            descriptor is not None,
+            v_answer>0,
+            s_answer>0,
+            objective_answer>0,
+            selected is not None,
+            dnta_answer>0,
+            bool(reason.strip()),
+            quirt_choice is not None,
+        ]
+        if not all(required):
+            st.warning("Completa todos los pasos antes de comprobar el ejercicio.")
+        else:
+            score=0
+            score+=2 if descriptor=="DnT,A entre recintos" else 0
+            score+=2 if abs(v_answer-volume)<=.15 else 0
+            score+=2 if abs(s_answer-surface)<=.15 else 0
+            score+=2 if abs(k_answer-kgeo)<=.12 else 0
+            score+=3 if abs(objective_answer-objective)<=.35 else 0
+            score+=3 if selected=="G-02" else 0
+            score+=2 if abs(dnta_answer-44.8)<=.35 else 0
+            words=reason.lower()
+            score+=2 if sum(k in words for k in ["margen","espesor","costo","sello","flanco","losa"])>=3 else 1
+            score+=2 if quirt_choice=="La cámara sin absorbente, f₁ y las dimensiones h y w del marco" else 0
+            level="Correcta" if score>=17 else "Parcialmente correcta" if score>=10 else "Incorrecta"
+            _save_formative(
+                7,"minvu_guided","Ejercicio profesional guiado MINVU · Sala de Reuniones Dirección",
+                json.dumps(
+                    {
+                        "descriptor":descriptor,"V":v_answer,"S":s_answer,"Kgeo":k_answer,
+                        "objetivo":objective_answer,"alternativa":selected,"DnTA":dnta_answer,
+                        "justificacion":reason,"quirt":quirt_choice,
+                    },
+                    ensure_ascii=False,
+                ),
+                level,
+                f"Resultado guiado: {score}/20 puntos.",
+                score=score,max_score=20,
+                correct_answer="V=56,65 m³; S=14,99 m²; Kgeo=0,83 dB; objetivo Rw+C=42,17 dB; G-02; DnT,A=44,8 dB.",
+            )
+            if score>=17:
+                st.success(f"Ejercicio completado: {score}/20. Aplicaste correctamente el flujo profesional.")
+            else:
+                st.warning(f"Resultado: {score}/20. Revisa los pasos señalados en la pauta.")
+
+    if st.session_state.get("role")=="Docente":
+        with st.expander("🔐 Pauta docente · revelar desarrollo completo"):
+            st.latex(rf"V=20,98\times2,70={volume:.2f}\ \mathrm{{m^3}}")
+            st.latex(rf"S=5,55\times2,70={surface:.2f}\ \mathrm{{m^2}}")
+            st.latex(rf"K_{{geo}}=10\log_{{10}}(0,32V/S)={kgeo:.2f}\ \mathrm{{dB}}")
+            st.latex(rf"(R_w+C)_{{objetivo}}=35+5+3-{kgeo:.2f}={objective:.2f}\ \mathrm{{dB}}")
+            st.dataframe(
+                alternatives[["Código","Rw+C","DnT,A estimado","Margen sobre meta","Costo ref. ($/m²)"]],
+                hide_index=True,use_container_width=True,
+            )
+            st.success("Decisión esperada: G-02. G-01 solo logra 35,8 dB y no alcanza el margen; TA-01 es robusta, pero resulta sobredimensionada para este encargo pedagógico.")
+            st.markdown(
+                "**Solución real TA-01:** canal 92 mm; montantes de 60 mm al tresbolillo; lana de vidrio de 50 mm; "
+                "placas de 10 y 15 mm por cara; juntas traslapadas y banda de estanqueidad perimetral. "
+                "Resultado del informe: Rw=60 dB, C=-4 dB, Ctr=-11 dB."
+            )
+    score_counter(7)
+    teacher_group_review(
+        7,
+        {"minvu_guided":"V=56,65 m³; S=14,99 m²; Kgeo=+0,83 dB; Rw+C objetivo=42,17 dB; G-02; DnT,A=44,8 dB."},
+    )
+
 REF=np.array([33,36,39,42,45,48,51,52,53,54,55,56,56,56,56,56])
 def rw_from_curve(curve):
     best=None
@@ -1644,9 +2247,29 @@ def rw_from_curve(curve):
     return best
 
 def stage8():
-    header("ETAPA 8 · MATERIA + INTERPRETACIÓN","Índices de aislamiento acústico",
-           "Los números únicos permiten comparar, pero deben corresponder al método, lugar y espectro del problema.")
+    header("ETAPA 8 · DEL ELEMENTO AL EDIFICIO","ISO 12354 e índices de aislamiento acústico",
+           "Conecta Rw, C y Ctr de SONARA con geometría, pérdidas de obra, flancos y el DnT,A exigido en el caso MINVU.")
     full_matter(8)
+    st.markdown("### Ruta profesional utilizada en la asesoría")
+    st.markdown(
+        '<div class="worked-example"><h3>SONARA no entrega por sí sola el desempeño terminado del recinto</h3>'
+        '<div class="worked-step"><strong>1 · Elemento.</strong> SONARA predice R(f), Rw, C y Ctr.</div>'
+        '<div class="worked-step"><strong>2 · Obra.</strong> Se consideran montaje, sellos, encuentros y transmisión lateral para estimar R′.</div>'
+        '<div class="worked-step"><strong>3 · Recintos.</strong> La geometría V/S y la normalización permiten estimar DnT,w o DnT,A.</div>'
+        '<div class="worked-result">Flujo: requerimiento → SONARA → pérdida de obra/flancos → geometría → cumplimiento.</div></div>',
+        unsafe_allow_html=True,
+    )
+    formula_card(
+        "Relación didáctica empleada en el caso MINVU",
+        r"D_{nT,A}\approx(R_w+C)+10\log_{10}\left(\frac{0,32V}{S}\right)-L_{\mathrm{obra}}-L_{\mathrm{flancos}}",
+        "<b>V</b>: volumen receptor (m³)<br><b>S</b>: superficie total del separador (m²)<br>"
+        "<b>Lobra</b>: pérdida pedagógica de ejecución (dB)<br><b>Lflancos</b>: penalización simplificada de vías laterales (dB)",
+        "Para comprender el cálculo inverso y comparar alternativas. No sustituye el modelo detallado por bandas de ISO 12354-1.",
+    )
+    st.warning(
+        "Rw, R′w y DnT,A no son intercambiables. La prima identifica el comportamiento aparente en obra; "
+        "nT indica normalización por reverberación; A incorpora la adaptación espectral utilizada por el criterio del caso."
+    )
     data=[
       ("R(f)","Reducción por banda","Laboratorio/curva"),
       ("Rw","Reducción ponderada","Laboratorio ISO"),
@@ -1799,7 +2422,7 @@ QUESTIONS=[
 ("Rw es:",["Valor de referencia ajustada en 500 Hz","Promedio de R","R medido siempre en 500 Hz"],0),
 ]
 
-def stage10():
+def _legacy_stage10():
     header("ETAPA 10 · EVALUACIÓN FINAL","Evaluación práctica final · Aislamiento a Ruido Aéreo",
            "30 preguntas: 29 teórico-aplicadas y un caso integrador con costo-beneficio.")
     full_matter(10)
@@ -1821,13 +2444,15 @@ def stage10():
           "Solución A":["52 dB","−9 dB","43 dB","27 dB","34 dB","47 dB","$1.800.000","20 años"],
           "Solución B":["49 dB","−4 dB","45 dB","34 dB","39 dB","45 dB","$2.100.000","25 años"]})
         st.dataframe(df,hide_index=True,use_container_width=True)
-        c1,c2=st.columns(2);V=c1.number_input("V (m³)",1.,500.,50.);A=c2.number_input("A (m² sabin)",1.,200.,20.)
-        calc=st.number_input("Calcula T₆₀ (s)",0.,10.,0.,.01)
-        diff=st.number_input("Diferencia de costo ($)",0,5000000,0,step=50000)
-        pct=st.number_input("Incremento porcentual de B respecto de A (%)",0.,200.,0.,.1)
-        bands=st.multiselect("Bandas críticas",[125,250,500,1000])
-        choice=st.radio("Recomendación",["Solución A","Solución B"],index=None)
-        justification=st.text_area("Justificación técnico-económica")
+        c1,c2=st.columns(2)
+        V=c1.number_input("V (m³)",1.,500.,50.,key="case_V")
+        A=c2.number_input("A (m² sabin)",1.,200.,20.,key="case_A")
+        calc=st.number_input("Calcula T₆₀ (s)",0.,10.,0.,.01,key="case_calc")
+        diff=st.number_input("Diferencia de costo ($)",0,5000000,0,step=50000,key="case_diff")
+        pct=st.number_input("Incremento porcentual de B respecto de A (%)",0.,200.,0.,.1,key="case_pct")
+        bands=st.multiselect("Bandas críticas",[125,250,500,1000],key="case_bands")
+        choice=st.radio("Recomendación",["Solución A","Solución B"],index=None,key="case_choice")
+        justification=st.text_area("Justificación técnico-económica",key="case_justification")
         if st.button("Finalizar y corregir evaluación",type="primary"):
             theory=sum(st.session_state.exam_answers.get(i)==QUESTIONS[i][2] for i in range(29))
             practical=0
@@ -1864,6 +2489,315 @@ def stage10():
          "La aprobación interna se alcanza con 60/100; el docente puede revisar y ajustar el puntaje con fundamento."},
     )
 
+def stage10():
+    header(
+        "ETAPA 10 · EVALUACIÓN PROFESIONAL FINAL",
+        "MINVU Magallanes · Sala de Reuniones Licitaciones",
+        "Caso individual equivalente al ejercicio guiado. Cambia la geometría e incorpora una puerta que puede dominar el resultado.",
+    )
+    already_submitted=any(row[1]=="final_exam" for row in _student_scores())
+    if already_submitted and st.session_state.get("role")!="Docente":
+        st.success("Tu evaluación final ya fue enviada. El intento quedó cerrado y guardado.")
+        st.info("El docente puede revisar tu desarrollo, ajustar el puntaje con fundamento o habilitar un nuevo intento desde Gestión de alumnos.")
+        score_counter(10)
+        return
+
+    st.image(
+        str(ROOT/"assets/course_visuals/minvu_licitaciones_exam.jpg"),
+        caption="Recorte del nivel 4. La Sala de Reuniones Licitaciones está marcada en rojo y el paño hacia circulación incluye una puerta.",
+        use_container_width=True,
+    )
+    st.markdown(
+        '<div class="question-box"><div class="question-label">ENCARGO INDIVIDUAL · 90 MINUTOS</div>'
+        '<div class="question-text">Propón la combinación de menor costo que cumpla DnT,A ≥ 35 dB.</div>'
+        '<p>Después de una pérdida de obra de 3 dB debe conservar un margen mínimo de 3 dB. '
+        'Usa <b>Rw + C</b>, combina tabique y puerta energéticamente y justifica la solución.</p></div>',
+        unsafe_allow_html=True,
+    )
+    st.warning("Intento único. Revisa todos los campos antes de presionar «Enviar evaluación final».")
+
+    floor_area=24.84
+    height=2.70
+    length=3.72
+    door_w=0.90
+    door_h=2.10
+    volume=floor_area*height
+    surface=length*height
+    door_area=door_w*door_h
+    wall_area=surface-door_area
+    kgeo=geometry_term(volume,surface)
+    work_loss=3.0
+    required_dnta=38.0
+
+    opaque={
+        "O-01":{"name":"Tabique básico","rw":44,"c":-2,"thickness":100,"cost":45000},
+        "O-02":{"name":"Tabique reforzado desacoplado","rw":52,"c":-3,"thickness":140,"cost":68000},
+        "O-03":{"name":"TA-01","rw":60,"c":-4,"thickness":140,"cost":92000},
+    }
+    doors={
+        "P-01":{"name":"Puerta hueca sin sello inferior","rw":22,"c":-1,"cost":280000},
+        "P-02":{"name":"Puerta sólida con sellos","rw":32,"c":-1,"cost":690000},
+        "P-03":{"name":"Puerta acústica certificada","rw":40,"c":-1,"cost":1650000},
+    }
+    st.markdown("### Antecedentes del caso")
+    st.dataframe(
+        pd.DataFrame(
+            [
+                ["Área de piso receptor","24,84 m²"],["Altura libre","2,70 m"],
+                ["Longitud del separador","3,72 m"],["Puerta","0,90 × 2,10 m"],
+                ["Meta","DnT,A ≥ 35 dB"],["Margen mínimo","3 dB"],
+                ["Pérdida de obra","3 dB"],["Espesor máximo","150 mm"],
+            ],
+            columns=["Dato","Valor"],
+        ),
+        hide_index=True,use_container_width=True,
+    )
+    component_rows=[]
+    for code,item in opaque.items():
+        component_rows.append([code,item["name"],item["rw"],item["c"],item["rw"]+item["c"],f'{item["thickness"]} mm',f'${item["cost"]:,.0f}/m²'.replace(",","." )])
+    for code,item in doors.items():
+        component_rows.append([code,item["name"],item["rw"],item["c"],item["rw"]+item["c"],"—",f'${item["cost"]:,.0f}/un'.replace(",","." )])
+    st.dataframe(
+        pd.DataFrame(component_rows,columns=["Código","Componente","Rw","C","Rw+C","Espesor","Costo"]),
+        hide_index=True,use_container_width=True,
+    )
+
+    st.markdown("### 1 · Requerimiento y descriptor · 10 puntos")
+    descriptor=st.radio(
+        "Selecciona la verificación correcta",
+        [
+            "Comparar directamente Rw con 35 dB",
+            "Calcular DnT,A con Rw+C, geometría y pérdida de obra",
+            "Promediar Rw del muro y de la puerta",
+        ],
+        index=None,key="final_descriptor",
+    )
+
+    st.markdown("### 2 · Levantamiento geométrico · 15 puntos")
+    g1,g2,g3=st.columns(3)
+    v_ans=g1.number_input("V (m³)",0.0,500.0,0.0,.01,key="final_v")
+    s_ans=g2.number_input("S total (m²)",0.0,200.0,0.0,.01,key="final_s")
+    sd_ans=g3.number_input("S puerta (m²)",0.0,20.0,0.0,.01,key="final_sd")
+    g4,g5=st.columns(2)
+    sw_ans=g4.number_input("S tabique neto (m²)",0.0,200.0,0.0,.01,key="final_sw")
+    k_ans=g5.number_input("Kgeo (dB)",-20.0,20.0,0.0,.01,key="final_kgeo")
+
+    st.markdown("### 3 · Configuración SONARA · 15 puntos")
+    sonara_text=st.text_area(
+        "Describe cómo configurarías y revisarías O-02 en SONARA",
+        placeholder="Capas, cámara, absorbente, montantes/conexión, curva R(f), resonancia y frecuencias críticas.",
+        key="final_sonara",
+    )
+
+    st.markdown("### 4 · Aislamiento compuesto y paso a DnT,A · 35 puntos")
+    st.latex(r"R_{\mathrm{comp,A}}=-10\log_{10}\left[\frac{S_m10^{-(R_w+C)_m/10}+S_p10^{-(R_w+C)_p/10}}{S}\right]")
+    st.latex(r"D_{nT,A}\approx R_{\mathrm{comp,A}}+K_{\mathrm{geo}}-L_{\mathrm{obra}}")
+    test_pairs=[("O-01","P-01"),("O-01","P-02"),("O-02","P-02")]
+    pair_answers={}
+    for idx,(o,p) in enumerate(test_pairs,1):
+        st.markdown(f"**Combinación {idx}: {o} + {p}**")
+        c1,c2=st.columns(2)
+        pair_answers[(o,p)]=(
+            c1.number_input("Rcomp,A (dB)",0.0,100.0,0.0,.01,key=f"final_rcomp_{idx}"),
+            c2.number_input("DnT,A estimado (dB)",0.0,100.0,0.0,.01,key=f"final_dnta_{idx}"),
+        )
+
+    st.markdown("### 5 · Optimización · 10 puntos")
+    choice=st.selectbox(
+        "Combinación de menor costo que alcanza 38 dB (meta + margen)",
+        ["— Selecciona —"]+[f"{o} + {p}" for o in opaque for p in doors],
+        key="final_choice",
+    )
+    cost_ans=st.number_input(
+        "Costo instalado de la combinación elegida ($)",
+        0,5000000,0,step=1000,key="final_cost",
+    )
+
+    st.markdown("### 6 · Constructibilidad y conclusión · 15 puntos")
+    construction=st.text_area(
+        "Indica cinco medidas de control de obra verificables",
+        placeholder="Ej.: continuidad losa a losa, sellos, juntas, cajas, marco y sello inferior de puerta...",
+        key="final_construction",
+    )
+    conclusion=st.text_area(
+        "Conclusión profesional · máximo 150 palabras",
+        max_chars=1200,
+        placeholder="Señala combinación, descriptor, resultado, margen, costo, elemento dominante y riesgo de obra.",
+        key="final_conclusion",
+    )
+
+    if st.button("Enviar evaluación final",type="primary",key="final_exam_submit"):
+        numeric_complete=all([
+            v_ans>0,s_ans>0,sd_ans>0,sw_ans>0,
+            all(r>0 and d>0 for r,d in pair_answers.values()),
+            cost_ans>0,
+        ])
+        if descriptor is None or not numeric_complete or choice.startswith("—") or not sonara_text.strip() or not construction.strip() or not conclusion.strip():
+            st.warning("La evaluación está incompleta. Revisa requerimiento, geometría, tres combinaciones, costo y respuestas profesionales.")
+        else:
+            score=0.0
+            score+=10 if descriptor=="Calcular DnT,A con Rw+C, geometría y pérdida de obra" else 0
+            geometry_checks=[
+                abs(v_ans-volume)<=.15,abs(s_ans-surface)<=.10,abs(sd_ans-door_area)<=.05,
+                abs(sw_ans-wall_area)<=.10,abs(k_ans-kgeo)<=.10,
+            ]
+            score+=3*sum(geometry_checks)
+
+            sonara_words=sonara_text.lower()
+            sonara_hits=sum(any(term in sonara_words for term in group) for group in [
+                ["placa","capa"],["cámara","camara"],["lana","absorb"],["montante","desacopl","conex"],
+                ["curva","r(f)"],["resonan","crítica","critica","coincid"],
+            ])
+            score+=15 if sonara_hits>=5 else 10 if sonara_hits>=3 else 5 if sonara_hits>=1 else 0
+
+            expected={}
+            for o,p in test_pairs:
+                ro=opaque[o]["rw"]+opaque[o]["c"]
+                rp=doors[p]["rw"]+doors[p]["c"]
+                rcomp=compound_r([wall_area,door_area],[ro,rp])
+                expected[(o,p)]=(rcomp,rcomp+kgeo-work_loss)
+            compound_hits=0
+            dnta_hits=0
+            for pair,(r_ans,d_ans) in pair_answers.items():
+                r_expected,d_expected=expected[pair]
+                compound_hits+=abs(r_ans-r_expected)<=.25
+                dnta_hits+=abs(d_ans-d_expected)<=.25
+            score+=(20/3)*compound_hits
+            score+=5*dnta_hits
+
+            optimal_cost=round(wall_area*opaque["O-02"]["cost"]+doors["P-02"]["cost"])
+            score+=6 if choice=="O-02 + P-02" else 0
+            score+=4 if abs(cost_ans-optimal_cost)<=2000 else 0
+
+            construction_words=construction.lower()
+            construction_hits=sum(any(term in construction_words for term in group) for group in [
+                ["losa"],["sello","burlete"],["junta","traslap"],["caja","enchufe"],
+                ["puerta","marco","inferior"],["ducto","paso"],["encuentro"],["foto","inspección","inspeccion"],
+            ])
+            score+=10 if construction_hits>=5 else 6 if construction_hits>=3 else 3 if construction_hits>=1 else 0
+
+            conclusion_words=conclusion.lower()
+            conclusion_hits=sum(any(term in conclusion_words for term in group) for group in [
+                ["o-02"],["p-02"],["dnt","38,3","38.3"],["margen"],["costo"],["puerta","domin"],
+            ])
+            score+=5 if conclusion_hits>=4 else 3 if conclusion_hits>=2 else 1
+            score=min(100.0,score)
+            level="Correcta" if score>=60 else "Incorrecta"
+            _save_formative(
+                10,"final_exam","Evaluación profesional final MINVU · Sala de Reuniones Licitaciones",
+                json.dumps(
+                    {
+                        "descriptor":descriptor,
+                        "geometria":{"V":v_ans,"S":s_ans,"Spuerta":sd_ans,"Stabique":sw_ans,"Kgeo":k_ans},
+                        "sonara":sonara_text,
+                        "combinaciones":{f"{o}+{p}":{"Rcomp":r,"DnTA":d} for (o,p),(r,d) in pair_answers.items()},
+                        "seleccion":choice,"costo":cost_ans,
+                        "constructibilidad":construction,"conclusion":conclusion,
+                    },
+                    ensure_ascii=False,
+                ),
+                level,
+                f"Puntaje automático inicial: {score:.1f}/100. Pendiente de revisión docente cualitativa.",
+                score=score,max_score=100,
+                correct_answer="V=67,07; S=10,04; Sp=1,89; Sm=8,15; Kgeo=3,30. Alternativa óptima: O-02+P-02; DnT,A=38,3 dB; costo=$1.244.472.",
+            )
+            st.session_state.exam_result=score
+            st.success(f"Evaluación enviada y cerrada. Puntaje automático inicial: {score:.1f}/100.")
+            st.info("La conclusión, la configuración SONARA y las medidas de obra quedan disponibles para revisión del docente.")
+
+    if st.session_state.get("role")=="Docente":
+        with st.expander("🔐 Pauta docente · resultados y rúbrica"):
+            st.markdown(
+                f"**Geometría:** V={volume:.2f} m³; S={surface:.2f} m²; Spuerta={door_area:.2f} m²; "
+                f"Stabique={wall_area:.2f} m²; Kgeo={kgeo:.2f} dB."
+            )
+            rows=[]
+            for o,oi in opaque.items():
+                for p,pi in doors.items():
+                    rcomp=compound_r([wall_area,door_area],[oi["rw"]+oi["c"],pi["rw"]+pi["c"]])
+                    dnta=rcomp+kgeo-work_loss
+                    cost=wall_area*oi["cost"]+pi["cost"]
+                    rows.append([f"{o} + {p}",round(rcomp,1),round(dnta,1),round(cost)])
+            st.dataframe(pd.DataFrame(rows,columns=["Combinación","Rcomp,A","DnT,A","Costo ($)"]),hide_index=True,use_container_width=True)
+            st.success("Respuesta óptima: O-02 + P-02. DnT,A ≈ 38,3 dB; margen ≈ 3,3 dB; costo ≈ $1.244.472.")
+            st.markdown(
+                "**Rúbrica:** requerimiento 10; geometría 15; configuración SONARA 15; "
+                "aislamiento compuesto 20; paso a DnT,A 15; optimización 10; constructibilidad 10; conclusión 5."
+            )
+    score_counter(10)
+    teacher_group_review(
+        10,
+        {"final_exam":"V=67,07 m³; S=10,04 m²; Sp=1,89 m²; Sm=8,15 m²; Kgeo=3,30 dB. "
+         "O-02+P-02 es la combinación mínima que logra meta+margen: DnT,A≈38,3 dB."},
+    )
+
+def course_dashboard():
+    header("MIS CLASES","Diplomado en Acústica en la Edificación",
+           "Tus clases, respuestas, puntajes y fechas se conservan en una sola plataforma.")
+    client=_supabase()
+    if client is None:
+        st.warning("Supabase todavía no está configurado. La aplicación está usando almacenamiento local de prueba.")
+        classes=[{"class_number":1,"title":"Aislamiento a ruido aéreo","description":"Laboratorio interactivo de 4 horas","status":"published","due_at":None}]
+    else:
+        classes=client.table("classes").select("*").eq("course_id",COURSE_ID).order("class_number").execute().data or []
+    if st.session_state.get("role")!="Docente":
+        # Future classes must not reveal even their title before publication.
+        classes=[item for item in classes if item.get("status") in ("published","archived")]
+    for item in classes:
+        number=item.get("class_number","")
+        status={"published":"Disponible","draft":"Próximamente","archived":"Archivada"}.get(item.get("status"),item.get("status"))
+        due=item.get("due_at")
+        due_text=f" · Entrega: {due[:10]}" if due else ""
+        st.markdown(
+            f'<div class="lesson"><div class="overview-title">CLASE {number} · {status.upper()}</div>'
+            f'<h3>{item.get("title","Clase")}</h3><span class="muted">{item.get("description") or ""}'
+            f'{due_text}</span></div>',unsafe_allow_html=True)
+        if item.get("id")==CLASS_ID:
+            st.info("Selecciona “Clase y actividades” en el menú para comenzar o continuar exactamente donde quedaste.")
+        elif item.get("status")=="published":
+            st.caption("El contenido de esta clase se incorporará a la plataforma sin borrar las clases anteriores.")
+
+def calculation_notebook():
+    header("MESA DE CÁLCULO","Cuaderno técnico personal",
+           "Desarrolla el ejercicio dentro de la plataforma y guarda datos, conversiones, fórmula, sustitución, resultado e interpretación.")
+    question_key=st.text_input("Código o nombre del ejercicio",key="notebook_question")
+    title=st.text_input("Título del desarrollo",value="Desarrollo de ejercicio",key="notebook_title")
+    c1,c2=st.columns(2)
+    known=c1.text_area("1. Datos conocidos",key="notebook_known")
+    conversions=c2.text_area("2. Conversión de unidades",key="notebook_conversions")
+    selected_formula=st.text_area("3. Fórmula seleccionada",key="notebook_formula")
+    substitution=st.text_area("4. Sustitución numérica",key="notebook_substitution")
+    result=st.text_area("5. Resultado con unidad",key="notebook_result")
+    interpretation=st.text_area("6. Interpretación física o decisión",key="notebook_interpretation")
+    if st.button("Guardar desarrollo",type="primary"):
+        client=_supabase()
+        if client is None:
+            st.warning("Configura Supabase para guardar este cuaderno permanentemente.")
+        else:
+            existing=client.table("notebook_entries").select("id").eq(
+                "class_id",CLASS_ID).eq("user_key",st.session_state.user_key).eq(
+                "question_key",question_key or "general").limit(1).execute().data or []
+            data={"course_id":COURSE_ID,"class_id":CLASS_ID,"user_key":st.session_state.user_key,
+                  "question_key":question_key or "general","title":title,"known_data":known,
+                  "unit_conversions":conversions,"selected_formula":selected_formula,
+                  "substitution":substitution,"result":result,"interpretation":interpretation,
+                  "updated_at":_now()}
+            if existing:
+                client.table("notebook_entries").update(data).eq("id",existing[0]["id"]).execute()
+            else:
+                client.table("notebook_entries").insert(data).execute()
+            st.success("Desarrollo guardado permanentemente.")
+    client=_supabase()
+    if client is not None:
+        saved=client.table("notebook_entries").select("*").eq(
+            "class_id",CLASS_ID).eq("user_key",st.session_state.user_key).order(
+            "updated_at",desc=True).execute().data or []
+        with st.expander(f"Mis desarrollos guardados ({len(saved)})"):
+            for entry in saved:
+                st.markdown(f"**{entry.get('title')} · {entry.get('question_key')}**")
+                st.caption(entry.get("updated_at","").replace("T"," ")[:19])
+                st.write(entry.get("result") or "Sin resultado registrado")
+
 def login():
     institutional_header()
     header("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN","Laboratorio · Aislamiento a Ruido Aéreo","Ingresa como alumno o docente para acceder a la plataforma.")
@@ -1872,6 +2806,7 @@ def login():
     if role=="Alumno":
         rut=st.text_input("RUT o identificación");email=st.text_input("Correo")
         valid=name.strip() and rut.strip() and "@" in email
+        identification=f"{rut}|{email}"
     else:
         password=st.text_input("Clave docente",type="password")
         try:
@@ -1879,8 +2814,15 @@ def login():
         except (KeyError, FileNotFoundError):
             teacher_password="docente123"
         valid=name.strip() and password==teacher_password
+        identification="docente"
     if st.button("Ingresar",type="primary",use_container_width=True):
-        if valid: st.session_state.update(access=True,role=role,name=name);st.rerun()
+        if valid:
+            user_key=_make_user_key(role,name,identification)
+            st.session_state.update(access=True,role=role,name=name,user_key=user_key)
+            _register_user(user_key,role,name,rut if role=="Alumno" else "",
+                           email if role=="Alumno" else "")
+            load_user_progress(user_key)
+            st.rerun()
         else: st.error("Completa correctamente los datos de acceso.")
 
 if st.query_params.get("projection")=="1":
@@ -1901,6 +2843,12 @@ with st.sidebar:
     st.caption("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN")
     st.markdown(f"**{st.session_state.name}**  \n{st.session_state.role}")
     score_counter(compact=True)
+    view=st.radio(
+        "Vista",
+        ["🏠 Mis clases","📚 Clase y actividades","📐 Formulario de fórmulas","🧮 Mesa de cálculo"],
+        key="main_view",
+        help="Puedes consultar las fórmulas y regresar sin perder lo que estabas respondiendo.",
+    )
     if st.session_state.role=="Docente":
         st.link_button(
             "🖥️ Abrir vista para Zoom",
@@ -1920,10 +2868,22 @@ with st.sidebar:
         with st.expander("⚙️ Gestión de alumnos"):
             teacher_student_management()
     labels=[f"{n} · {t} · {STAGE_MINUTES[i]} min" for i,(n,t) in enumerate(STAGES)]
-    selected=st.radio("Ruta de aprendizaje",labels,label_visibility="collapsed")
+    selected=None
+    if view=="📚 Clase y actividades":
+        selected=st.radio("Ruta de aprendizaje",labels,label_visibility="collapsed",key="selected_stage")
     if st.button("Cerrar sesión",use_container_width=True):
         st.session_state.clear();st.rerun()
     st.caption("Docente: Marco Araos Barría")
 
-idx=labels.index(selected)
-[stage0,stage1,stage2,stage3,stage4,stage5,stage6,stage7,stage8,stage9,stage10][idx]()
+if view=="🏠 Mis clases":
+    course_dashboard()
+elif view=="📐 Formulario de fórmulas":
+    formula_reference()
+elif view=="🧮 Mesa de cálculo":
+    calculation_notebook()
+else:
+    idx=labels.index(selected)
+    [stage0,stage1,stage2,stage3,stage4,stage5,stage6,stage7,stage8,stage9,stage10][idx]()
+
+# Autosave after every interaction. Closing the browser or changing tabs does not erase work.
+save_user_progress()
