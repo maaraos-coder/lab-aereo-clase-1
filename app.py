@@ -1,11 +1,13 @@
 import base64
 import datetime as dt
+import io
 import json
 import math
 import mimetypes
 import re
 import sqlite3
 import hashlib
+import tempfile
 import unicodedata
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -15,10 +17,18 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 try:
     from supabase import create_client
 except ImportError:
     create_client = None
+try:
+    import ezdxf
+    from ezdxf.addons.drawing import Frontend, RenderContext
+    from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
+    import matplotlib.pyplot as plt
+except ImportError:
+    ezdxf = Frontend = RenderContext = MatplotlibBackend = plt = None
 
 st.set_page_config(page_title="Laboratorio | Aislamiento a Ruido Aéreo", page_icon="🔊", layout="wide")
 ROOT = Path(__file__).parent
@@ -77,6 +87,8 @@ LABORATORIES = {
         "stages": list(range(11)),
     },
 }
+if st.query_params.get("lab") in ("1","2"):
+    st.session_state["active_lab"]=int(st.query_params["lab"])
 ACTIVE_LAB = int(st.session_state.get("active_lab", 1))
 CLASS_ID = LABORATORIES[ACTIVE_LAB]["id"]
 CLASS_NUMBER = ACTIVE_LAB
@@ -1493,6 +1505,211 @@ def formula_reference():
         formula_card("Retorno sobre la inversión",r"ROI=\frac{B_{\mathrm{total}}-I_0}{I_0}\,100",
                      "<b>ROI</b>: rentabilidad [%]<br><b>Btotal</b>: beneficio acumulado [$]<br><b>I₀</b>: inversión inicial [$]",
                      "Indica cuánto se ganó o perdió en relación con lo invertido.")
+
+def formula_popup_button():
+    """Open a self-contained reference window without creating a second login session."""
+    title=f"Formulario · Laboratorio {ACTIVE_LAB}"
+    formulae=[
+        ("Absorción equivalente","A = Σ αᵢ·Sᵢ","A [m² sabin], α [-], S [m²]"),
+        ("Sabine","T₆₀ = 0,161·V/A","T₆₀ [s], V [m³], A [m² sabin]"),
+        ("Transmisión","τ = 10^(−R/10)","τ [-], R [dB]"),
+        ("Elemento compuesto","τₜ = Σ(Sᵢ·τᵢ)/ΣSᵢ   |   Rₜ = −10·log₁₀(τₜ)","S [m²], R [dB]"),
+        ("Diferencia normalizada","DₙT = L₁ − L₂ + 10·log₁₀(T/T₀)","T₀ = 0,5 s"),
+        ("Ley de masa","R ≈ 20·log₁₀(m′·f) − 47","m′ [kg/m²], f [Hz], R [dB]"),
+        ("Rigidez flexional","D = E·h³ / [12·(1−ν²)]","D [N·m], E [Pa], h [m]"),
+        ("Frecuencia crítica","f꜀ = c²/(2π) · √(m′/D)","f꜀ [Hz], c [m/s]"),
+        ("Masa–aire–masa","f₀ ≈ 60·√[(1/d)·(1/m′₁+1/m′₂)]","d [m], m′ [kg/m²]"),
+        ("Payback","Payback = I₀/Fₙₑₜₒ","I₀ [$], Fₙₑₜₒ [$/año]"),
+        ("ROI","ROI = (Bₜₒₜₐₗ−I₀)/I₀ · 100","ROI [%]"),
+    ]
+    cards="".join(
+        f"<article><h3>{name}</h3><div class='eq'>{equation}</div><small>{variables}</small></article>"
+        for name,equation,variables in formulae)
+    popup=f"""<!doctype html><html><head><meta charset='utf-8'><title>{title}</title>
+    <style>body{{font-family:Arial,sans-serif;background:#f4f8fc;color:#102b49;margin:0;padding:18px}}
+    header{{position:sticky;top:0;background:linear-gradient(135deg,#07172b,#0878bd);color:white;
+    border-radius:14px;padding:16px 18px;box-shadow:0 8px 22px #07172b33}}header b{{font-size:20px}}
+    article{{background:white;border:1px solid #d8e6f3;border-left:5px solid #0a75bd;
+    border-radius:12px;padding:12px 14px;margin:10px 0}}h3{{font-size:14px;margin:0 0 8px;color:#0a4f86}}
+    .eq{{font-size:18px;font-weight:800;line-height:1.45}}small{{display:block;margin-top:7px;color:#60718a}}</style>
+    </head><body><header><b>📐 {title}</b><br><small style='color:#d9f5ff'>Ventana de consulta independiente</small></header>{cards}</body></html>"""
+    encoded=base64.b64encode(popup.encode("utf-8")).decode("ascii")
+    components.html(f"""
+    <button id="open-formulas">📐 Abrir fórmulas</button>
+    <style>body{{margin:0}}button{{width:100%;height:42px;background:#0b4f83;color:white;
+    border:1px solid #59d4ef;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer}}
+    button:hover{{background:#0878bd;border-color:#8ee9ff}}</style>
+    <script>document.getElementById('open-formulas').onclick=()=>{{
+      const html=atob('{encoded}');const blob=new Blob([html],{{type:'text/html'}});
+      window.open(URL.createObjectURL(blob),'formulario_laboratorio','popup=yes,width=650,height=820,resizable=yes,scrollbars=yes');
+    }};</script>""",height=48,scrolling=False)
+
+CAD_BUCKET = "cad-plans"
+
+def _dxf_preview(file_bytes):
+    """Render a DXF to PNG for the browser viewer; the original remains downloadable."""
+    if ezdxf is None or plt is None:
+        raise RuntimeError("Falta instalar ezdxf o matplotlib.")
+    with tempfile.NamedTemporaryFile(suffix=".dxf") as source:
+        source.write(file_bytes)
+        source.flush()
+        document=ezdxf.readfile(source.name)
+    fig=plt.figure(figsize=(14,9),dpi=150)
+    axis=fig.add_axes([0.01,0.01,0.98,0.98])
+    axis.set_facecolor("#ffffff")
+    Frontend(RenderContext(document),MatplotlibBackend(axis)).draw_layout(
+        document.modelspace(),finalize=True)
+    axis.set_aspect("equal")
+    axis.axis("off")
+    output=io.BytesIO()
+    fig.savefig(output,format="png",dpi=150,bbox_inches="tight",pad_inches=.04,
+                facecolor="white")
+    plt.close(fig)
+    return output.getvalue()
+
+def _cad_record(stage):
+    client=_supabase()
+    if client is None:
+        return None
+    try:
+        rows=(client.table("cad_documents").select("*")
+              .eq("class_id",LABORATORIES[2]["id"]).eq("stage",stage)
+              .limit(1).execute().data or [])
+        return rows[0] if rows else None
+    except Exception:
+        return None
+
+def _cad_signed_url(path):
+    if not path:
+        return None
+    try:
+        result=_supabase().storage.from_(CAD_BUCKET).create_signed_url(path,3600)
+        return result.get("signedURL") or result.get("signed_url")
+    except Exception:
+        return None
+
+def _save_cad_document(stage,uploaded,display_name,units_per_pixel,unit_label):
+    client=_supabase()
+    if client is None:
+        raise RuntimeError("Supabase no está conectado.")
+    raw=uploaded.getvalue()
+    suffix=Path(uploaded.name).suffix.lower()
+    if suffix==".dxf":
+        preview=_dxf_preview(raw)
+    elif suffix in (".png",".jpg",".jpeg",".webp"):
+        preview=raw
+    else:
+        raise RuntimeError("Para medir en pantalla sube un DXF o una imagen PNG/JPG/WEBP.")
+    stamp=dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S")
+    base=f"{LABORATORIES[2]['id']}/stage-{stage}/{stamp}"
+    original_path=f"{base}{suffix}"
+    preview_path=f"{base}-preview.png"
+    bucket=client.storage.from_(CAD_BUCKET)
+    bucket.upload(original_path,raw,{"content-type":uploaded.type or "application/octet-stream"})
+    bucket.upload(preview_path,preview,{"content-type":"image/png"})
+    previous=_cad_record(stage)
+    data={
+        "class_id":LABORATORIES[2]["id"],"stage":stage,
+        "display_name":display_name.strip() or uploaded.name,
+        "original_name":uploaded.name,"original_path":original_path,
+        "preview_path":preview_path,"units_per_pixel":float(units_per_pixel),
+        "unit_label":unit_label.strip() or "m","updated_at":_now(),
+    }
+    client.table("cad_documents").upsert(data,on_conflict="class_id,stage").execute()
+    if previous:
+        for old in (previous.get("original_path"),previous.get("preview_path")):
+            if old and old not in (original_path,preview_path):
+                try:
+                    bucket.remove([old])
+                except Exception:
+                    pass
+
+def _cad_measure_html(image_url,units_per_pixel,unit_label):
+    safe_url=json.dumps(image_url)
+    safe_unit=json.dumps(unit_label)
+    return f"""
+    <div class="cad-shell">
+      <div class="tools"><button onclick="resetView()">⌂ Ajustar</button>
+      <button onclick="clearMeasure()">⌫ Borrar medición</button>
+      <b id="result">Haz clic en dos puntos</b></div>
+      <canvas id="cad"></canvas>
+      <div class="hint">Rueda: zoom · arrastrar: desplazar · clic en dos puntos: medir</div>
+    </div>
+    <style>
+    body{{margin:0;font-family:Arial;background:#07172b;color:white}}
+    .cad-shell{{padding:10px}}.tools{{display:flex;gap:8px;align-items:center;margin-bottom:8px}}
+    button{{background:#0b69d1;color:#fff;border:1px solid #65ddf3;border-radius:8px;padding:8px 12px;font-weight:700}}
+    #result{{margin-left:auto;color:#8ee9ff}}canvas{{width:100%;height:680px;background:white;border-radius:10px;cursor:crosshair}}
+    .hint{{font-size:12px;color:#ccefff;margin-top:6px}}
+    </style>
+    <script>
+    const canvas=document.getElementById('cad'),ctx=canvas.getContext('2d'),img=new Image();
+    const unitPerPixel={float(units_per_pixel)},unit={safe_unit}; let scale=1,ox=0,oy=0,points=[],drag=false,last=null;
+    function size(){{canvas.width=canvas.clientWidth*devicePixelRatio;canvas.height=canvas.clientHeight*devicePixelRatio;draw();}}
+    function resetView(){{scale=Math.min(canvas.width/img.width,canvas.height/img.height);ox=(canvas.width-img.width*scale)/2;oy=(canvas.height-img.height*scale)/2;points=[];draw();}}
+    function clearMeasure(){{points=[];document.getElementById('result').textContent='Haz clic en dos puntos';draw();}}
+    function draw(){{ctx.clearRect(0,0,canvas.width,canvas.height);if(img.complete)ctx.drawImage(img,ox,oy,img.width*scale,img.height*scale);
+      if(points.length){{ctx.fillStyle='#ef3b2d';ctx.strokeStyle='#ef3b2d';ctx.lineWidth=3*devicePixelRatio;
+      points.forEach(p=>{{ctx.beginPath();ctx.arc(p.x*scale+ox,p.y*scale+oy,5*devicePixelRatio,0,Math.PI*2);ctx.fill();}});
+      if(points.length===2){{ctx.beginPath();ctx.moveTo(points[0].x*scale+ox,points[0].y*scale+oy);ctx.lineTo(points[1].x*scale+ox,points[1].y*scale+oy);ctx.stroke();}}}}}}
+    img.onload=()=>{{size();resetView();}};img.src={safe_url};window.onresize=size;
+    canvas.onwheel=e=>{{e.preventDefault();let r=canvas.getBoundingClientRect(),mx=(e.clientX-r.left)*devicePixelRatio,my=(e.clientY-r.top)*devicePixelRatio;
+      let wx=(mx-ox)/scale,wy=(my-oy)/scale,f=e.deltaY<0?1.15:.87;scale*=f;ox=mx-wx*scale;oy=my-wy*scale;draw();}};
+    canvas.onmousedown=e=>{{drag=true;last=[e.clientX,e.clientY];}};
+    canvas.onmousemove=e=>{{if(drag&&e.buttons){{ox+=(e.clientX-last[0])*devicePixelRatio;oy+=(e.clientY-last[1])*devicePixelRatio;last=[e.clientX,e.clientY];draw();}}}};
+    canvas.onmouseup=e=>{{if(!drag)return;let moved=Math.hypot(e.clientX-last[0],e.clientY-last[1]);drag=false;if(moved>2)return;
+      let r=canvas.getBoundingClientRect(),x=((e.clientX-r.left)*devicePixelRatio-ox)/scale,y=((e.clientY-r.top)*devicePixelRatio-oy)/scale;
+      if(points.length===2)points=[];points.push({{x,y}});if(points.length===2){{let px=Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y);
+      document.getElementById('result').textContent=(px*unitPerPixel).toFixed(3)+' '+unit;}}draw();}};
+    </script>"""
+
+@st.dialog("Visor CAD",width="large")
+def cad_viewer_dialog(stage):
+    record=_cad_record(stage)
+    if st.session_state.get("role")=="Docente":
+        with st.expander("Subir o reemplazar plano",expanded=record is None):
+            uploaded=st.file_uploader("Plano",type=["dxf","png","jpg","jpeg","webp"],
+                                      key=f"cad_upload_{stage}")
+            display_name=st.text_input("Nombre visible",value=(record or {}).get("display_name",""),
+                                       key=f"cad_name_{stage}")
+            c1,c2=st.columns(2)
+            units=c1.number_input("Unidades reales por píxel",min_value=0.000001,
+                                  value=float((record or {}).get("units_per_pixel") or 0.01),
+                                  format="%.6f",key=f"cad_scale_{stage}")
+            unit=c2.selectbox("Unidad",["m","cm","mm"],index=["m","cm","mm"].index((record or {}).get("unit_label","m"))
+                              if (record or {}).get("unit_label","m") in ["m","cm","mm"] else 0,
+                              key=f"cad_unit_{stage}")
+            st.caption("Calibra la escala con una distancia conocida del plano antes de publicarlo.")
+            if st.button("Publicar plano",type="primary",key=f"cad_publish_{stage}"):
+                if uploaded is None:
+                    st.warning("Selecciona un archivo.")
+                else:
+                    try:
+                        _save_cad_document(stage,uploaded,display_name,units,unit)
+                        st.success("Plano publicado para este caso.")
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(f"No fue posible publicar el plano: {exc}")
+    record=_cad_record(stage)
+    if not record:
+        st.info("El docente todavía no ha publicado un plano para este caso.")
+        return
+    st.markdown(f"### {record.get('display_name') or record.get('original_name')}")
+    preview_url=_cad_signed_url(record.get("preview_path"))
+    original_url=_cad_signed_url(record.get("original_path"))
+    if preview_url:
+        components.html(_cad_measure_html(
+            preview_url,float(record.get("units_per_pixel") or 0.01),
+            record.get("unit_label") or "m"),height=760,scrolling=False)
+    else:
+        st.error("No fue posible abrir la vista previa.")
+    if original_url:
+        st.link_button("Descargar archivo original",original_url,use_container_width=True)
+
+def cad_viewer_button(stage):
+    if st.button("📏 Abrir visor CAD y medir",key=f"open_cad_{stage}",
+                 use_container_width=True,type="secondary"):
+        cad_viewer_dialog(stage)
 
 def line_chart(x, series, title, ytitle):
     fig=go.Figure()
@@ -3519,6 +3736,7 @@ def lab2_stage6():
     - Compara el valor de laboratorio con la estimación instalada.
     - Declara margen, pérdida de obra y controles de constructibilidad.
     """)
+    cad_viewer_button(6)
     response=st.text_area("Conclusión guiada del equipo",key="lab2_direccion_conclusion",
                           placeholder="Descriptor, solución, resultado, margen, punto débil y controles de obra.")
     if st.button("Guardar conclusión guiada",key="lab2_save_direccion"):
@@ -3612,6 +3830,7 @@ def lab2_stage9():
 def lab2_stage10():
     _lab2_heading(10, "Evaluación individual · Sala de Reuniones Licitaciones",
                   "Resolver un caso equivalente con intento único y rúbrica analítica de 100 puntos.")
+    cad_viewer_button(10)
     stage10()
 
 LAB1_STAGE_TITLES = [
@@ -3970,6 +4189,10 @@ st.session_state.pop("projection_mode",None)
 if not st.session_state.get("access"):
     login();st.stop()
 
+if st.query_params.get("formulas")=="1":
+    formula_reference()
+    st.stop()
+
 # Laboratories 3–10 use their own renderer and class identifier.
 future_lab_id=st.session_state.get("future_lab_id")
 if future_lab_id in FUTURE_LABS:
@@ -4037,8 +4260,6 @@ with st.sidebar:
     view_options=[
         "🏠 Mis clases",
         f"📚 Laboratorio {ACTIVE_LAB} y actividades",
-        f"📐 Fórmulas · Laboratorio {ACTIVE_LAB}",
-        f"🧮 Mesa de cálculo · Laboratorio {ACTIVE_LAB}",
     ]
     if st.session_state.get("main_view") not in view_options:
         st.session_state["main_view"]="🏠 Mis clases"
@@ -4046,8 +4267,9 @@ with st.sidebar:
         "Vista",
         view_options,
         key="main_view",
-        help="Puedes consultar las fórmulas y regresar sin perder lo que estabas respondiendo.",
+        help="Selecciona Mis clases o la ruta del laboratorio.",
     )
+    formula_popup_button()
     if st.session_state.role=="Docente":
         st.link_button(
             "🖥️ Abrir vista para Zoom",
@@ -4082,10 +4304,6 @@ with st.sidebar:
 
 if view=="🏠 Mis clases":
     course_dashboard()
-elif view==view_options[2]:
-    formula_reference()
-elif view==view_options[3]:
-    calculation_notebook()
 else:
     idx=labels.index(selected)
     st.caption(f"Curso: Aislamiento a ruido aéreo · Laboratorio {ACTIVE_LAB} de 2")
