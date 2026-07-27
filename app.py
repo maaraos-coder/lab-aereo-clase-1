@@ -12,6 +12,7 @@ import unicodedata
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from future_labs import COURSE_LABS, FUTURE_LABS
+from diploma_formulas import build_formulary_html
 
 import numpy as np
 import pandas as pd
@@ -1454,10 +1455,10 @@ def teacher_publication_management():
             st.rerun()
 
 def formula_reference():
-    """Reference view separated from activities so students can consult it safely."""
-    header(f"FORMULARIO · LABORATORIO {ACTIVE_LAB}","Fórmulas de aislamiento a ruido aéreo",
-           "Consulta ecuaciones, símbolos y unidades. Al volver a la clase, tus respuestas seguirán exactamente donde las dejaste.")
-    st.info("Esta pestaña es solo de consulta. Las respuestas se guardan automáticamente por usuario.")
+    """Fallback reference view; the sidebar button opens the complete floating formulary."""
+    header("FORMULARIO DEL DIPLOMADO","Compendio acumulativo de los diez laboratorios",
+           "El contenido visible se actualiza automáticamente con la publicación de cada laboratorio.")
+    st.info("Usa el botón «Abrir Formulario del Diplomado» de la barra lateral.")
     tab1,tab2,tab3,tab4=st.tabs([
         "Recintos y absorción","Transmisión y aislamiento",
         "Placas y sistemas dobles","Evaluación económica",
@@ -1507,9 +1508,44 @@ def formula_reference():
                      "Indica cuánto se ganó o perdió en relación con lo invertido.")
 
 def formula_popup_button():
-    """Open a self-contained reference window without creating a second login session."""
-    title=f"Formulario · Laboratorio {ACTIVE_LAB}"
-    formulae=[
+    """Open the cumulative Diploma reference without creating a second login session."""
+    visible_labs=set()
+    if st.session_state.get("role")=="Docente":
+        visible_labs={(course_index,lab_number) for course_index in range(1,6) for lab_number in (1,2)}
+    else:
+        client=_supabase()
+        if client is not None:
+            try:
+                rows=client.table("classes").select("id,status,opens_at").eq("course_id",COURSE_ID).execute().data or []
+                released={
+                    row.get("id") for row in rows
+                    if row.get("status") in ("published","archived") and _is_open(row.get("opens_at"))
+                }
+                first_ids={LABORATORIES[1]["id"]:(1,1),LABORATORIES[2]["id"]:(1,2)}
+                for class_id,key in first_ids.items():
+                    if class_id in released:
+                        visible_labs.add(key)
+                for course_index,course in enumerate(COURSE_LABS,2):
+                    for lab in course["labs"]:
+                        if lab["id"] in released:
+                            visible_labs.add((course_index,lab["number"]))
+            except Exception:
+                visible_labs={(1,1)}
+        else:
+            visible_labs={(1,1)}
+    popup=build_formulary_html(visible_labs)
+    popup_json=json.dumps(popup,ensure_ascii=False)
+    components.html(f"""
+    <button id="open-formulas">📐 Abrir Formulario del Diplomado</button>
+    <style>body{{margin:0}}button{{width:100%;height:42px;background:#0b4f83;color:white;
+    border:1px solid #59d4ef;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer}}
+    button:hover{{background:#0878bd;border-color:#8ee9ff}}</style>
+    <script>document.getElementById('open-formulas').onclick=()=>{{
+      const win=window.open('','formulario_diplomado','popup=yes,width=820,height=880,resizable=yes,scrollbars=yes');
+      win.document.open();win.document.write({popup_json});win.document.close();
+    }};</script>""",height=48,scrolling=False)
+    return
+    lab1_formulae=[
         ("Absorción equivalente","A = Σ α<sub>i</sub> · S<sub>i</sub>",[
             ("A","área de absorción acústica equivalente","m² sabin"),
             ("α<sub>i</sub>","coeficiente de absorción de la superficie i","adimensional"),
@@ -1559,26 +1595,72 @@ def formula_popup_button():
             ("I<sub>0</sub>","inversión inicial","$"),
             ("ROI","retorno sobre la inversión","%")]),
     ]
-    cards=""
-    for name,equation,variables in formulae:
-        rows="".join(
-            f"<tr><th>{symbol}</th><td>{meaning}</td><td>{unit}</td></tr>"
-            for symbol,meaning,unit in variables)
+    lab2_formulae=[
+        ("Adaptaciones espectrales ISO","R<sub>w</sub> + C &nbsp;&nbsp;·&nbsp;&nbsp; R<sub>w</sub> + C<sub>tr</sub>",[
+            ("R<sub>w</sub>","índice ponderado de reducción sonora del elemento ensayado","dB"),
+            ("C","término de adaptación para espectros predominantemente medios y altos","dB"),
+            ("C<sub>tr</sub>","término de adaptación para tránsito y espectros con contenido grave","dB")]),
+        ("Diferencia de nivel estandarizada","D<sub>nT</sub> = L<sub>1</sub> − L<sub>2</sub> + 10·log<sub>10</sub>(T/T<sub>0</sub>)",[
+            ("D<sub>nT</sub>","diferencia de nivel estandarizada entre recintos","dB"),
+            ("L<sub>1</sub>","nivel promedio en el recinto emisor","dB"),
+            ("L<sub>2</sub>","nivel promedio en el recinto receptor","dB"),
+            ("T","tiempo de reverberación medido en el recinto receptor","s"),
+            ("T<sub>0</sub>","tiempo de reverberación de referencia; usualmente 0,5 s en viviendas","s")]),
+        ("Descriptor adaptado del caso","D<sub>nT,A</sub> = D<sub>nT,w</sub> + C",[
+            ("D<sub>nT,A</sub>","diferencia de nivel estandarizada ponderada A para el espectro considerado","dB"),
+            ("D<sub>nT,w</sub>","valor único ponderado de la diferencia de nivel estandarizada","dB"),
+            ("C","término de adaptación espectral correspondiente","dB")]),
+        ("Paso simplificado de elemento a edificio","D<sub>nT,A</sub> ≈ R<sub>comp,A</sub> + 10·log<sub>10</sub>(0,32·V/S) − L<sub>obra</sub>",[
+            ("D<sub>nT,A</sub>","diferencia de nivel estandarizada adaptada estimada","dB"),
+            ("R<sub>comp,A</sub>","reducción sonora adaptada del elemento compuesto","dB"),
+            ("V","volumen del recinto receptor","m³"),
+            ("S","área del elemento separador","m²"),
+            ("L<sub>obra</sub>","pérdida estimada por montaje, encuentros y ejecución","dB")]),
+        ("Aislamiento del cerramiento compuesto","τ<sub>comp</sub> = Σ(S<sub>i</sub>·10<sup>−R<sub>i</sub>/10</sup>)/ΣS<sub>i</sub><br>R<sub>comp</sub> = −10·log<sub>10</sub>(τ<sub>comp</sub>)",[
+            ("τ<sub>comp</sub>","coeficiente de transmisión del cerramiento completo","adimensional"),
+            ("S<sub>i</sub>","área de cada componente, por ejemplo muro o puerta","m²"),
+            ("R<sub>i</sub>","índice de reducción sonora de cada componente","dB"),
+            ("R<sub>comp</sub>","índice de reducción sonora del conjunto","dB")]),
+    ]
+
+    def build_cards(formulae):
+        cards=""
+        for name,equation,variables in formulae:
+            rows="".join(
+                f"<tr><th>{symbol}</th><td>{meaning}</td><td>{unit}</td></tr>"
+                for symbol,meaning,unit in variables)
+            cards+=(
+                f"<article><h3>{name}</h3><div class='eq'>{equation}</div>"
+                f"<table><thead><tr><th>Símbolo</th><th>Corresponde a</th><th>Unidad</th></tr></thead>"
+                f"<tbody>{rows}</tbody></table></article>")
+        return cards
+
+    cards=(
+        "<section><div class='lab-title'><b>Laboratorio 1</b>"
+        "<span>Fundamentos, recintos, transmisión, placas y evaluación económica</span></div>"
+        + build_cards(lab1_formulae) + "</section>"
+    )
+    show_lab2=st.session_state.get("role")=="Docente" or ACTIVE_LAB==2
+    if show_lab2:
         cards+=(
-            f"<article><h3>{name}</h3><div class='eq'>{equation}</div>"
-            f"<table><thead><tr><th>Símbolo</th><th>Corresponde a</th><th>Unidad</th></tr></thead>"
-            f"<tbody>{rows}</tbody></table></article>")
+            "<section><div class='lab-title lab2'><b>Laboratorio 2</b>"
+            "<span>CES–MINVU, descriptores de edificio, ISO 12354 y casos profesionales</span></div>"
+            + build_cards(lab2_formulae) + "</section>"
+        )
     popup=f"""<!doctype html><html><head><meta charset='utf-8'><title>{title}</title>
     <style>body{{font-family:Arial,sans-serif;background:#f4f8fc;color:#102b49;margin:0;padding:18px}}
     header{{position:sticky;top:0;background:linear-gradient(135deg,#07172b,#0878bd);color:white;
     border-radius:14px;padding:16px 18px;box-shadow:0 8px 22px #07172b33}}header b{{font-size:20px}}
+    .lab-title{{display:flex;flex-direction:column;gap:3px;background:#e8f5fd;border:1px solid #b9def3;
+    border-radius:12px;padding:12px 14px;margin:16px 0 10px;color:#084f83}}.lab-title b{{font-size:17px}}
+    .lab-title span{{font-size:12px;color:#536b82}}.lab-title.lab2{{background:#eef8f2;border-color:#bfe3cf;color:#08724e}}
     article{{background:white;border:1px solid #d8e6f3;border-left:5px solid #0a75bd;
     border-radius:12px;padding:12px 14px;margin:10px 0}}h3{{font-size:14px;margin:0 0 8px;color:#0a4f86}}
     .eq{{font-size:20px;font-weight:800;line-height:1.55;margin-bottom:10px}}
     table{{width:100%;border-collapse:collapse;font-size:13px}}th,td{{padding:6px 7px;border-top:1px solid #e1eaf2;text-align:left;vertical-align:top}}
     thead th{{color:#53657a;font-size:11px;text-transform:uppercase}}tbody th{{color:#083f6b;white-space:nowrap}}
     small{{display:block;margin-top:7px;color:#60718a}}</style>
-    </head><body><header><b>📐 {title}</b><br><small style='color:#d9f5ff'>Ventana de consulta independiente</small></header>{cards}</body></html>"""
+    </head><body><header><b>📐 {title}</b><br><small style='color:#d9f5ff'>Formulario acumulativo del curso, organizado por laboratorio</small></header>{cards}</body></html>"""
     popup_json=json.dumps(popup,ensure_ascii=False)
     components.html(f"""
     <button id="open-formulas">📐 Abrir fórmulas</button>
@@ -1765,7 +1847,6 @@ def line_chart(x, series, title, ytitle):
 def stage0():
     header("ETAPA 0 · BIENVENIDA","Laboratorio del curso Aislamiento a Ruido Aéreo",
            "Una experiencia visual para comprender el fenómeno, experimentar con variables y decidir con criterio técnico y económico.")
-    full_matter(0)
     st.markdown(
         f'<div class="class-clock"><div><strong>⏱️ Duración total de la clase: 4 horas</strong>'
         f'<br><span>{sum(STAGE_MINUTES.values())} min de aprendizaje y aplicación + {BREAK_MINUTES} min de pausa</span></div>'
@@ -3227,7 +3308,6 @@ def stage10():
 
 def lab1_stage0():
     header('ETAPA 0 · BIENVENIDA', 'Laboratorio del curso Aislamiento a Ruido Aéreo', 'Una experiencia visual para comprender el fenómeno, experimentar con variables y decidir con criterio técnico y económico.')
-    full_matter(0)
     st.markdown(f'<div class="class-clock"><div><strong>⏱️ Duración total de la clase: 4 horas</strong><br><span>{sum(STAGE_MINUTES.values())} min de aprendizaje y aplicación + {BREAK_MINUTES} min de pausa</span></div><div><strong>{TOTAL_CLASS_MINUTES} min</strong></div></div>', unsafe_allow_html=True)
     st.markdown('<div class="section-band"><span>🗺️</span><h3>Tu ruta de aprendizaje</h3></div>', unsafe_allow_html=True)
     html = '<div class="route-grid">'
@@ -4053,6 +4133,7 @@ def future_lab_view(lab):
         answered=sum(1 for i in range(11) if saved.get(f"done_{i}"))
         st.progress(answered/11)
         st.caption(f"Avance: {answered}/11 etapas · {answered*10}/110 puntos formativos")
+        formula_popup_button()
         selected=st.radio(
             "Ruta de aprendizaje",
             list(range(11)),
@@ -4334,7 +4415,8 @@ with st.sidebar:
         with st.expander("🔒 Publicación de laboratorios"):
             teacher_publication_management()
     active_titles=LAB_STAGE_TITLES[ACTIVE_LAB]
-    labels=[f"{n} · {t} · {STAGE_MINUTES[i]} min" for i,(n,t) in enumerate(active_titles)]
+    active_minutes=STAGE_MINUTES if ACTIVE_LAB==1 else dict(enumerate(LAB2_MINUTES))
+    labels=[f"{n} · {t} · {active_minutes[i]} min" for i,(n,t) in enumerate(active_titles)]
     selected=None
     if view==view_options[1]:
         lab_stages=LABORATORIES[ACTIVE_LAB]["stages"]
