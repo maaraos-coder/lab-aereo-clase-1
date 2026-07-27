@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import copy
 import json
+import re
+import uuid
 from typing import Any
 
 import streamlit as st
@@ -15,9 +17,51 @@ EMPTY_CONTENT = {
     "content_markdown": "",
     "activity_markdown": "",
     "teacher_solution": "",
+    "media": [],
     "minutes": 20,
     "replace_base": False,
 }
+
+
+def _render_media(items: list[dict]) -> None:
+    for item in items or []:
+        url = item.get("url", "")
+        if not url:
+            continue
+        title = item.get("title") or item.get("name") or "Recurso de apoyo"
+        caption = item.get("caption", "")
+        kind = item.get("kind", "image")
+        if kind == "image":
+            st.image(url, caption=caption or title, use_container_width=True)
+        else:
+            st.link_button(f"📄 Abrir {title}", url, use_container_width=True)
+            if caption:
+                st.caption(caption)
+
+
+def render_media(items: list[dict]) -> None:
+    """Render stage media without repeating the editable text blocks."""
+    _render_media(items)
+
+
+def _upload_media(client, uploaded, class_id: str, stage: int) -> dict:
+    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "-", uploaded.name).strip("-") or "archivo"
+    object_path = f"{class_id}/etapa-{stage}/{uuid.uuid4().hex[:12]}-{safe_name}"
+    client.storage.from_("diplomado-media").upload(
+        object_path,
+        uploaded.getvalue(),
+        {"content-type": uploaded.type or "application/octet-stream", "upsert": "false"},
+    )
+    public = client.storage.from_("diplomado-media").get_public_url(object_path)
+    url = public if isinstance(public, str) else public.get("publicUrl") or public.get("publicURL")
+    return {
+        "path": object_path,
+        "url": url,
+        "name": uploaded.name,
+        "kind": "image" if (uploaded.type or "").startswith("image/") else "pdf",
+        "title": "",
+        "caption": "",
+    }
 
 
 def _decode(value: Any) -> dict:
@@ -83,6 +127,7 @@ def render_override(client, class_id: str, stage: int, role: str) -> bool:
     if content.get("activity_markdown"):
         st.markdown("### Actividad")
         st.markdown(content["activity_markdown"])
+    _render_media(content.get("media", []))
     if role == "Docente" and content.get("teacher_solution"):
         with st.expander("🔐 Solución y orientación docente"):
             st.markdown(content["teacher_solution"])
@@ -110,6 +155,7 @@ def append_content(client, class_id: str, stage: int, role: str) -> None:
         if content.get("activity_markdown"):
             st.markdown("### Actividad adicional")
             st.markdown(content["activity_markdown"])
+        _render_media(content.get("media", []))
     if role == "Docente" and content.get("teacher_solution"):
         with st.expander("🔐 Solución y orientación docente"):
             st.markdown(content["teacher_solution"])
@@ -121,7 +167,7 @@ def apply_fields(client, class_id: str, stage: int, role: str, defaults: dict) -
     content = get_content(client, class_id, stage, role)
     if not content:
         return result
-    for key in ("title", "objective", "content_markdown", "activity_markdown", "teacher_solution", "minutes"):
+    for key in ("title", "objective", "content_markdown", "activity_markdown", "teacher_solution", "minutes", "media"):
         if content.get(key) not in ("", None):
             result[key] = content[key]
     result["_cms_preview"] = (
@@ -246,8 +292,11 @@ def editor_dialog(client, catalog: list[dict], now_fn, current_class: str | None
         value=bool(initial.get("replace_base")),
         help="Desactivado: agrega contenido al final. Activado: el alumno verá esta versión en lugar de la etapa programada.",
     )
-    tab_content, tab_activity, tab_teacher, tab_preview, tab_history = st.tabs(
-        ["Contenido", "Actividad", "Solución docente", "Vista previa", "Historial"]
+    media_key = f"cms_media_{class_id}_{stage}"
+    if media_key not in st.session_state:
+        st.session_state[media_key] = copy.deepcopy(initial.get("media", []))
+    tab_content, tab_activity, tab_media, tab_teacher, tab_preview, tab_history = st.tabs(
+        ["Contenido", "Actividad", "Imágenes y PDF", "Solución docente", "Vista previa", "Historial"]
     )
     with tab_content:
         content = st.text_area(
@@ -262,6 +311,37 @@ def editor_dialog(client, catalog: list[dict], now_fn, current_class: str | None
             value=initial["activity_markdown"],
             height=260,
         )
+    with tab_media:
+        st.caption("Los archivos quedan asociados a esta etapa. PNG, JPG, WEBP y GIF se muestran dentro de la clase; los PDF quedan como material de consulta.")
+        uploaded = st.file_uploader(
+            "Subir imagen o PDF",
+            type=["png", "jpg", "jpeg", "webp", "gif", "pdf"],
+            key=f"cms_upload_{class_id}_{stage}",
+        )
+        media_title = st.text_input("Título del recurso", key=f"cms_media_title_{class_id}_{stage}")
+        media_caption = st.text_input("Pie o descripción", key=f"cms_media_caption_{class_id}_{stage}")
+        if st.button("Agregar a la etapa", key=f"cms_add_media_{class_id}_{stage}", disabled=uploaded is None):
+            try:
+                item_media = _upload_media(client, uploaded, class_id, stage)
+                item_media["title"] = media_title.strip()
+                item_media["caption"] = media_caption.strip()
+                st.session_state[media_key].append(item_media)
+                st.success("Archivo cargado. Guarda el borrador o publica para conservar su ubicación en la etapa.")
+            except Exception as exc:
+                st.error(f"No fue posible cargar el archivo: {exc}")
+        current_media = st.session_state.get(media_key, [])
+        if current_media:
+            st.markdown("#### Recursos incorporados")
+            remove = []
+            for index, media in enumerate(current_media):
+                left, right = st.columns([4, 1])
+                left.write(f"{'🖼️' if media.get('kind') == 'image' else '📄'} {media.get('title') or media.get('name')}")
+                if right.checkbox("Quitar", key=f"cms_remove_media_{class_id}_{stage}_{index}"):
+                    remove.append(index)
+            if remove:
+                st.session_state[media_key] = [
+                    media for index, media in enumerate(current_media) if index not in remove
+                ]
     with tab_teacher:
         teacher_solution = st.text_area(
             "Respuesta esperada, pauta y orientación",
@@ -275,6 +355,7 @@ def editor_dialog(client, catalog: list[dict], now_fn, current_class: str | None
         "content_markdown": content,
         "activity_markdown": activity,
         "teacher_solution": teacher_solution,
+        "media": copy.deepcopy(st.session_state.get(media_key, [])),
         "minutes": int(minutes),
         "replace_base": bool(replace_base),
     }
@@ -287,6 +368,7 @@ def editor_dialog(client, catalog: list[dict], now_fn, current_class: str | None
         if candidate["activity_markdown"]:
             st.markdown("### Actividad")
             st.markdown(candidate["activity_markdown"])
+        _render_media(candidate.get("media", []))
         st.caption("La solución docente se oculta en esta previsualización.")
     with tab_history:
         versions = (
@@ -338,4 +420,3 @@ def editor_dialog(client, catalog: list[dict], now_fn, current_class: str | None
 def editor_button(client, catalog: list[dict], now_fn, current_class: str | None = None, current_stage: int = 0):
     if st.button("✏️ Editar contenido", use_container_width=True, type="primary"):
         editor_dialog(client, catalog, now_fn, current_class, current_stage)
-

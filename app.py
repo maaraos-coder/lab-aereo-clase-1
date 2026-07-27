@@ -18,8 +18,10 @@ from content_editor import (
     apply_fields as cms_apply_fields,
     editor_button as cms_editor_button,
     render_override as cms_render_override,
+    render_media as cms_render_media,
     stage_label as cms_stage_label,
 )
+from student_results import release_controls, results_view
 
 import numpy as np
 import pandas as pd
@@ -3059,6 +3061,11 @@ def _legacy_stage10():
                 level,
                 f"Teoría: {theory}/29 aciertos. Caso práctico: {practical}/20 puntos.",
                 score=total,max_score=100,
+                correct_answer=(
+                    "Pauta: T₆₀≈0,40 s; diferencia $300.000; incremento 16,7%; "
+                    "bandas 125, 250 y 500 Hz; Solución B por mejor respuesta grave, "
+                    "mejor Rw+Cₜᵣ y mayor vida útil."
+                ),
             )
     if "exam_result" in st.session_state:
         theory,practical,total=st.session_state.exam_result
@@ -4183,6 +4190,10 @@ def future_lab_view(lab):
         st.progress(answered/11)
         st.caption(f"Avance: {answered}/11 etapas · {answered*10}/110 puntos formativos")
         formula_popup_button()
+        if st.session_state.get("role") == "Alumno" and st.button("📊 Mis resultados", use_container_width=True):
+            st.session_state.pop("future_lab_id", None)
+            st.session_state["main_view"] = "📊 Mis resultados"
+            st.rerun()
         selected=st.radio(
             "Ruta de aprendizaje",
             list(range(11)),
@@ -4250,6 +4261,7 @@ def future_lab_view(lab):
 
     st.markdown("### Actividad interactiva")
     st.write(activity)
+    cms_render_media(editable.get("media", []))
     answer=st.text_area(
         "Desarrollo del alumno",
         value=saved.get(f"answer_{selected}",""),
@@ -4446,6 +4458,7 @@ with st.sidebar:
     score_counter(compact=True)
     view_options=[
         "🏠 Mis clases",
+        "📊 Mis resultados",
         f"📚 Laboratorio {ACTIVE_LAB} y actividades",
     ]
     if st.session_state.get("main_view") not in view_options:
@@ -4477,6 +4490,11 @@ with st.sidebar:
             teacher_student_management()
         with st.expander("🔒 Publicación de laboratorios"):
             teacher_publication_management()
+        with st.expander("📊 Liberación de resultados"):
+            release_controls(
+                _supabase(), _cms_catalog(), _now,
+                st.session_state.get("name", "Docente"),
+            )
     active_titles=LAB_STAGE_TITLES[ACTIVE_LAB]
     active_minutes=STAGE_MINUTES if ACTIVE_LAB==1 else dict(enumerate(LAB2_MINUTES))
     labels=[]
@@ -4501,6 +4519,8 @@ with st.sidebar:
 
 if view=="🏠 Mis clases":
     course_dashboard()
+elif view=="📊 Mis resultados":
+    results_view(_supabase(), _cms_catalog(), st.session_state.get("user_key", ""))
 else:
     idx=labels.index(selected)
     st.caption(f"Curso: Aislamiento a ruido aéreo · Laboratorio {ACTIVE_LAB} de 2")
