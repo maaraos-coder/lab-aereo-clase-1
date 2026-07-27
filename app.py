@@ -307,11 +307,11 @@ STAGES = [
 ("Etapa 3","Aplicación: absorción, reverberación e inteligibilidad"),
 ("Etapa 4","Aislamiento y análisis costo-beneficio"),
 ("Etapa 5","Aplicación conceptual técnico-económica"),
-("Etapa 6","Modelos de la tesis: placas, Sharp y ventanas Quirt"),
-("Etapa 7","Ejercicio profesional guiado · MINVU Magallanes"),
-("Etapa 8","Del elemento al edificio · ISO 12354"),
-("Etapa 9","Aplicación práctica de los descriptores"),
-("Etapa 10","Evaluación profesional final · Caso MINVU"),
+("Etapa 6","Fundamentos físicos del aislamiento acústico"),
+("Etapa 7","Aplicación práctica del aislamiento acústico"),
+("Etapa 8","Índices de aislamiento acústico"),
+("Etapa 9","Aplicación práctica de los índices"),
+("Etapa 10","Evaluación final · Aislamiento a Ruido Aéreo"),
 ]
 
 # La sesión completa dura 4 horas: 230 minutos de trabajo y 10 minutos de pausa.
@@ -339,21 +339,21 @@ STAGE_GUIDE = {
 5:("⚖️","ANALIZARÁS","Alternativas técnico-económicas bajo una meta acústica común.",
    "📈","EVALUARÁS","Costo del ciclo, ROI, payback, riesgo y suficiencia técnica.",
    "✅","RECOMENDARÁS","La opción justificable, no simplemente la más barata o la de mayor aislamiento."),
-6:("🌊","COMPRENDERÁS","Placas simples, método de Sharp y el modelo de ventanas dobles de Quirt desarrollado en AKUZOFT.",
-   "🪟","EXPERIMENTARÁS","Espesores de vidrio, cámara, dimensiones del marco, resonancia f₁ y curva TL(f).",
-   "📉","INTERPRETARÁS","Por qué una ventana no debe modelarse como un tabique doble con cavidad absorbente."),
-7:("🏢","RESOLVERÁS","El encargo real de la Sala de Reuniones Dirección del MINVU Magallanes.",
-   "📐","CALCULARÁS","Volumen, superficie, Kgeo, objetivo Rw+C y desempeño DnT,A.",
-   "✅","DECIDIRÁS","La solución mínima robusta, comparándola finalmente con TA-01."),
-8:("📏","DIFERENCIARÁS","R(f), Rw, C, Ctr, R'w, DnT,w y DnT,A.",
-   "🗂️","CONECTARÁS","El resultado de SONARA con geometría, pérdida de obra y rutas laterales.",
-   "🎯","SELECCIONARÁS","El descriptor compatible con la fuente y la exigencia CES del caso."),
+6:("🌊","COMPRENDERÁS","Transmisión, ley de masa, resonancia, coincidencia y sistemas dobles.",
+   "🧪","EXPERIMENTARÁS","Masa, frecuencia, cámaras, absorbentes, sellos y elementos débiles.",
+   "📉","INTERPRETARÁS","Curvas por bandas y las causas físicas de sus valles y pendientes."),
+7:("🛠️","RESOLVERÁS","Ejercicios prácticos de cerramientos simples, dobles y compuestos.",
+   "🔎","DIAGNOSTICARÁS","La banda crítica, el elemento débil y la vía dominante.",
+   "✅","VERIFICARÁS","El cumplimiento de una meta sin sobredimensionar componentes secundarios."),
+8:("📏","CONOCERÁS","R, Rw, C, Ctr, STC, OITC e índices de laboratorio, terreno y fachada.",
+   "🗂️","INTERPRETARÁS","Fichas técnicas, normas, contextos y adaptaciones espectrales.",
+   "🎯","SELECCIONARÁS","El indicador que representa correctamente la fuente y el problema real."),
 9:("📉","CALCULARÁS","Rw mediante la curva de referencia y sus desviaciones desfavorables.",
    "🔄","COMPARARÁS","Particiones con igual índice global pero distinto comportamiento espectral.",
    "✅","DECIDIRÁS","Según voz, tránsito, bajas frecuencias, laboratorio o terreno."),
-10:("📝","RESOLVERÁS","Una evaluación individual equivalente al ejercicio profesional guiado.",
-    "🏢","DISEÑARÁS","La separación de Sala de Reuniones Licitaciones, incorporando una puerta.",
-    "💰","OPTIMIZARÁS","La combinación de menor costo que cumpla DnT,A y el margen requerido."),
+10:("📝","RESPONDERÁS","29 preguntas teórico-aplicadas de todas las etapas.",
+    "🏢","RESOLVERÁS","Un caso profesional con T60, bandas críticas e índices acústicos.",
+    "💰","JUSTIFICARÁS","La solución final mediante desempeño, costo, vida útil y objetivo de diseño."),
 }
 
 ROUTE_SUMMARIES = [
@@ -362,11 +362,11 @@ ROUTE_SUMMARIES = [
 ("Aplicación acústica interior","Calcula T₆₀ y mejora la inteligibilidad mediante decisiones concretas."),
 ("Costo-beneficio","Relaciona meta acústica, inversión, ROI, vida útil y costos evitados."),
 ("Decisión técnico-económica","Compara alternativas y descarta las que no cumplen técnicamente."),
-("Modelos de la tesis","Explora placas, Sharp, resonancia, coincidencia y ventanas dobles con Quirt."),
-("Caso guiado MINVU","Diseña la separación Dirección–Oficina y verifica DnT,A."),
-("Del elemento al edificio","Interpreta Rw, C, Ctr, R'w, DnT,w, DnT,A y pérdidas de obra."),
+("Fundamentos físicos","Explora masa, frecuencia, resonancia, coincidencia y sistemas dobles."),
+("Diseño práctico","Detecta bandas críticas, elementos débiles y vías dominantes."),
+("Índices acústicos","Interpreta Rw, C, Ctr, STC, OITC y resultados de terreno."),
 ("Aplicación de índices","Trabaja con curvas, desviaciones, fuentes y fichas técnicas."),
-("Evaluación final MINVU","Transfiere el método a Licitaciones y optimiza tabique más puerta."),
+("Evaluación final","Integra acústica y costo-beneficio en una decisión profesional."),
 ]
 
 def stage_overview(stage_number):
@@ -377,13 +377,14 @@ def stage_overview(stage_number):
         html+=f'<div class="overview-card"><div class="overview-icon">{icon}</div><div class="overview-title">{title}</div><div class="overview-text">{text}</div></div>'
     st.markdown(html+'</div>',unsafe_allow_html=True)
 
-def header(kicker,title,desc):
+def header(kicker,title,desc,show_overview=True,duration_minutes=None):
     match=re.search(r"ETAPA\s+(\d+)",kicker)
     stage_number=int(match.group(1)) if match else None
-    duration=(f'<div class="time-badge">⏱️ Tiempo de aplicación: {STAGE_MINUTES[stage_number]} minutos</div>'
-              if stage_number in STAGE_MINUTES else "")
+    minutes = duration_minutes if duration_minutes is not None else STAGE_MINUTES.get(stage_number)
+    duration=(f'<div class="time-badge">⏱️ Tiempo de aplicación: {minutes} minutos</div>'
+              if minutes is not None else "")
     st.markdown(f'<div class="hero"><span class="tag">{kicker}</span><h1>{title}</h1><p>{desc}</p>{duration}</div>',unsafe_allow_html=True)
-    if match:
+    if match and show_overview:
         stage_overview(stage_number)
 
 def image_data_uri(path):
@@ -3741,8 +3742,13 @@ def lab1_stage10():
 LAB2_MINUTES = [15, 20, 25, 35, 35, 25, 35, 20, 20, 10, 60]
 
 def _lab2_heading(stage, title, purpose):
-    header(f"ETAPA {stage} · LABORATORIO 2", title, purpose)
-    st.caption(f"Tiempo sugerido: {LAB2_MINUTES[stage]} minutos")
+    header(
+        f"ETAPA {stage} · LABORATORIO 2",
+        title,
+        purpose,
+        show_overview=False,
+        duration_minutes=LAB2_MINUTES[stage],
+    )
 
 def lab2_stage0():
     _lab2_heading(0, "Ruta profesional de cuatro horas",
