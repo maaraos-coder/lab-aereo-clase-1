@@ -6,7 +6,9 @@ import mimetypes
 import re
 import sqlite3
 import hashlib
+import unicodedata
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -22,18 +24,56 @@ ROOT = Path(__file__).parent
 FREQS = np.array([100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150])
 ACTIVITY_DB = ROOT / "formative_responses.sqlite3"
 COURSE_ID = "diplomado-acustica-edificacion"
+SANTIAGO_TZ = ZoneInfo("America/Santiago")
+ACADEMIC_COURSES = [
+    {
+        "title": "Aislamiento acústico al ruido aéreo",
+        "labs": [
+            {"number": 1, "opens_at": "2026-07-25T00:00:00-04:00", "implemented": True},
+            {"number": 2, "opens_at": "2026-08-01T00:00:00-04:00", "implemented": True},
+        ],
+    },
+    {
+        "title": "Control de ruido de impacto y ruido de instalaciones",
+        "labs": [
+            {"number": 1, "opens_at": "2026-08-22T00:00:00-04:00", "implemented": False},
+            {"number": 2, "opens_at": "2026-08-29T00:00:00-04:00", "implemented": False},
+        ],
+    },
+    {
+        "title": "Control de ruido ambiental",
+        "labs": [
+            {"number": 1, "opens_at": "2026-09-12T00:00:00-03:00", "implemented": False},
+            {"number": 2, "opens_at": "2026-09-26T00:00:00-03:00", "implemented": False},
+        ],
+    },
+    {
+        "title": "Factores del ruido en el proceso de construcción",
+        "labs": [
+            {"number": 1, "opens_at": "2026-10-10T00:00:00-03:00", "implemented": False},
+            {"number": 2, "opens_at": "2026-10-17T00:00:00-03:00", "implemented": False},
+        ],
+    },
+    {
+        "title": "Certificaciones acústicas en la edificación residencial",
+        "labs": [
+            {"number": 1, "opens_at": "2026-11-07T00:00:00-03:00", "implemented": False},
+            {"number": 2, "opens_at": "2026-11-14T00:00:00-03:00", "implemented": False},
+        ],
+    },
+]
 LABORATORIES = {
     1: {
         "id": "clase-01-aislamiento-ruido-aereo",
-        "title": "Fundamentos del aislamiento a ruido aéreo",
-        "description": "Control de ruido, aislamiento y absorción, fundamentos físicos e índices.",
+        "title": "Laboratorio 1",
+        "description": "",
         "stages": list(range(11)),
     },
     2: {
         "id": "clase-02-aislamiento-ruido-aereo-minvu",
-        "title": "Diseño profesional de aislamiento a ruido aéreo",
-        "description": "Caso MINVU Magallanes · SONARA · Quirt · ISO 12354.",
-        "stages": [0, 6, 7, 8, 10],
+        "title": "Laboratorio 2",
+        "description": "",
+        "stages": list(range(11)),
     },
 }
 ACTIVE_LAB = int(st.session_state.get("active_lab", 1))
@@ -736,6 +776,21 @@ def _supabase():
 def _now():
     return dt.datetime.now(dt.timezone.utc).isoformat()
 
+def _parse_opening(value):
+    if not value:
+        return None
+    return dt.datetime.fromisoformat(str(value).replace("Z","+00:00"))
+
+def _opening_label(value):
+    opening=_parse_opening(value)
+    if opening is None:
+        return "Fecha por definir"
+    return opening.astimezone(SANTIAGO_TZ).strftime("%d-%m-%Y")
+
+def _is_open(value):
+    opening=_parse_opening(value)
+    return opening is None or dt.datetime.now(dt.timezone.utc) >= opening.astimezone(dt.timezone.utc)
+
 def _remote_rows(table, **filters):
     client=_supabase()
     if client is None:
@@ -761,6 +816,34 @@ def _make_user_key(role, name, identification=""):
     """Stable private identifier: responses do not depend only on the visible name."""
     source=f"{role}|{identification.strip().lower() or name.strip().lower()}"
     return hashlib.sha256(source.encode("utf-8")).hexdigest()
+
+def _normalize_name(value):
+    """Normalize names for a strict but accent/case-insensitive roster match."""
+    value=unicodedata.normalize("NFKD",str(value or ""))
+    value="".join(ch for ch in value if not unicodedata.combining(ch))
+    return " ".join(value.casefold().split())
+
+def _normalize_identification(value):
+    """Keep only letters and digits so formatted and unformatted RUTs match."""
+    return re.sub(r"[^0-9a-z]","",str(value or "").casefold())
+
+def _authorized_student(name, identification):
+    client=_supabase()
+    if client is None:
+        return False,"La conexión permanente no está disponible."
+    normalized_name=_normalize_name(name)
+    normalized_id=_normalize_identification(identification)
+    try:
+        rows=(client.table("authorized_students").select("*")
+              .eq("course_id",COURSE_ID)
+              .eq("normalized_name",normalized_name)
+              .eq("normalized_identification",normalized_id)
+              .eq("active",True).limit(1).execute().data or [])
+    except Exception:
+        return False,"Falta ejecutar la actualización V25 en Supabase."
+    if not rows:
+        return False,"El nombre y el RUT o cédula no coinciden con la nómina autorizada."
+    return True,rows[0]
 
 def _progress_value(value):
     """Return a JSON-safe widget value, or None when it should not be persisted."""
@@ -1279,6 +1362,37 @@ def teacher_student_management():
                 con.execute("DELETE FROM user_progress WHERE display_name=?",(student,))
         st.success(f"Se eliminó el registro de prueba de {student}.")
         st.rerun()
+
+def teacher_publication_management():
+    """Let the teacher reveal a laboratory only when it is ready to be taught."""
+    if st.session_state.get("role")!="Docente":
+        return
+    client=_supabase()
+    if client is None:
+        st.warning("Supabase debe estar conectado para administrar publicaciones.")
+        return
+    st.markdown("#### Publicación de laboratorios")
+    try:
+        classes=(client.table("classes").select("id,class_number,status")
+                 .eq("course_id",COURSE_ID).order("class_number").execute().data or [])
+    except Exception:
+        st.error("No fue posible consultar el estado de publicación.")
+        return
+    for item in classes:
+        number=item.get("class_number")
+        if number not in LABORATORIES:
+            continue
+        published=item.get("status")=="published"
+        label=f"Laboratorio {number}"
+        st.caption(f"{label}: {'publicado para alumnos' if published else 'oculto para alumnos'}")
+        action="Ocultar laboratorio" if published else "Publicar laboratorio"
+        if st.button(action,key=f"publication_{number}",use_container_width=True):
+            new_status="draft" if published else "published"
+            client.table("classes").update(
+                {"status":new_status,"updated_at":_now()}
+            ).eq("id",item["id"]).execute()
+            st.success(f"{label} quedó {'publicado' if new_status=='published' else 'oculto'}.")
+            st.rerun()
 
 def formula_reference():
     """Reference view separated from activities so students can consult it safely."""
@@ -3255,53 +3369,54 @@ LAB_STAGE_FUNCTIONS = {
 }
 
 def course_dashboard():
-    header("MIS CLASES","Curso · Aislamiento a ruido aéreo",
-           "Selecciona un laboratorio. Su contenido, actividades, avance y puntaje se abrirán por separado.")
+    header("MIS CLASES","Diplomado en Acústica en la Edificación",
+           "Selecciona un curso y abre el laboratorio habilitado en la fecha programada.")
     client=_supabase()
     if client is None:
         st.warning("Supabase todavía no está configurado. La aplicación está usando almacenamiento local de prueba.")
         classes=[
             {"id":"clase-01-aislamiento-ruido-aereo","class_number":1,
-             "title":"Fundamentos del aislamiento a ruido aéreo",
-             "description":"Clase inicial y laboratorio interactivo","status":"published","due_at":None},
+             "title":"Laboratorio 1",
+             "description":"","status":"published","due_at":None},
             {"id":"clase-02-aislamiento-ruido-aereo-minvu","class_number":2,
-             "title":"Diseño profesional de aislamiento a ruido aéreo",
-             "description":"Caso MINVU Magallanes · SONARA · Quirt · ISO 12354 · 4 horas",
-             "status":"published","due_at":None},
+             "title":"Laboratorio 2",
+             "description":"","status":"draft","due_at":None},
         ]
     else:
         classes=client.table("classes").select("*").eq("course_id",COURSE_ID).order("class_number").execute().data or []
-    if st.session_state.get("role")!="Docente":
-        # Future classes must not reveal even their title before publication.
-        classes=[item for item in classes if item.get("status") in ("published","archived")]
+    class_by_number={item.get("class_number"):item for item in classes}
     summaries,course_result=_result_summary()
-    for item in classes:
-        number=item.get("class_number","")
-        if number not in LABORATORIES:
-            continue
-        status={"published":"Disponible","draft":"Próximamente","archived":"Archivada"}.get(item.get("status"),item.get("status"))
-        due=item.get("due_at")
-        due_text=f" · Entrega: {due[:10]}" if due else ""
+    first_course=ACADEMIC_COURSES[0]
+    st.markdown(f"### {first_course['title']}")
+    for lab in first_course["labs"]:
+        number=lab["number"]
+        item=class_by_number.get(number,{})
+        opening=item.get("opens_at") or lab["opens_at"]
+        released=item.get("status") in ("published","archived")
+        available=released and _is_open(opening)
+        if st.session_state.get("role")=="Docente":
+            available=True
         summary=summaries[number]
-        score_text=f'{summary["earned"]:g}/{summary["maximum"]:g} puntos'
-        progress_text=f'{summary["answered"]} de {summary["expected"]} actividades realizadas'
         progress_status=("Pendiente" if summary["answered"]==0 else
                          "Completado" if summary["answered"]>=summary["expected"] else "En progreso")
+        availability="Disponible" if available else f"Habilitación: {_opening_label(opening)}"
         st.markdown(
-            f'<div class="lesson"><div class="overview-title">LABORATORIO {number} · {status.upper()}</div>'
-            f'<h3>{item.get("title","Laboratorio")}</h3><span class="muted">{item.get("description") or ""}'
-            f'{due_text}</span><hr><b>{score_text}</b><br><span class="muted">'
-            f'Estado: {progress_status} · {progress_text}</span></div>',
+            f'<div class="lesson"><div class="overview-title">LABORATORIO {number}</div>'
+            f'<span class="muted">{availability}</span><hr>'
+            f'<b>{summary["earned"]:g}/{summary["maximum"]:g} puntos</b><br>'
+            f'<span class="muted">Estado: {progress_status} · '
+            f'{summary["answered"]} de {summary["expected"]} actividades realizadas</span></div>',
             unsafe_allow_html=True)
-        if item.get("status")=="published":
-            label=("Continuar laboratorio" if number==ACTIVE_LAB else "Abrir laboratorio")
-            if st.button(label,key=f"open_lab_{number}",type="primary" if number==ACTIVE_LAB else "secondary",
-                         use_container_width=True):
-                st.session_state.active_lab=number
-                st.session_state["_open_lab_requested"]=True
-                st.rerun()
+        if available and st.button(
+            "Continuar laboratorio" if number==ACTIVE_LAB else "Abrir laboratorio",
+            key=f"open_lab_{number}",type="primary" if number==ACTIVE_LAB else "secondary",
+            use_container_width=True,
+        ):
+            st.session_state.active_lab=number
+            st.session_state["_open_lab_requested"]=True
+            st.rerun()
 
-    st.markdown("### Resultado del curso")
+    st.markdown("#### Resultado del curso")
     if not course_result["final_done"]:
         st.warning(
             f'**Evaluación final: Pendiente.** Puntaje acumulado actual: '
@@ -3315,6 +3430,20 @@ def course_dashboard():
             f'{course_result["maximum"]:g} puntos ({course_result["percent"]:.1f}%). '
             f'Nota final: **{course_result["grade"]:.1f}**.'
         )
+
+    st.markdown("---")
+    for course_index,course in enumerate(ACADEMIC_COURSES[1:],start=2):
+        st.markdown(f"### {course['title']}")
+        columns=st.columns(2)
+        for column,lab in zip(columns,course["labs"]):
+            with column:
+                st.markdown(
+                    f'<div class="lesson"><div class="overview-title">LABORATORIO {lab["number"]}</div>'
+                    f'<span class="muted">Habilitación: {_opening_label(lab["opens_at"])}</span><hr>'
+                    '<b>Estado: Pendiente</b><br><span class="muted">'
+                    'El contenido se habilitará en la fecha programada.</span></div>',
+                    unsafe_allow_html=True,
+                )
 
 def calculation_notebook():
     header("MESA DE CÁLCULO","Cuaderno técnico personal",
@@ -3363,9 +3492,9 @@ def login():
     role=st.radio("Perfil",["Alumno","Docente"],horizontal=True)
     name=st.text_input("Nombre completo")
     if role=="Alumno":
-        rut=st.text_input("RUT o identificación");email=st.text_input("Correo")
-        valid=name.strip() and rut.strip() and "@" in email
-        identification=f"{rut}|{email}"
+        rut=st.text_input("RUT o cédula de identificación")
+        valid=bool(name.strip() and rut.strip())
+        identification=_normalize_identification(rut)
     else:
         password=st.text_input("Clave docente",type="password")
         try:
@@ -3375,14 +3504,26 @@ def login():
         valid=name.strip() and password==teacher_password
         identification="docente"
     if st.button("Ingresar",type="primary",use_container_width=True):
-        if valid:
+        if role=="Alumno" and valid:
+            authorized,detail=_authorized_student(name,rut)
+            if not authorized:
+                st.error(detail)
+                return
+            roster_name=detail.get("display_name") or name.strip()
+            roster_email=detail.get("email") or ""
             user_key=_make_user_key(role,name,identification)
-            st.session_state.update(access=True,role=role,name=name,user_key=user_key)
-            _register_user(user_key,role,name,rut if role=="Alumno" else "",
-                           email if role=="Alumno" else "")
+            st.session_state.update(access=True,role=role,name=roster_name,user_key=user_key)
+            _register_user(user_key,role,roster_name,rut,roster_email)
             load_user_progress(user_key)
             st.rerun()
-        else: st.error("Completa correctamente los datos de acceso.")
+        elif role=="Docente" and valid:
+            user_key=_make_user_key(role,name,identification)
+            st.session_state.update(access=True,role=role,name=name,user_key=user_key)
+            _register_user(user_key,role,name)
+            load_user_progress(user_key)
+            st.rerun()
+        else:
+            st.error("Completa correctamente los datos de acceso.")
 
 if st.query_params.get("projection")=="1":
     projection_view()
@@ -3392,6 +3533,24 @@ st.session_state.pop("projection_mode",None)
 
 if not st.session_state.get("access"):
     login();st.stop()
+
+# A student can never keep or reopen a laboratory that the teacher has hidden.
+if st.session_state.get("role")=="Alumno":
+    client=_supabase()
+    if client is not None:
+        try:
+            selected_status=(client.table("classes").select("status,opens_at")
+                             .eq("id",CLASS_ID).limit(1).execute().data or [])
+            selected_row=selected_status[0] if selected_status else {}
+            if (selected_row.get("status")!="published" or
+                    not _is_open(selected_row.get("opens_at"))):
+                st.session_state["active_lab"]=1
+                st.session_state["main_view"]="🏠 Mis clases"
+                st.warning("Ese laboratorio todavía no está habilitado para alumnos.")
+                st.rerun()
+        except Exception:
+            st.error("No fue posible comprobar la disponibilidad del laboratorio.")
+            st.stop()
 
 # Load only the selected laboratory's saved answers.
 if st.session_state.get("_loaded_lab") != ACTIVE_LAB:
@@ -3436,6 +3595,8 @@ with st.sidebar:
             st.success(f"{STAGES[projection_stage][0]} enviada a la pantalla Zoom.")
         with st.expander("⚙️ Gestión de alumnos"):
             teacher_student_management()
+        with st.expander("🔒 Publicación de laboratorios"):
+            teacher_publication_management()
     active_titles=LAB_STAGE_TITLES[ACTIVE_LAB]
     labels=[f"{n} · {t} · {STAGE_MINUTES[i]} min" for i,(n,t) in enumerate(active_titles)]
     selected=None
