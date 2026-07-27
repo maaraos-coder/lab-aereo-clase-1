@@ -776,11 +776,21 @@ def _supabase():
     if create_client is None:
         return None
     try:
-        return create_client(
-            str(st.secrets["supabase"]["url"]),
-            str(st.secrets["supabase"]["service_role_key"]),
+        config=st.secrets["supabase"]
+        # Supabase accepts both the legacy service_role JWT and the newer
+        # server-side secret key. Keep backwards compatibility with existing
+        # Streamlit Secrets without ever embedding a credential in the app.
+        server_key=(
+            config.get("service_role_key")
+            or config.get("secret_key")
         )
-    except (KeyError, FileNotFoundError):
+        if not server_key:
+            return None
+        return create_client(
+            str(config["url"]),
+            str(server_key),
+        )
+    except (KeyError, FileNotFoundError, TypeError, ValueError):
         return None
 
 def _now():
@@ -840,7 +850,11 @@ def _normalize_identification(value):
 def _authorized_student(name, identification):
     client=_supabase()
     if client is None:
-        return False,"La conexión permanente no está disponible."
+        return False,(
+            "La conexión permanente no está configurada. Revisa en Streamlit "
+            "los Secrets «supabase.url» y «supabase.service_role_key» "
+            "(o «supabase.secret_key»)."
+        )
     normalized_name=_normalize_name(name)
     normalized_id=_normalize_identification(identification)
     try:
@@ -848,8 +862,25 @@ def _authorized_student(name, identification):
               .eq("course_id",COURSE_ID)
               .eq("normalized_identification",normalized_id)
               .eq("active",True).limit(1).execute().data or [])
-    except Exception:
-        return False,"No fue posible consultar la nómina autorizada en Supabase."
+    except Exception as exc:
+        message=str(exc).casefold()
+        if "authorized_students" in message and (
+            "does not exist" in message or "schema cache" in message
+        ):
+            return False,(
+                "La tabla de acceso todavía no existe en Supabase. Ejecuta una "
+                "sola vez el archivo «REPARACION_ACCESO_V29.sql»."
+            )
+        if "permission" in message or "row-level security" in message or "rls" in message:
+            return False,(
+                "Supabase rechazó la consulta de acceso. El Secret configurado "
+                "debe ser la clave privada «service_role» o «secret», no la "
+                "clave pública «anon» o «publishable»."
+            )
+        return False,(
+            "No fue posible consultar la nómina autorizada. Revisa la conexión "
+            "a Supabase y ejecuta «REPARACION_ACCESO_V29.sql» una sola vez."
+        )
     if not rows:
         return False,"El nombre y el RUT o cédula no coinciden con la nómina autorizada."
     row=rows[0]
