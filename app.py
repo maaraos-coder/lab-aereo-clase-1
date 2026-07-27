@@ -13,6 +13,13 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 from future_labs import COURSE_LABS, FUTURE_LABS
 from diploma_formulas import build_formulary_html
+from content_editor import (
+    append_content as cms_append_content,
+    apply_fields as cms_apply_fields,
+    editor_button as cms_editor_button,
+    render_override as cms_render_override,
+    stage_label as cms_stage_label,
+)
 
 import numpy as np
 import pandas as pd
@@ -3996,6 +4003,42 @@ LAB_STAGE_FUNCTIONS = {
         lab2_stage6,lab2_stage7,lab2_stage8,lab2_stage9,lab2_stage10],
 }
 
+def _cms_catalog():
+    """Describe the ten laboratories without duplicating their runtime renderer."""
+    first_course=[]
+    for lab_number in (1,2):
+        minutes=STAGE_MINUTES if lab_number==1 else dict(enumerate(LAB2_MINUTES))
+        stages=[]
+        for stage,(prefix,title) in enumerate(LAB_STAGE_TITLES[lab_number]):
+            stages.append({
+                "title":title,
+                "objective":f"{prefix} del Laboratorio {lab_number}.",
+                "content_markdown":"",
+                "activity_markdown":"",
+                "teacher_solution":"",
+                "minutes":int(minutes.get(stage,20)),
+            })
+        first_course.append({
+            "id":LABORATORIES[lab_number]["id"],
+            "course":"Aislamiento a ruido aéreo",
+            "lab":lab_number,
+            "stages":stages,
+        })
+    later=[]
+    for lab in FUTURE_LABS.values():
+        stages=[]
+        for stage,(title,objective,concept,activity) in enumerate(lab["stages"]):
+            stages.append({
+                "title":title,"objective":objective,
+                "content_markdown":concept,"activity_markdown":activity,
+                "teacher_solution":"",
+                "minutes":20 if stage not in (9,10) else 35,
+            })
+        later.append({
+            "id":lab["id"],"course":lab["course"],"lab":lab["number"],"stages":stages,
+        })
+    return first_course+later
+
 def course_dashboard():
     header("MIS CLASES","Diplomado en Acústica en la Edificación",
            "Selecciona un curso y abre el laboratorio habilitado en la fecha programada.")
@@ -4143,12 +4186,13 @@ def future_lab_view(lab):
         selected=st.radio(
             "Ruta de aprendizaje",
             list(range(11)),
-            format_func=lambda i:f"Etapa {i} · {lab['stages'][i][0]}",
+            format_func=lambda i:f"Etapa {i} · {cms_stage_label(_supabase(),class_id,i,lab['stages'][i][0],st.session_state.get('role','Alumno'))}",
             key=f"future_stage_{class_id}",
         )
         if st.button("← Volver a Mis clases",use_container_width=True):
             st.session_state.pop("future_lab_id",None); st.rerun()
         if st.session_state.get("role")=="Docente":
+            cms_editor_button(_supabase(),_cms_catalog(),_now,class_id,selected)
             client=_supabase()
             if client is not None:
                 row=(client.table("classes").select("status").eq("id",class_id)
@@ -4164,8 +4208,19 @@ def future_lab_view(lab):
         if st.button("Cerrar sesión",use_container_width=True):
             st.session_state.clear(); st.rerun()
 
-    title,objective,concept,activity=lab["stages"][selected]
+    base_title,base_objective,base_concept,base_activity=lab["stages"][selected]
+    editable=cms_apply_fields(_supabase(),class_id,selected,st.session_state.get("role","Alumno"),{
+        "title":base_title,"objective":base_objective,
+        "content_markdown":base_concept,"activity_markdown":base_activity,
+        "teacher_solution":"","minutes":20 if selected not in (9,10) else 35,
+    })
+    title=editable["title"]
+    objective=editable["objective"]
+    concept=editable["content_markdown"]
+    activity=editable["activity_markdown"]
     header(f"ETAPA {selected} · LABORATORIO {lab['number']}",title,objective)
+    if editable.get("_cms_preview"):
+        st.warning("Vista previa del borrador. Los alumnos todavía ven la última versión publicada.")
     st.caption(f"{lab['course']} · Fuente base: {lab['source']} · 4 horas totales")
     left,right=st.columns([1.25,.75])
     with left:
@@ -4191,7 +4246,7 @@ def future_lab_view(lab):
         4. **Decisión:** comparar con el criterio aplicable.  
         5. **Verificación:** definir cómo comprobar la medida.
         """)
-        st.metric("Tiempo de etapa",f"{20 if selected not in (9,10) else 35} min")
+        st.metric("Tiempo de etapa",f"{editable['minutes']} min")
 
     st.markdown("### Actividad interactiva")
     st.write(activity)
@@ -4220,6 +4275,8 @@ def future_lab_view(lab):
 
     if st.session_state.get("role")=="Docente":
         with st.expander("🔐 Orientación docente y respuesta esperada"):
+            if editable.get("teacher_solution"):
+                st.markdown(editable["teacher_solution"])
             st.markdown(f"""
             **Evidencia mínima:** identificación correcta del fenómeno; selección coherente
             de magnitud y método; procedimiento trazable; resultado con unidad; decisión
@@ -4422,13 +4479,22 @@ with st.sidebar:
             teacher_publication_management()
     active_titles=LAB_STAGE_TITLES[ACTIVE_LAB]
     active_minutes=STAGE_MINUTES if ACTIVE_LAB==1 else dict(enumerate(LAB2_MINUTES))
-    labels=[f"{n} · {t} · {active_minutes[i]} min" for i,(n,t) in enumerate(active_titles)]
+    labels=[]
+    for i,(number,title) in enumerate(active_titles):
+        editable=cms_apply_fields(
+            _supabase(),CLASS_ID,i,st.session_state.get("role","Alumno"),
+            {"title":title,"minutes":active_minutes[i]},
+        )
+        labels.append(f"{number} · {editable['title']} · {editable['minutes']} min")
     selected=None
     if view==view_options[1]:
         lab_stages=LABORATORIES[ACTIVE_LAB]["stages"]
         lab_labels=[labels[i] for i in lab_stages]
         selected=st.radio("Ruta de aprendizaje",lab_labels,label_visibility="collapsed",
                           key=f"selected_stage_lab_{ACTIVE_LAB}")
+        if st.session_state.role=="Docente":
+            current_stage=lab_labels.index(selected)
+            cms_editor_button(_supabase(),_cms_catalog(),_now,CLASS_ID,current_stage)
     if st.button("Cerrar sesión",use_container_width=True):
         st.session_state.clear();st.rerun()
     st.caption("Docente: Marco Araos Barría")
@@ -4438,7 +4504,9 @@ if view=="🏠 Mis clases":
 else:
     idx=labels.index(selected)
     st.caption(f"Curso: Aislamiento a ruido aéreo · Laboratorio {ACTIVE_LAB} de 2")
-    LAB_STAGE_FUNCTIONS[ACTIVE_LAB][idx]()
+    if not cms_render_override(_supabase(),CLASS_ID,idx,st.session_state.get("role","Alumno")):
+        LAB_STAGE_FUNCTIONS[ACTIVE_LAB][idx]()
+        cms_append_content(_supabase(),CLASS_ID,idx,st.session_state.get("role","Alumno"))
 
 # Autosave after every interaction. Closing the browser or changing tabs does not erase work.
 save_user_progress()
