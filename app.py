@@ -13,14 +13,6 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 from future_labs import COURSE_LABS, FUTURE_LABS
 from diploma_formulas import build_formulary_html
-from content_editor import (
-    append_content as cms_append_content,
-    apply_fields as cms_apply_fields,
-    editor_button as cms_editor_button,
-    render_override as cms_render_override,
-    render_media as cms_render_media,
-    stage_label as cms_stage_label,
-)
 from student_results import release_controls, results_view
 
 import numpy as np
@@ -843,6 +835,25 @@ def _remote_rows(table, **filters):
         query=query.eq(key,value)
     return query.execute().data or []
 
+@st.cache_data(ttl=45, show_spinner=False)
+def _course_classes(_client):
+    """One shared publication query instead of repeating it throughout each rerun."""
+    if _client is None:
+        return []
+    try:
+        return (
+            _client.table("classes").select("*")
+            .eq("course_id", COURSE_ID).order("class_number").execute().data or []
+        )
+    except Exception:
+        return []
+
+def _clear_course_cache():
+    _course_classes.clear()
+
+def _class_row(class_id):
+    return next((row for row in _course_classes(_supabase()) if row.get("id") == class_id), {})
+
 def _register_user(user_key, role, name, rut="", email=""):
     client=_supabase()
     if client is None:
@@ -944,6 +955,11 @@ def save_user_progress():
     if not user_key:
         return
     state={str(k):_progress_value(v) for k,v in st.session_state.items() if _is_answer_state(k)}
+    serialized=json.dumps(state,ensure_ascii=False,sort_keys=True,separators=(",",":"))
+    state_hash=hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+    hash_key=f"_last_saved_progress_hash_{CLASS_ID}"
+    if st.session_state.get(hash_key)==state_hash:
+        return
     client=_supabase()
     if client is not None:
         client.table("user_progress").upsert({
@@ -952,6 +968,7 @@ def save_user_progress():
             "display_name":st.session_state.get("name",""),
             "state_json":state,"updated_at":_now(),
         },on_conflict="class_id,user_key").execute()
+        st.session_state[hash_key]=state_hash
     else:
         with _activity_db() as con:
             con.execute(
@@ -961,9 +978,10 @@ def save_user_progress():
             display_name=excluded.display_name,state_json=excluded.state_json,
             updated_at=excluded.updated_at""",
             (user_key,st.session_state.get("role","Alumno"),
-             st.session_state.get("name",""),json.dumps(state,ensure_ascii=False),
+             st.session_state.get("name",""),serialized,
              dt.datetime.now().isoformat(timespec="seconds")),
             )
+        st.session_state[hash_key]=state_hash
 
 def load_user_progress(user_key):
     client=_supabase()
@@ -988,6 +1006,13 @@ def load_user_progress(user_key):
             value={int(k):v for k,v in value.items()}
         if _is_answer_state(key) and key not in st.session_state:
             st.session_state[key]=value
+    serialized=json.dumps(
+        {str(k):_progress_value(v) for k,v in st.session_state.items() if _is_answer_state(k)},
+        ensure_ascii=False,sort_keys=True,separators=(",",":"),
+    )
+    st.session_state[f"_last_saved_progress_hash_{CLASS_ID}"]=hashlib.sha256(
+        serialized.encode("utf-8")
+    ).hexdigest()
 
 def _set_projection(stage=None,question="",answer="",solution="",show_answer=False,show_solution=False):
     client=_supabase()
@@ -1443,8 +1468,7 @@ def teacher_publication_management():
         return
     st.markdown("#### Publicación de laboratorios")
     try:
-        classes=(client.table("classes").select("id,class_number,status")
-                 .eq("course_id",COURSE_ID).order("class_number").execute().data or [])
+        classes=_course_classes(client)
     except Exception:
         st.error("No fue posible consultar el estado de publicación.")
         return
@@ -1461,6 +1485,7 @@ def teacher_publication_management():
             client.table("classes").update(
                 {"status":new_status,"updated_at":_now()}
             ).eq("id",item["id"]).execute()
+            _clear_course_cache()
             st.success(f"{label} quedó {'publicado' if new_status=='published' else 'oculto'}.")
             st.rerun()
 
@@ -1526,7 +1551,7 @@ def formula_popup_button():
         client=_supabase()
         if client is not None:
             try:
-                rows=client.table("classes").select("id,status,opens_at").eq("course_id",COURSE_ID).execute().data or []
+                rows=_course_classes(client)
                 released={
                     row.get("id") for row in rows
                     if row.get("status") in ("published","archived") and _is_open(row.get("opens_at"))
@@ -4010,8 +4035,8 @@ LAB_STAGE_FUNCTIONS = {
         lab2_stage6,lab2_stage7,lab2_stage8,lab2_stage9,lab2_stage10],
 }
 
-def _cms_catalog():
-    """Describe the ten laboratories without duplicating their runtime renderer."""
+def _results_catalog():
+    """Describe the ten laboratories for results and teacher release controls."""
     first_course=[]
     for lab_number in (1,2):
         minutes=STAGE_MINUTES if lab_number==1 else dict(enumerate(LAB2_MINUTES))
@@ -4061,7 +4086,7 @@ def course_dashboard():
              "description":"","status":"draft","due_at":None},
         ]
     else:
-        classes=client.table("classes").select("*").eq("course_id",COURSE_ID).order("class_number").execute().data or []
+        classes=_course_classes(client)
     class_by_number={item.get("class_number"):item for item in classes}
     summaries,course_result=_result_summary()
     first_course=ACADEMIC_COURSES[0]
@@ -4145,15 +4170,20 @@ def course_dashboard():
 
 def _future_saved(class_id):
     """Return the saved state for the selected student and future class."""
+    cache_key=f"future_saved_{class_id}"
+    if cache_key in st.session_state:
+        return st.session_state[cache_key]
     client=_supabase()
     if client is None:
-        return st.session_state.get(f"future_saved_{class_id}",{})
+        return {}
     try:
         rows=(client.table("user_progress").select("state_json")
               .eq("class_id",class_id).eq("user_key",st.session_state.user_key)
               .limit(1).execute().data or [])
         state=rows[0].get("state_json",{}) if rows else {}
-        return json.loads(state) if isinstance(state,str) else state
+        state=json.loads(state) if isinstance(state,str) else state
+        st.session_state[cache_key]=state
+        return state
     except Exception:
         return {}
 
@@ -4197,17 +4227,15 @@ def future_lab_view(lab):
         selected=st.radio(
             "Ruta de aprendizaje",
             list(range(11)),
-            format_func=lambda i:f"Etapa {i} · {cms_stage_label(_supabase(),class_id,i,lab['stages'][i][0],st.session_state.get('role','Alumno'))}",
+            format_func=lambda i:f"Etapa {i} · {lab['stages'][i][0]}",
             key=f"future_stage_{class_id}",
         )
         if st.button("← Volver a Mis clases",use_container_width=True):
             st.session_state.pop("future_lab_id",None); st.rerun()
         if st.session_state.get("role")=="Docente":
-            cms_editor_button(_supabase(),_cms_catalog(),_now,class_id,selected)
             client=_supabase()
             if client is not None:
-                row=(client.table("classes").select("status").eq("id",class_id)
-                     .limit(1).execute().data or [{}])[0]
+                row=_class_row(class_id)
                 published=row.get("status")=="published"
                 st.caption("Publicado para alumnos" if published else "Borrador · oculto para alumnos")
                 if st.button("Ocultar laboratorio" if published else "Publicar laboratorio",
@@ -4215,23 +4243,14 @@ def future_lab_view(lab):
                     client.table("classes").update({
                         "status":"draft" if published else "published","updated_at":_now()
                     }).eq("id",class_id).execute()
+                    _clear_course_cache()
                     st.rerun()
         if st.button("Cerrar sesión",use_container_width=True):
             st.session_state.clear(); st.rerun()
 
-    base_title,base_objective,base_concept,base_activity=lab["stages"][selected]
-    editable=cms_apply_fields(_supabase(),class_id,selected,st.session_state.get("role","Alumno"),{
-        "title":base_title,"objective":base_objective,
-        "content_markdown":base_concept,"activity_markdown":base_activity,
-        "teacher_solution":"","minutes":20 if selected not in (9,10) else 35,
-    })
-    title=editable["title"]
-    objective=editable["objective"]
-    concept=editable["content_markdown"]
-    activity=editable["activity_markdown"]
+    title,objective,concept,activity=lab["stages"][selected]
+    stage_minutes=20 if selected not in (9,10) else 35
     header(f"ETAPA {selected} · LABORATORIO {lab['number']}",title,objective)
-    if editable.get("_cms_preview"):
-        st.warning("Vista previa del borrador. Los alumnos todavía ven la última versión publicada.")
     st.caption(f"{lab['course']} · Fuente base: {lab['source']} · 4 horas totales")
     left,right=st.columns([1.25,.75])
     with left:
@@ -4257,11 +4276,10 @@ def future_lab_view(lab):
         4. **Decisión:** comparar con el criterio aplicable.  
         5. **Verificación:** definir cómo comprobar la medida.
         """)
-        st.metric("Tiempo de etapa",f"{editable['minutes']} min")
+        st.metric("Tiempo de etapa",f"{stage_minutes} min")
 
     st.markdown("### Actividad interactiva")
     st.write(activity)
-    cms_render_media(editable.get("media", []))
     answer=st.text_area(
         "Desarrollo del alumno",
         value=saved.get(f"answer_{selected}",""),
@@ -4401,8 +4419,8 @@ if future_lab_id in FUTURE_LABS:
         allowed=False
         if client is not None:
             try:
-                rows=(client.table("classes").select("status,opens_at")
-                      .eq("id",future_lab_id).limit(1).execute().data or [])
+                row=_class_row(future_lab_id)
+                rows=[row] if row else []
                 allowed=bool(rows and rows[0].get("status")=="published" and
                              _is_open(rows[0].get("opens_at") or future_lab["opens_at"]))
             except Exception:
@@ -4419,8 +4437,8 @@ if st.session_state.get("role")=="Alumno":
     client=_supabase()
     if client is not None:
         try:
-            selected_status=(client.table("classes").select("status,opens_at")
-                             .eq("id",CLASS_ID).limit(1).execute().data or [])
+            selected_row_cached=_class_row(CLASS_ID)
+            selected_status=[selected_row_cached] if selected_row_cached else []
             selected_row=selected_status[0] if selected_status else {}
             if (selected_row.get("status")!="published" or
                     not _is_open(selected_row.get("opens_at"))):
@@ -4492,18 +4510,15 @@ with st.sidebar:
             teacher_publication_management()
         with st.expander("📊 Liberación de resultados"):
             release_controls(
-                _supabase(), _cms_catalog(), _now,
+                _supabase(), _results_catalog(), _now,
                 st.session_state.get("name", "Docente"),
             )
     active_titles=LAB_STAGE_TITLES[ACTIVE_LAB]
     active_minutes=STAGE_MINUTES if ACTIVE_LAB==1 else dict(enumerate(LAB2_MINUTES))
-    labels=[]
-    for i,(number,title) in enumerate(active_titles):
-        editable=cms_apply_fields(
-            _supabase(),CLASS_ID,i,st.session_state.get("role","Alumno"),
-            {"title":title,"minutes":active_minutes[i]},
-        )
-        labels.append(f"{number} · {editable['title']} · {editable['minutes']} min")
+    labels=[
+        f"{number} · {title} · {active_minutes[i]} min"
+        for i,(number,title) in enumerate(active_titles)
+    ]
     selected=None
     if view==view_options[2]:
         lab_stages=LABORATORIES[ACTIVE_LAB]["stages"]
@@ -4513,9 +4528,6 @@ with st.sidebar:
             st.session_state[stage_state_key]=lab_labels[0]
         selected=st.radio("Ruta de aprendizaje",lab_labels,label_visibility="collapsed",
                           key=stage_state_key)
-        if st.session_state.role=="Docente":
-            current_stage=lab_stages[lab_labels.index(selected)]
-            cms_editor_button(_supabase(),_cms_catalog(),_now,CLASS_ID,current_stage)
     if st.button("Cerrar sesión",use_container_width=True):
         st.session_state.clear();st.rerun()
     st.caption("Docente: Marco Araos Barría")
@@ -4523,16 +4535,14 @@ with st.sidebar:
 if view=="🏠 Mis clases":
     course_dashboard()
 elif view=="📊 Mis resultados":
-    results_view(_supabase(), _cms_catalog(), st.session_state.get("user_key", ""))
+    results_view(_supabase(), _results_catalog(), st.session_state.get("user_key", ""))
 elif view==view_options[2]:
     lab_stages=LABORATORIES[ACTIVE_LAB]["stages"]
     if selected not in labels:
         selected=labels[lab_stages[0]]
     idx=labels.index(selected)
     st.caption(f"Curso: Aislamiento a ruido aéreo · Laboratorio {ACTIVE_LAB} de 2")
-    if not cms_render_override(_supabase(),CLASS_ID,idx,st.session_state.get("role","Alumno")):
-        LAB_STAGE_FUNCTIONS[ACTIVE_LAB][idx]()
-        cms_append_content(_supabase(),CLASS_ID,idx,st.session_state.get("role","Alumno"))
+    LAB_STAGE_FUNCTIONS[ACTIVE_LAB][idx]()
 
 # Autosave after every interaction. Closing the browser or changing tabs does not erase work.
 save_user_progress()
