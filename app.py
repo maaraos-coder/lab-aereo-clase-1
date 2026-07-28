@@ -11,8 +11,15 @@ import tempfile
 import unicodedata
 from pathlib import Path
 from zoneinfo import ZoneInfo
-from future_labs import COURSE_LABS, FUTURE_LABS
-from diploma_formulas import build_formulary_html
+try:
+    from future_labs import COURSE_LABS, FUTURE_LABS
+except ImportError:
+    COURSE_LABS, FUTURE_LABS = [], {}
+try:
+    from diploma_formulas import build_formulary_html
+except ImportError:
+    def build_formulary_html(*args, **kwargs):
+        return "<div class='card'><b>Formulario no disponible en esta copia local.</b></div>"
 from student_results import release_controls, results_view
 
 import numpy as np
@@ -4001,6 +4008,413 @@ def lab2_stage10():
     cad_viewer_button(10)
     stage10()
 
+# ---------------------------------------------------------------------------
+# Laboratorio 2 · Clase 1 · Primer bloque de 120 minutos
+# Modelos de predicción del aislamiento a ruido aéreo
+# ---------------------------------------------------------------------------
+LAB2_MINUTES = [10, 15, 30, 15, 20, 25, 5, 0, 0, 0, 0]
+LAB2_FREQS = np.array([63, 80, 100, 125, 160, 200, 250, 315, 400, 500,
+                       630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000])
+
+def _lab2_svg(kind, **values):
+    """Professional, dependency-free construction diagrams used by Lab 2."""
+    if kind == "simple":
+        return """
+        <svg viewBox="0 0 900 330" role="img" aria-label="Panel simple entre recinto emisor y receptor">
+          <defs><marker id="a1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="#17c3e6"/></marker></defs>
+          <rect x="20" y="30" width="860" height="270" rx="22" fill="#eef7ff" stroke="#9fc8e8"/>
+          <rect x="424" y="45" width="52" height="240" rx="5" fill="#8095aa" stroke="#173f63" stroke-width="3"/>
+          <path d="M120 150 C170 95 220 205 270 150 S370 95 415 150" fill="none" stroke="#0967d2" stroke-width="6"/>
+          <path d="M488 150 C535 120 582 180 630 150 S725 120 780 150" fill="none" stroke="#17a779" stroke-width="3" marker-end="url(#a1)"/>
+          <path d="M416 174 C385 198 350 135 315 174 S245 213 205 174" fill="none" stroke="#ef8b2c" stroke-width="3"/>
+          <text x="65" y="75" fill="#173f63" font-size="20" font-weight="700">RECINTO EMISOR</text>
+          <text x="637" y="75" fill="#173f63" font-size="20" font-weight="700">RECINTO RECEPTOR</text>
+          <text x="450" y="318" text-anchor="middle" fill="#173f63" font-size="18">Una hoja continua · una masa superficial m′</text>
+          <text x="240" y="120" fill="#0967d2" font-size="17">Energía incidente Wi</text>
+          <text x="248" y="228" fill="#b76114" font-size="17">Energía reflejada Wr</text>
+          <text x="610" y="118" fill="#087b59" font-size="17">Energía transmitida Wt</text>
+        </svg>"""
+    if kind == "double":
+        return """
+        <svg viewBox="0 0 900 360" role="img" aria-label="Panel doble con dos hojas independientes y cámara de aire">
+          <defs><pattern id="wool" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M0 8 Q4 0 8 8 T16 8" fill="none" stroke="#e2a849" stroke-width="2"/></pattern></defs>
+          <rect x="20" y="30" width="860" height="295" rx="22" fill="#eef7ff" stroke="#9fc8e8"/>
+          <rect x="355" y="55" width="35" height="245" rx="4" fill="#8095aa" stroke="#173f63" stroke-width="3"/>
+          <rect x="510" y="55" width="35" height="245" rx="4" fill="#8095aa" stroke="#173f63" stroke-width="3"/>
+          <rect x="390" y="55" width="120" height="245" fill="url(#wool)" opacity=".8"/>
+          <path d="M90 168 C140 112 190 224 240 168 S320 112 346 168" fill="none" stroke="#0967d2" stroke-width="6"/>
+          <path d="M397 168 C420 130 447 206 472 168 S497 142 505 168" fill="none" stroke="#ef8b2c" stroke-width="4"/>
+          <path d="M553 168 C590 143 625 193 662 168 S735 143 790 168" fill="none" stroke="#17a779" stroke-width="3"/>
+          <text x="372" y="48" text-anchor="middle" fill="#173f63" font-size="18">Hoja 1 · m′₁</text>
+          <text x="527" y="48" text-anchor="middle" fill="#173f63" font-size="18">Hoja 2 · m′₂</text>
+          <text x="450" y="325" text-anchor="middle" fill="#173f63" font-size="18">Cámara d · el aire actúa como resorte</text>
+          <line x1="390" y1="278" x2="510" y2="278" stroke="#173f63" stroke-width="2"/>
+          <text x="450" y="270" text-anchor="middle" fill="#173f63" font-size="17">d</text>
+        </svg>"""
+    if kind == "metalcon":
+        return """
+        <svg viewBox="0 0 900 380" role="img" aria-label="Comparación constructiva de Metalcon simple y doble estructura">
+          <rect x="20" y="25" width="410" height="330" rx="20" fill="#f4f9fd" stroke="#9fc8e8"/>
+          <rect x="470" y="25" width="410" height="330" rx="20" fill="#f4f9fd" stroke="#9fc8e8"/>
+          <text x="225" y="58" text-anchor="middle" fill="#173f63" font-size="21" font-weight="700">METALCON SIMPLE</text>
+          <rect x="95" y="85" width="22" height="210" fill="#d4b282" stroke="#735a39"/>
+          <path d="M195 90 h62 v200 h-62 v-18 h38 V108 h-38z" fill="#9eb2c4" stroke="#35566f" stroke-width="3"/>
+          <rect x="335" y="85" width="22" height="210" fill="#d4b282" stroke="#735a39"/>
+          <line x1="117" y1="140" x2="335" y2="140" stroke="#ef8b2c" stroke-width="5"/>
+          <line x1="117" y1="235" x2="335" y2="235" stroke="#ef8b2c" stroke-width="5"/>
+          <text x="225" y="325" text-anchor="middle" fill="#a45a17" font-size="17">Montante compartido = puente lineal rígido</text>
+          <text x="675" y="58" text-anchor="middle" fill="#173f63" font-size="21" font-weight="700">DOBLE ESTRUCTURA</text>
+          <rect x="510" y="85" width="22" height="210" fill="#d4b282" stroke="#735a39"/>
+          <path d="M575 90 h52 v200 h-52 v-18 h30 V108 h-30z" fill="#9eb2c4" stroke="#35566f" stroke-width="3"/>
+          <path d="M720 90 h52 v200 h-52 v-18 h30 V108 h-30z" fill="#9eb2c4" stroke="#35566f" stroke-width="3"/>
+          <rect x="818" y="85" width="22" height="210" fill="#d4b282" stroke="#735a39"/>
+          <line x1="647" y1="85" x2="647" y2="295" stroke="#17a779" stroke-width="3" stroke-dasharray="8 8"/>
+          <text x="675" y="325" text-anchor="middle" fill="#087b59" font-size="17">Bastidores separados = sin conexión directa</text>
+        </svg>"""
+    if kind == "incidence":
+        theta = float(values.get("theta", 30))
+        rad = math.radians(theta)
+        x2, y2 = 445 - 240*math.cos(rad), 185 + 240*math.sin(rad)
+        xr, yr = 445 - 210*math.cos(rad), 185 - 210*math.sin(rad)
+        return f"""
+        <svg viewBox="0 0 900 390" role="img" aria-label="Ángulo de incidencia sobre un panel">
+          <defs><marker id="ai" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="#0967d2"/></marker></defs>
+          <rect x="20" y="25" width="860" height="335" rx="22" fill="#eef7ff" stroke="#9fc8e8"/>
+          <rect x="438" y="45" width="22" height="285" fill="#8095aa" stroke="#173f63"/>
+          <line x1="445" y1="185" x2="85" y2="185" stroke="#60718a" stroke-width="2" stroke-dasharray="9 7"/>
+          <line x1="{x2:.1f}" y1="{y2:.1f}" x2="438" y2="185" stroke="#0967d2" stroke-width="6" marker-end="url(#ai)"/>
+          <line x1="438" y1="185" x2="{xr:.1f}" y2="{yr:.1f}" stroke="#ef8b2c" stroke-width="4"/>
+          <line x1="460" y1="185" x2="785" y2="185" stroke="#17a779" stroke-width="3"/>
+          <path d="M365 185 A80 80 0 0 1 {445-80*math.cos(rad):.1f} {185+80*math.sin(rad):.1f}" fill="none" stroke="#173f63" stroke-width="3"/>
+          <text x="330" y="220" fill="#173f63" font-size="20">θ = {theta:.0f}°</text>
+          <text x="80" y="75" fill="#173f63" font-size="18">Onda incidente</text>
+          <text x="210" y="105" fill="#b76114" font-size="18">Onda reflejada</text>
+          <text x="635" y="165" fill="#087b59" font-size="18">Onda transmitida</text>
+          <text x="275" y="178" fill="#60718a" font-size="17">Normal al panel</text>
+        </svg>"""
+    return ""
+
+def _lab2_visual(svg):
+    st.markdown(f'<div class="card" style="padding:.35rem">{svg}</div>', unsafe_allow_html=True)
+
+def _mass_law_curve(mass):
+    return 20*np.log10(np.maximum(mass*LAB2_FREQS, 1))-47
+
+def _simple_real_curve(mass, fc, loss=9):
+    base = _mass_law_curve(mass)
+    dip = loss*np.exp(-0.5*(np.log2(LAB2_FREQS/fc)/0.30)**2)
+    low = 5*np.exp(-0.5*(np.log2(LAB2_FREQS/90)/0.55)**2)
+    return base-dip-low
+
+def _sharp_parameters(m1, m2, depth):
+    d = max(depth/1000, .01)
+    f0 = 60*math.sqrt((1/m1+1/m2)/d)
+    fl = max(f0*4, 200)
+    return f0, fl
+
+def _sharp_curve(m1, m2, depth, connection="Independiente"):
+    f0, fl = _sharp_parameters(m1, m2, depth)
+    d = depth/1000
+    total = []
+    for f in LAB2_FREQS:
+        if f < f0:
+            value = float(mass_r(m1+m2, f))
+        elif f < fl:
+            value = float(mass_r(m1, f)+mass_r(m2, f)+20*math.log10(max(f*d, .01))-29)
+        else:
+            value = float(mass_r(m1, f)+mass_r(m2, f)+6)
+        if connection == "Montante compartido":
+            value -= 9
+        elif connection == "Puente accidental":
+            value -= 6
+        total.append(value)
+    return np.array(total), f0, fl
+
+def _plot_curves(series, title, markers=None):
+    fig = go.Figure()
+    for name, values, style in series:
+        fig.add_trace(go.Scatter(
+            x=LAB2_FREQS, y=values, mode="lines+markers", name=name,
+            line=dict(width=3, dash=style), marker=dict(size=6)))
+    if markers:
+        for x, label in markers:
+            fig.add_vline(x=x, line_dash="dot", line_color="#ef8b2c")
+            fig.add_annotation(x=x, y=1, yref="paper", text=label, showarrow=False,
+                               yanchor="bottom", font=dict(color="#9b5415"))
+    fig.update_layout(
+        title=title, xaxis_title="Frecuencia central (Hz)", yaxis_title="TL / R (dB)",
+        xaxis_type="log", hovermode="x unified", height=430,
+        margin=dict(l=35,r=20,t=65,b=40), legend=dict(orientation="h",y=1.12))
+    fig.update_xaxes(tickvals=[63,125,250,500,1000,2000,4000],
+                     ticktext=["63","125","250","500","1k","2k","4k"])
+    st.plotly_chart(fig, use_container_width=True)
+
+def _lab2_heading(stage, title, purpose):
+    header(f"ETAPA {stage} · LABORATORIO 2", title, purpose,
+           show_overview=False, duration_minutes=LAB2_MINUTES[stage])
+
+def lab2_stage0():
+    _lab2_heading(0, "Ruta de las primeras dos horas",
+                  "Comprender cómo se predice la pérdida de transmisión de paneles simples y dobles.")
+    st.markdown("""
+    ### Resultado de aprendizaje
+    Al terminar este bloque podrás reconocer la solución física, escoger el modelo adecuado,
+    calcular sus variables principales e interpretar una curva de aislamiento sin confundir
+    un valor por banda con un número único.
+    """)
+    st.dataframe(pd.DataFrame([
+        ["00:00–00:10","Ruta y selección del modelo","Distinguir panel simple y panel doble"],
+        ["00:10–00:25","Pérdida de transmisión","Relacionar energía, τ y TL"],
+        ["00:25–00:55","Panel simple","Incidencia, masa, rigidez, resonancia y coincidencia"],
+        ["00:55–01:10","Casos reales","Comparar yeso-cartón, vidrio y hormigón"],
+        ["01:10–01:30","Panel doble","Masa–aire–masa, cámara y conexiones"],
+        ["01:30–01:55","Modelo de Sharp","Calcular TL por tramos y leer f₀ y fₗ"],
+        ["01:55–02:00","Comparación y cierre","Panel pesado frente a tabique liviano doble"],
+    ],columns=["Tiempo","Bloque","Evidencia"]),hide_index=True,use_container_width=True)
+    st.info("Los modelos entregan predicciones. El desempeño final también depende de montaje, sellos, encuentros, dimensiones y transmisiones laterales.")
+
+def lab2_stage1():
+    _lab2_heading(1, "Pérdida de transmisión: de la energía a los decibeles",
+                  "Interpretar cuánto sonido atraviesa una separación y por qué TL es una razón energética.")
+    _lab2_visual(_lab2_svg("simple"))
+    left,right=st.columns([1.2,.8])
+    with left:
+        st.markdown(r"""
+        Una onda que llega a una separación distribuye su energía en tres rutas:
+        una parte se **refleja**, otra se **disipa** internamente y otra se **transmite**.
+        Para aislamiento interesa la fracción transmitida:
+
+        \[
+        \tau=\frac{W_t}{W_i}, \qquad TL=-10\log_{10}(\tau)
+        \]
+
+        TL y \(R\) suelen expresar la reducción sonora del elemento por banda. Un TL alto
+        significa una fracción transmitida pequeña; no significa que el sonido desaparezca.
+        """)
+    with right:
+        tl=st.slider("TL de la separación (dB)",10,60,30,key="lab2_tl")
+        tau=10**(-tl/10)
+        st.metric("Energía que atraviesa",f"{100*tau:.6f} %")
+        st.metric("Fracción transmitida τ",f"{tau:.2e}")
+        st.caption("Cada aumento de 10 dB divide por 10 la energía transmitida.")
+    st.dataframe(pd.DataFrame([
+        [20,"1 %","1 de cada 100 unidades"],
+        [30,"0,1 %","1 de cada 1.000 unidades"],
+        [40,"0,01 %","1 de cada 10.000 unidades"],
+        [50,"0,001 %","1 de cada 100.000 unidades"],
+    ],columns=["TL","Energía transmitida","Lectura"]),hide_index=True,use_container_width=True)
+    check("lab2_tl_q","Si τ disminuye de 0,01 a 0,001, ¿qué ocurre con TL?",
+          ["Disminuye 10 dB","Aumenta 10 dB","Aumenta 1 dB"],"Aumenta 10 dB",
+          "La energía transmitida se divide por diez; por la escala logarítmica, TL aumenta 10 dB.")
+
+def lab2_stage2():
+    _lab2_heading(2, "Panel simple: incidencia y cuatro zonas físicas",
+                  "Relacionar masa, frecuencia, rigidez, resonancia y coincidencia con la forma de la curva.")
+    _lab2_visual(_lab2_svg("simple"))
+    st.markdown("""
+    Un **panel simple** es una hoja o conjunto de capas unidas rígidamente que vibran como
+    una sola masa: vidrio monolítico, placa de yeso, tablero de madera, chapa o muro macizo.
+    No existe una segunda hoja independiente ni una cámara que actúe como resorte.
+    """)
+    st.markdown("### Laboratorio angular")
+    angle=st.slider("Ángulo de incidencia respecto de la normal",0,78,30,key="lab2_angle")
+    _lab2_visual(_lab2_svg("incidence",theta=angle))
+    angular_factor=max(math.cos(math.radians(angle)),.01)
+    st.markdown(
+        f'<div class="lesson"><b>Lectura instantánea:</b> cos θ = {angular_factor:.3f}. '
+        'La incidencia normal corresponde a 0°. En campo difuso llegan ondas desde muchos '
+        'ángulos; se promedian coeficientes de transmisión en energía antes de volver a dB.</div>',
+        unsafe_allow_html=True)
+    with st.expander("Desarrollo del promedio angular"):
+        st.latex(r"\overline{\tau}=\frac{\int_0^{78^\circ}\tau(\theta)\sin\theta\cos\theta\,d\theta}{\int_0^{78^\circ}\sin\theta\cos\theta\,d\theta}")
+        st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}(\overline{\tau})")
+        st.warning("Error frecuente: promediar valores de TL directamente en dB. Primero se promedia τ y luego se transforma.")
+    st.markdown("### Explorador de las cuatro zonas")
+    material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
+    props={
+        "Yeso-cartón":(800,12.5,2500,10),
+        "Vidrio":(2500,6.0,3200,12),
+        "Madera contrachapada":(600,18.0,1800,8),
+        "Hormigón":(2400,100.0,180,5),
+    }
+    rho,default_h,default_fc,default_loss=props[material]
+    h=st.slider("Espesor (mm)",4.0,200.0,float(default_h),0.5,key="lab2_panel_h")
+    mass=rho*h/1000
+    curve=_simple_real_curve(mass,default_fc,default_loss)
+    _plot_curves([
+        ("Respuesta aproximada",curve,"solid"),
+        ("Ley de masa ideal",_mass_law_curve(mass),"dash"),
+    ],f"{material} · m′ = {mass:.1f} kg/m²",[(default_fc,"fᶜ")])
+    zones=pd.DataFrame([
+        ["1 · Rigidez","Muy bajas frecuencias","La placa se comporta como un resorte; dimensiones y apoyos son decisivos."],
+        ["2 · Resonancias","Bajas frecuencias","Los modos propios amplifican el movimiento y producen irregularidades."],
+        ["3 · Ley de masa","Zona media","Al duplicar masa o frecuencia, la tendencia ideal aumenta cerca de 6 dB."],
+        ["4 · Coincidencia",f"Alrededor de {default_fc} Hz","La onda aérea acopla eficientemente con ondas de flexión y aparece una caída."],
+    ],columns=["Zona","Ubicación","Interpretación"])
+    st.dataframe(zones,hide_index=True,use_container_width=True)
+    st.latex(r"R\approx20\log_{10}(m'f)-47")
+    st.caption("La recta de ley de masa es una referencia en su zona válida; no reproduce por sí sola resonancias ni coincidencia.")
+
+def lab2_stage3():
+    _lab2_heading(3, "Del modelo al caso real: paneles simples",
+                  "Comparar simultáneamente geometría, masa superficial y curvas aproximadas.")
+    st.markdown("""
+    ### Tres soluciones que trabajan como una sola hoja
+    La apariencia cambia, pero el criterio físico es el mismo: todas vibran como una masa
+    principal. La comparación debe hacerse por bandas, porque dos elementos con un valor
+    global parecido pueden responder de forma distinta en graves o cerca de la coincidencia.
+    """)
+    c1,c2,c3=st.columns(3)
+    cases=[
+        ("Yeso-cartón 12,5 mm","Placa liviana",10.0,2500,10),
+        ("Vidrio monolítico 6 mm","Hoja transparente",15.0,3200,12),
+        ("Hormigón 100 mm","Panel pesado",240.0,180,5),
+    ]
+    for col,(name,desc,mass,fc,loss) in zip((c1,c2,c3),cases):
+        with col:
+            st.markdown(f'<div class="card"><div class="overview-title">{name}</div>'
+                        f'<div style="height:{min(150,max(26,mass/2)):.0f}px;background:linear-gradient(90deg,#7891a8,#c9d5df);'
+                        f'border:2px solid #35566f;border-radius:6px;margin:.8rem auto;width:72%"></div>'
+                        f'<b>{desc}</b><br><span class="muted">m′={mass:g} kg/m² · fᶜ≈{fc} Hz</span></div>',
+                        unsafe_allow_html=True)
+    _plot_curves([(name,_simple_real_curve(mass,fc,loss),style)
+                  for (name,_,mass,fc,loss),style in zip(cases,["solid","dash","dot"])],
+                 "Comparación simultánea de soluciones simples")
+    st.markdown("""
+    **Lectura profesional:** el hormigón domina por masa en gran parte del rango, pero su
+    respuesta no es una línea perfecta. El yeso y el vidrio son más livianos; en el vidrio
+    la coincidencia puede afectar bandas medias-altas. La selección debe responder al
+    espectro del ruido, no solo al espesor visible.
+    """)
+
+def lab2_stage4():
+    _lab2_heading(4, "Panel doble y resonancia masa–aire–masa",
+                  "Comprender cuándo dos hojas forman un sistema desacoplado y cómo la cámara modifica la curva.")
+    _lab2_visual(_lab2_svg("double"))
+    st.markdown("""
+    Un **panel doble** posee dos hojas que pueden vibrar de manera diferente, separadas por
+    una cámara. Las hojas actúan como masas y el aire encerrado como resorte. Cerca de la
+    resonancia **f₀**, ambas hojas se acoplan y el aislamiento disminuye. Por encima de esa
+    zona, el desacoplamiento puede superar claramente a una sola hoja de masa equivalente.
+
+    La lana mineral reduce la energía de los modos de la cámara, pero no reemplaza la
+    separación estructural ni corrige puentes rígidos.
+    """)
+    c1,c2,c3=st.columns(3)
+    m1=c1.slider("Masa hoja 1 (kg/m²)",5,40,10,key="lab2_d_m1")
+    m2=c2.slider("Masa hoja 2 (kg/m²)",5,40,10,key="lab2_d_m2")
+    depth=c3.slider("Cámara d (mm)",30,200,70,key="lab2_d_depth")
+    connection=st.radio("Conexión constructiva",
+        ["Independiente","Montante compartido","Puente accidental"],horizontal=True,key="lab2_connection")
+    curve,f0,fl=_sharp_curve(m1,m2,depth,connection)
+    a,b,c=st.columns(3)
+    a.metric("Resonancia f₀",f"{f0:.0f} Hz")
+    b.metric("Transición fₗ",f"{fl:.0f} Hz")
+    c.metric("Masa total",f"{m1+m2} kg/m²")
+    _plot_curves([
+        (f"Sistema doble · {connection}",curve,"solid"),
+        ("Una hoja de igual masa",_mass_law_curve(m1+m2),"dash"),
+    ],"Simulador masa–aire–masa",[(f0,"f₀"),(fl,"fₗ")])
+    st.latex(r"f_0=60\sqrt{\frac{1/m'_1+1/m'_2}{d}}")
+    st.caption("d se expresa en metros. Aumentar la profundidad o las masas desplaza f₀ hacia frecuencias más bajas.")
+    _lab2_visual(_lab2_svg("metalcon"))
+    st.markdown("""
+    En Metalcon simple, ambas caras se fijan a los mismos montantes: los apoyos repetidos
+    forman una **conexión lineal rígida**. En doble estructura, cada hoja se fija a su propio
+    bastidor y no existe conexión directa si también se separan soleras, tornillos y refuerzos.
+    """)
+
+def lab2_stage5():
+    _lab2_heading(5, "Modelo de Sharp: TL por tramos",
+                  "Seguir la ecuación activa, ubicar f₀ y fₗ e interpretar los cambios de pendiente.")
+    st.markdown(r"""
+    Sharp representa el sistema doble mediante regiones. La ecuación cambia porque el
+    mecanismo dominante no es el mismo a ambos lados de \(f_0\) y \(f_l\):
+
+    \[
+    TL(f)=
+    \begin{cases}
+    TL_{(m'_1+m'_2)}, & f<f_0\\
+    TL_{m'_1}+TL_{m'_2}+20\log_{10}(fd)-29, & f_0\le f<f_l\\
+    TL_{m'_1}+TL_{m'_2}+6, & f\ge f_l
+    \end{cases}
+    \]
+    """)
+    c1,c2,c3,c4=st.columns(4)
+    m1=c1.number_input("m′₁ (kg/m²)",5.0,80.0,10.0,1.0,key="sharp_m1")
+    m2=c2.number_input("m′₂ (kg/m²)",5.0,80.0,10.0,1.0,key="sharp_m2")
+    depth=c3.number_input("d (mm)",30,300,70,10,key="sharp_d")
+    selected_f=c4.selectbox("Frecuencia (Hz)",LAB2_FREQS.tolist(),index=9,key="sharp_f")
+    curve,f0,fl=_sharp_curve(m1,m2,depth,"Independiente")
+    idx=int(np.where(LAB2_FREQS==selected_f)[0][0])
+    if selected_f < f0:
+        tramo="Tramo 1 · masa total"
+        explanation="Las dos hojas todavía no entregan el beneficio completo del desacoplamiento."
+    elif selected_f < fl:
+        tramo="Tramo 2 · crecimiento masa–aire–masa"
+        explanation="Intervienen ambas hojas y la profundidad de la cámara."
+    else:
+        tramo="Tramo 3 · suma de hojas + 6 dB"
+        explanation="El modelo entra en la región superior definida por la transición."
+    a,b,c=st.columns(3)
+    a.metric("f₀",f"{f0:.0f} Hz")
+    b.metric("fₗ",f"{fl:.0f} Hz")
+    c.metric(f"TL a {selected_f} Hz",f"{curve[idx]:.1f} dB")
+    st.info(f"**{tramo}.** {explanation}")
+    _plot_curves([
+        ("Sharp · doble independiente",curve,"solid"),
+        ("Masa total como una hoja",_mass_law_curve(m1+m2),"dash"),
+    ],"TL de Sharp y frecuencias de transición",[(f0,"f₀"),(fl,"fₗ")])
+    st.markdown("""
+    ### Ejemplo guiado
+    Para dos hojas de 10 kg/m² y una cámara de 70 mm, el simulador calcula primero
+    **f₀** y **fₗ**. Luego ubica cada banda en su tramo. Esta secuencia evita aplicar
+    una única expresión a todo el espectro.
+    """)
+    check("lab2_sharp_q","¿Qué cambio desplaza normalmente f₀ hacia frecuencias más bajas?",
+          ["Reducir la cámara","Aumentar la cámara","Unir rígidamente las hojas"],
+          "Aumentar la cámara","Una cámara más profunda reduce la rigidez del resorte de aire y disminuye f₀.")
+
+def lab2_stage6():
+    _lab2_heading(6, "Comparación aplicada y cierre parcial",
+                  "Contrastar un panel pesado con un tabique liviano de doble estructura.")
+    concrete=_simple_real_curve(240,180,5)
+    double,f0,fl=_sharp_curve(20,20,140,"Independiente")
+    left,right=st.columns(2)
+    with left:
+        st.markdown('<div class="card"><div class="overview-title">PANEL PESADO</div>'
+                    '<div style="height:150px;background:linear-gradient(90deg,#687b89,#c0c8cd);border:3px solid #42535f;border-radius:5px"></div>'
+                    '<b>Hormigón 100 mm</b><br><span class="muted">Una hoja · m′≈240 kg/m²</span></div>',
+                    unsafe_allow_html=True)
+    with right:
+        st.markdown('<div class="card"><div class="overview-title">TABIQUE LIVIANO DOBLE</div>'
+                    '<div style="display:flex;justify-content:center;gap:72px;height:150px;align-items:stretch">'
+                    '<div style="width:24px;background:#c7a36f;border:2px solid #735a39"></div>'
+                    '<div style="width:24px;background:#c7a36f;border:2px solid #735a39"></div></div>'
+                    '<b>Doble estructura</b><br><span class="muted">Dos hojas · cámara 140 mm · bastidores independientes</span></div>',
+                    unsafe_allow_html=True)
+    _plot_curves([
+        ("Hormigón 100 mm",concrete,"solid"),
+        ("Tabique doble liviano",double,"dash"),
+    ],"Dos estrategias distintas de aislamiento",[(f0,"f₀ doble"),(fl,"fₗ doble")])
+    st.success("""
+    **Conclusión:** más masa no garantiza superioridad en todas las bandas. Un sistema
+    liviano correctamente desacoplado puede alcanzar una pendiente mayor sobre su
+    resonancia; el panel pesado suele ser robusto en bajas frecuencias. La decisión exige
+    comparar curvas, espectro, espesor, peso, encuentros, costo y calidad de ejecución.
+    """)
+    st.markdown("### Puente hacia la segunda mitad")
+    st.write("En el siguiente bloque se desarrollarán ventanas dobles, bandas de octava y tercio de octava, y los números únicos Rw, C y Ctr.")
+
+def _lab2_pending(stage, title):
+    _lab2_heading(stage,title,"Contenido reservado para la segunda mitad de la Clase 1.")
+    st.info("Esta etapa se desarrollará después de validar en aula las primeras dos horas.")
+
+def lab2_stage7(): _lab2_pending(7,"Ventanas dobles y modelo de cavidad")
+def lab2_stage8(): _lab2_pending(8,"Bandas de octava y tercio de octava")
+def lab2_stage9(): _lab2_pending(9,"Números únicos Rw, C y Ctr")
+def lab2_stage10(): _lab2_pending(10,"Aplicación integradora")
+
 LAB1_STAGE_TITLES = [
     ("Etapa 0","Introducción y ruta del curso"),
     ("Etapa 1","Control del ruido: fuente, trayectoria y receptor"),
@@ -4015,17 +4429,17 @@ LAB1_STAGE_TITLES = [
     ("Etapa 10","Evaluación final del Laboratorio 1"),
 ]
 LAB2_STAGE_TITLES = [
-    ("Etapa 0","Cronograma y ruta de cuatro horas"),
-    ("Etapa 1","Requerimientos CES y asesoría MINVU"),
-    ("Etapa 2","Rw, C, Ctr, R′w, DnT,w y DnT,A"),
-    ("Etapa 3","Modelos de la tesis"),
-    ("Etapa 4","Cinco problemas numéricos resueltos"),
-    ("Etapa 5","Aplicación didáctica de ISO 12354"),
-    ("Etapa 6","Caso guiado · Sala de Reuniones Dirección"),
-    ("Etapa 7","Comparación de tres soluciones · TA-01"),
-    ("Etapa 8","Aislamiento compuesto y puertas"),
-    ("Etapa 9","Banco, fichas y preparación"),
-    ("Etapa 10","Evaluación · Sala de Reuniones Licitaciones"),
+    ("Etapa 0","Ruta de las primeras dos horas"),
+    ("Etapa 1","Pérdida de transmisión: energía, τ y TL"),
+    ("Etapa 2","Panel simple: incidencia y cuatro zonas"),
+    ("Etapa 3","Casos reales de paneles simples"),
+    ("Etapa 4","Panel doble y masa–aire–masa"),
+    ("Etapa 5","Modelo de Sharp: TL por tramos"),
+    ("Etapa 6","Comparación aplicada y cierre parcial"),
+    ("Etapa 7","Ventanas dobles · segunda mitad"),
+    ("Etapa 8","Octavas y tercios · segunda mitad"),
+    ("Etapa 9","Rw, C y Ctr · segunda mitad"),
+    ("Etapa 10","Aplicación integradora · segunda mitad"),
 ]
 LAB_STAGE_TITLES = {1: LAB1_STAGE_TITLES, 2: LAB2_STAGE_TITLES}
 LAB_STAGE_FUNCTIONS = {
