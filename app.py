@@ -4156,8 +4156,24 @@ def _sharp_curve(m1, m2, depth, connection="Independiente"):
         total.append(value)
     return np.array(total), f0, fl
 
-def _plot_curves(series, title, markers=None):
+def _plot_curves(series, title, markers=None, highlight=None):
     fig = go.Figure()
+    if highlight:
+        x0, x1, label, color = highlight
+        x0 = max(float(LAB2_FREQS[0]), float(x0))
+        x1 = min(float(LAB2_FREQS[-1]), float(x1))
+        if x1 > x0:
+            fig.add_vrect(
+                x0=x0,
+                x1=x1,
+                fillcolor=color,
+                opacity=.22,
+                line_width=0,
+                layer="below",
+                annotation_text=label,
+                annotation_position="top left",
+                annotation_font=dict(color="#17324d", size=12),
+            )
     for name, values, style in series:
         fig.add_trace(go.Scatter(
             x=LAB2_FREQS, y=values, mode="lines+markers", name=name,
@@ -4513,6 +4529,29 @@ def lab2_stage2():
     st.markdown("### 3. Coeficiente de transmisión sonora según el ángulo")
     st.latex(r"\tau(\theta)=\left[1+\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)^2\right]^{-1}")
     st.latex(r"TL(\theta)=-10\log_{10}\left[\tau(\theta)\right]")
+    st.markdown("""
+    El coeficiente **τ(θ)** representa la fracción de potencia sonora incidente que
+    atraviesa la placa para una dirección específica. Es un valor adimensional entre
+    0 y 1: cuanto menor es τ, menor energía se transmite y mayor es la pérdida de
+    transmisión **TL**.
+
+    En esta expresión, **ω = 2πf** es la frecuencia angular, **m′** es la masa
+    superficial de la placa, **ρ₀** es la densidad del aire, **c** es la velocidad del
+    sonido y **θ** es el ángulo medido desde la normal. El término **cos θ** hace que
+    la impedancia efectiva que presenta la placa cambie con la dirección de llegada.
+    Por eso una misma placa y una misma frecuencia no entregan un único resultado para
+    todas las incidencias.
+
+    El cálculo se realiza primero en escala energética mediante τ(θ). Después se
+    convierte a decibeles con **TL(θ) = −10 log₁₀[τ(θ)]**. Por ejemplo, τ = 0,01
+    significa que atraviesa el 1 % de la potencia incidente y equivale a TL = 20 dB.
+    """)
+    _lab2_image("s2_tau_angulo")
+    _lab2_plain_language_cards(
+        "Cada dirección deja pasar una fracción distinta de energía, representada por τ(θ).",
+        "Observa cómo varía la energía transmitida al cambiar únicamente el ángulo.",
+        "Interpretar τ como decibeles: τ es una proporción energética y TL es su expresión logarítmica.",
+    )
     st.markdown("### 4. Incidencia aleatoria y promedio de campo")
     st.latex(
         r"\overline{\tau}="
@@ -4522,17 +4561,27 @@ def lab2_stage2():
         r"\sin\theta\cos\theta\,d\theta}"
     )
     st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}\left(\overline{\tau}\right)")
-    _lab2_image("s2_tau_angulo")
-    _lab2_plain_language_cards(
-        "Cada dirección deja pasar una fracción distinta de energía, representada por τ(θ).",
-        "Observa cómo varía la energía transmitida al cambiar únicamente el ángulo.",
-        "Promediar directamente los TL en decibeles. Primero se combinan los valores de τ.",
-    )
+    st.markdown("""
+    En un campo sonoro reverberante la placa recibe simultáneamente energía desde muchas
+    direcciones. El resultado de campo no corresponde al TL de un ángulo particular:
+    se obtiene integrando los coeficientes **τ(θ)** de todas las direcciones consideradas.
+
+    La ponderación **sin θ cos θ** tiene un significado físico. **sin θ** representa la
+    cantidad de direcciones disponibles dentro de cada anillo angular, mientras que
+    **cos θ** representa la componente de intensidad sonora normal a la superficie.
+    El denominador normaliza esa ponderación para que el resultado sea un promedio
+    energético y no una suma dependiente del intervalo elegido.
+
+    En este laboratorio se adopta **θ_lim = 78°** como aproximación práctica de campo.
+    Se integran todas las incidencias entre 0° y 78°; no se calcula únicamente la
+    transmisión a 78°. Una vez obtenido el coeficiente medio **τ̄**, recién entonces
+    se transforma a decibeles para obtener **TL_campo**.
+    """)
     _lab2_image("s2_punto4")
     _lab2_plain_language_cards(
         "Un recinto real envía sonido hacia la placa desde muchas direcciones a la vez.",
         "El resultado de campo integra desde 0° hasta 78° con ponderación energética.",
-        "Tomar el TL calculado a 78° como si fuera el promedio de campo.",
+        "Promediar directamente los TL o tomar el valor a 78° como si fuera el promedio de campo.",
     )
     st.markdown("""
     - **Incidencia aleatoria o campo difuso ideal:** supone direcciones distribuidas
@@ -4716,10 +4765,24 @@ def lab2_stage2():
     mass,stiffness,calculated_fc=_critical_frequency(rho,h,young,poisson)
     default_loss=max(5,min(16,5-10*math.log10(eta)))
     curve=_simple_real_curve(mass,calculated_fc,default_loss)
+    # Rangos didácticos para mostrar dónde domina cada mecanismo. La zona de
+    # coincidencia sigue a fᶜ, por lo que cambia al modificar material o espesor.
+    zone_highlights={
+        "1 · Rigidez":(50,125,"Zona de rigidez","#9ec5fe"),
+        "2 · Resonancias":(63,250,"Zona de resonancias","#ffd8a8"),
+        "3 · Ley de masa":(
+            250,max(315,.80*calculated_fc),"Zona de ley de masa","#b7e4c7"
+        ),
+        "4 · Coincidencia":(
+            .80*calculated_fc,1.25*calculated_fc,
+            "Zona de coincidencia","#f3b4c2"
+        ),
+    }
     _plot_curves([
         ("Respuesta aproximada",curve,"solid"),
         ("Ley de masa ideal",_mass_law_curve(mass),"dash"),
-    ],f"{material} · m′ = {mass:.1f} kg/m²",[(calculated_fc,"fᶜ")])
+    ],f"{material} · m′ = {mass:.1f} kg/m²",
+       [(calculated_fc,"fᶜ")],zone_highlights[selected_zone])
     z1,z2,z3=st.columns(3)
     z1.metric("Masa superficial m′",f"{mass:.1f} kg/m²")
     z2.metric("Rigidez D",f"{stiffness:.1f} N·m")
