@@ -4022,10 +4022,10 @@ LAB2_IMAGES = {
     "panel_simple": "panel_simple_transmision_profesional.png",
     "panel_doble": "panel_doble_masa_aire_masa.svg",
     "metalcon": "metalcon_simple_vs_doble.svg",
-    "yeso_carton": "placa_simple_yeso_carton.svg",
-    "madera": "placa_simple_madera.svg",
+    "yeso_carton": "panel_simple_yeso_carton.png",
+    "madera": "panel_simple_madera.png",
     "vidrio": "material_vidrio_monolitico.svg",
-    "hormigon": "muro_simple_hormigon.svg",
+    "hormigon": "muro_simple_hormigon.png",
     "comparador_hormigon": "comparador_panel_hormigon.svg",
     "comparador_tabique": "comparador_tabique_doble.svg",
 }
