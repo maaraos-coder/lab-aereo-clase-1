@@ -4012,135 +4012,72 @@ def lab2_stage10():
 # Laboratorio 2 · Clase 1 · Primer bloque de 120 minutos
 # Modelos de predicción del aislamiento a ruido aéreo
 # ---------------------------------------------------------------------------
-LAB2_MINUTES = [10, 15, 30, 15, 20, 25, 15, 25, 20, 20, 0]
+LAB2_MINUTES = [10, 15, 30, 15, 20, 25, 5, 0, 0, 0, 0]
 LAB2_FREQS = np.array([63, 80, 100, 125, 160, 200, 250, 315, 400, 500,
                        630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000])
-LAB2_MATERIALS = {
-    "Yeso-cartón": {
-        "rho": 800.0, "h": 12.5, "hmin": 6.0, "hmax": 30.0,
-        "fc_ref": 2500.0, "loss": 10.0, "image": "yeso_carton.png",
-    },
-    "Vidrio monolítico": {
-        "rho": 2500.0, "h": 6.0, "hmin": 3.0, "hmax": 20.0,
-        "fc_ref": 3200.0, "loss": 12.0, "image": "vidrio_monolitico.png",
-    },
-    "Hormigón": {
-        "rho": 2400.0, "h": 100.0, "hmin": 50.0, "hmax": 250.0,
-        "fc_ref": 180.0, "loss": 5.0, "image": "hormigon.png",
-    },
+
+LAB2_ASSET_DIR = ROOT / "assets" / "lab2"
+LAB2_IMAGES = {
+    # Cambia cualquiera de estos archivos manteniendo el mismo nombre.
+    "panel_simple": "panel_simple_transmision_profesional.png",
+    "panel_doble": "panel_doble_masa_aire_masa.svg",
+    "metalcon": "metalcon_simple_vs_doble.svg",
+    "yeso_carton": "material_yeso_carton.svg",
+    "vidrio": "material_vidrio_monolitico.svg",
+    "hormigon": "material_hormigon.svg",
+    "comparador_hormigon": "comparador_panel_hormigon.svg",
+    "comparador_tabique": "comparador_tabique_doble.svg",
 }
-LAB2_MATERIAL_DIR = ROOT / "assets" / "lab2_materials"
 
-def _lab2_svg(kind, **values):
-    """Professional, dependency-free construction diagrams used by Lab 2."""
-    if kind == "simple":
-        return """
-        <svg viewBox="0 0 900 330" role="img" aria-label="Panel simple entre recinto emisor y receptor">
-          <defs><marker id="a1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="#17c3e6"/></marker></defs>
-          <rect x="20" y="30" width="860" height="270" rx="22" fill="#eef7ff" stroke="#9fc8e8"/>
-          <rect x="424" y="45" width="52" height="240" rx="5" fill="#8095aa" stroke="#173f63" stroke-width="3"/>
-          <path d="M120 150 C170 95 220 205 270 150 S370 95 415 150" fill="none" stroke="#0967d2" stroke-width="6"/>
-          <path d="M488 150 C535 120 582 180 630 150 S725 120 780 150" fill="none" stroke="#17a779" stroke-width="3" marker-end="url(#a1)"/>
-          <path d="M416 174 C385 198 350 135 315 174 S245 213 205 174" fill="none" stroke="#ef8b2c" stroke-width="3"/>
-          <text x="65" y="75" fill="#173f63" font-size="20" font-weight="700">RECINTO EMISOR</text>
-          <text x="637" y="75" fill="#173f63" font-size="20" font-weight="700">RECINTO RECEPTOR</text>
-          <text x="450" y="318" text-anchor="middle" fill="#173f63" font-size="18">Una hoja continua · una masa superficial m′</text>
-          <text x="240" y="120" fill="#0967d2" font-size="17">Energía incidente Wi</text>
-          <text x="248" y="228" fill="#b76114" font-size="17">Energía reflejada Wr</text>
-          <text x="610" y="118" fill="#087b59" font-size="17">Energía transmitida Wt</text>
-        </svg>"""
-    if kind == "double":
-        return """
-        <svg viewBox="0 0 900 360" role="img" aria-label="Panel doble con dos hojas independientes y cámara de aire">
-          <defs><pattern id="wool" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M0 8 Q4 0 8 8 T16 8" fill="none" stroke="#e2a849" stroke-width="2"/></pattern></defs>
-          <rect x="20" y="30" width="860" height="295" rx="22" fill="#eef7ff" stroke="#9fc8e8"/>
-          <rect x="355" y="55" width="35" height="245" rx="4" fill="#8095aa" stroke="#173f63" stroke-width="3"/>
-          <rect x="510" y="55" width="35" height="245" rx="4" fill="#8095aa" stroke="#173f63" stroke-width="3"/>
-          <rect x="390" y="55" width="120" height="245" fill="url(#wool)" opacity=".8"/>
-          <path d="M90 168 C140 112 190 224 240 168 S320 112 346 168" fill="none" stroke="#0967d2" stroke-width="6"/>
-          <path d="M397 168 C420 130 447 206 472 168 S497 142 505 168" fill="none" stroke="#ef8b2c" stroke-width="4"/>
-          <path d="M553 168 C590 143 625 193 662 168 S735 143 790 168" fill="none" stroke="#17a779" stroke-width="3"/>
-          <text x="372" y="48" text-anchor="middle" fill="#173f63" font-size="18">Hoja 1 · m′₁</text>
-          <text x="527" y="48" text-anchor="middle" fill="#173f63" font-size="18">Hoja 2 · m′₂</text>
-          <text x="450" y="325" text-anchor="middle" fill="#173f63" font-size="18">Cámara d · el aire actúa como resorte</text>
-          <line x1="390" y1="278" x2="510" y2="278" stroke="#173f63" stroke-width="2"/>
-          <text x="450" y="270" text-anchor="middle" fill="#173f63" font-size="17">d</text>
-        </svg>"""
-    if kind == "metalcon":
-        return """
-        <svg viewBox="0 0 900 380" role="img" aria-label="Comparación constructiva de Metalcon simple y doble estructura">
-          <rect x="20" y="25" width="410" height="330" rx="20" fill="#f4f9fd" stroke="#9fc8e8"/>
-          <rect x="470" y="25" width="410" height="330" rx="20" fill="#f4f9fd" stroke="#9fc8e8"/>
-          <text x="225" y="58" text-anchor="middle" fill="#173f63" font-size="21" font-weight="700">METALCON SIMPLE</text>
-          <rect x="95" y="85" width="22" height="210" fill="#d4b282" stroke="#735a39"/>
-          <path d="M195 90 h62 v200 h-62 v-18 h38 V108 h-38z" fill="#9eb2c4" stroke="#35566f" stroke-width="3"/>
-          <rect x="335" y="85" width="22" height="210" fill="#d4b282" stroke="#735a39"/>
-          <line x1="117" y1="140" x2="335" y2="140" stroke="#ef8b2c" stroke-width="5"/>
-          <line x1="117" y1="235" x2="335" y2="235" stroke="#ef8b2c" stroke-width="5"/>
-          <text x="225" y="325" text-anchor="middle" fill="#a45a17" font-size="17">Montante compartido = puente lineal rígido</text>
-          <text x="675" y="58" text-anchor="middle" fill="#173f63" font-size="21" font-weight="700">DOBLE ESTRUCTURA</text>
-          <rect x="510" y="85" width="22" height="210" fill="#d4b282" stroke="#735a39"/>
-          <path d="M575 90 h52 v200 h-52 v-18 h30 V108 h-30z" fill="#9eb2c4" stroke="#35566f" stroke-width="3"/>
-          <path d="M720 90 h52 v200 h-52 v-18 h30 V108 h-30z" fill="#9eb2c4" stroke="#35566f" stroke-width="3"/>
-          <rect x="818" y="85" width="22" height="210" fill="#d4b282" stroke="#735a39"/>
-          <line x1="647" y1="85" x2="647" y2="295" stroke="#17a779" stroke-width="3" stroke-dasharray="8 8"/>
-          <text x="675" y="325" text-anchor="middle" fill="#087b59" font-size="17">Bastidores separados = sin conexión directa</text>
-        </svg>"""
-    if kind == "incidence":
-        theta = float(values.get("theta", 30))
-        rad = math.radians(theta)
-        x2, y2 = 445 - 240*math.cos(rad), 185 + 240*math.sin(rad)
-        xr, yr = 445 - 210*math.cos(rad), 185 - 210*math.sin(rad)
-        return f"""
-        <svg viewBox="0 0 900 390" role="img" aria-label="Ángulo de incidencia sobre un panel">
-          <defs><marker id="ai" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="#0967d2"/></marker></defs>
-          <rect x="20" y="25" width="860" height="335" rx="22" fill="#eef7ff" stroke="#9fc8e8"/>
-          <rect x="438" y="45" width="22" height="285" fill="#8095aa" stroke="#173f63"/>
-          <line x1="445" y1="185" x2="85" y2="185" stroke="#60718a" stroke-width="2" stroke-dasharray="9 7"/>
-          <line x1="{x2:.1f}" y1="{y2:.1f}" x2="438" y2="185" stroke="#0967d2" stroke-width="6" marker-end="url(#ai)"/>
-          <line x1="438" y1="185" x2="{xr:.1f}" y2="{yr:.1f}" stroke="#ef8b2c" stroke-width="4"/>
-          <line x1="460" y1="185" x2="785" y2="185" stroke="#17a779" stroke-width="3"/>
-          <path d="M365 185 A80 80 0 0 1 {445-80*math.cos(rad):.1f} {185+80*math.sin(rad):.1f}" fill="none" stroke="#173f63" stroke-width="3"/>
-          <text x="330" y="220" fill="#173f63" font-size="20">θ = {theta:.0f}°</text>
-          <text x="80" y="75" fill="#173f63" font-size="18">Onda incidente</text>
-          <text x="210" y="105" fill="#b76114" font-size="18">Onda reflejada</text>
-          <text x="635" y="165" fill="#087b59" font-size="18">Onda transmitida</text>
-          <text x="275" y="178" fill="#60718a" font-size="17">Normal al panel</text>
-        </svg>"""
-    return ""
+def _lab2_image(image_key, caption=None):
+    """Load every replaceable Lab 2 illustration from assets/lab2."""
+    filename = LAB2_IMAGES.get(image_key)
+    path = LAB2_ASSET_DIR / filename if filename else None
+    if path and path.exists():
+        st.image(str(path), caption=caption, use_container_width=True)
+        return True
+    expected = f"assets/lab2/{filename or image_key}"
+    st.warning(f"No se encontró la imagen: {expected}")
+    st.caption("Súbela a GitHub con ese nombre exacto; no es necesario modificar el código.")
+    return False
 
-def _lab2_visual(svg):
-    st.markdown(f'<div class="card" style="padding:.35rem">{svg}</div>', unsafe_allow_html=True)
+def _lab2_incidence_plot(theta):
+    """Interactive geometry stays as a chart because it must react to the slider."""
+    rad = math.radians(theta)
+    origin = np.array([0.0, 0.0])
+    incident = np.array([-math.cos(rad), -math.sin(rad)])
+    reflected = np.array([-math.cos(rad), math.sin(rad)])
+    fig = go.Figure()
+    fig.add_shape(type="rect", x0=-.03, x1=.03, y0=-1.0, y1=1.0,
+                  fillcolor="#8095aa", line_color="#173f63")
+    fig.add_shape(type="line", x0=-1.15, x1=1.15, y0=0, y1=0,
+                  line=dict(color="#60718a", width=2, dash="dash"))
+    for name, start, end, color, width in [
+        ("Onda incidente", incident, origin, "#0967d2", 6),
+        ("Onda reflejada", origin, reflected, "#ef8b2c", 4),
+        ("Onda transmitida", origin, np.array([1.05, 0]), "#17a779", 4),
+    ]:
+        fig.add_trace(go.Scatter(
+            x=[start[0], end[0]], y=[start[1], end[1]],
+            mode="lines+markers", name=name,
+            line=dict(color=color, width=width), marker=dict(size=[5, 10])))
+    fig.add_annotation(x=-.34, y=-.12, text=f"θ = {theta:.0f}°", showarrow=False)
+    fig.update_layout(
+        height=390, margin=dict(l=20, r=20, t=40, b=20),
+        xaxis=dict(range=[-1.25, 1.25], visible=False, scaleanchor="y"),
+        yaxis=dict(range=[-1.05, 1.05], visible=False),
+        legend=dict(orientation="h", y=1.08), hovermode=False,
+        title="Incidencia, reflexión y transmisión")
+    st.plotly_chart(fig, use_container_width=True, key=f"lab2_incidence_{theta}")
 
 def _mass_law_curve(mass):
     return 20*np.log10(np.maximum(mass*LAB2_FREQS, 1))-47
 
 def _simple_real_curve(mass, fc, loss=9):
     base = _mass_law_curve(mass)
-    dip = loss*np.exp(-0.5*(np.log2(LAB2_FREQS/fc)/0.34)**2)
-    stiffness = 12 + 8*np.log2(np.maximum(LAB2_FREQS, 31.5)/63)
-    resonance = 7*np.exp(-0.5*(np.log2(LAB2_FREQS/100)/0.38)**2)
-    recovery = np.where(LAB2_FREQS > fc, 6*np.log2(LAB2_FREQS/fc), 0)
-    return np.maximum(5, np.where(LAB2_FREQS < 160, stiffness-resonance, base-dip+recovery))
-
-def _material_curve(name, thickness):
-    p = LAB2_MATERIALS[name]
-    mass = p["rho"] * thickness / 1000
-    fc = p["fc_ref"] * p["h"] / thickness
-    return mass, fc, _simple_real_curve(mass, fc, p["loss"])
-
-def _show_material(name, caption=None):
-    path = LAB2_MATERIAL_DIR / LAB2_MATERIALS[name]["image"]
-    if path.exists():
-        st.image(str(path), use_container_width=True, caption=caption or name)
-
-def _zone_bounds(fc):
-    return [
-        (63, 100, "1 · Rigidez", "rgba(80,135,220,.12)"),
-        (100, 200, "2 · Resonancias", "rgba(236,149,65,.13)"),
-        (200, max(250, fc/1.45), "3 · Ley de masa", "rgba(35,171,127,.11)"),
-        (max(250, fc/1.45), min(5000, fc*1.45), "4 · Coincidencia", "rgba(218,80,95,.12)"),
-    ]
+    dip = loss*np.exp(-0.5*(np.log2(LAB2_FREQS/fc)/0.30)**2)
+    low = 5*np.exp(-0.5*(np.log2(LAB2_FREQS/90)/0.55)**2)
+    return base-dip-low
 
 def _sharp_parameters(m1, m2, depth):
     d = max(depth/1000, .01)
@@ -4185,84 +4122,46 @@ def _plot_curves(series, title, markers=None):
                      ticktext=["63","125","250","500","1k","2k","4k"])
     st.plotly_chart(fig, use_container_width=True)
 
-def _plot_panel_zones(name, mass, fc, curve):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=LAB2_FREQS, y=curve, mode="lines+markers",
-                             name="Respuesta aproximada", line=dict(width=4, color="#0875d1")))
-    fig.add_trace(go.Scatter(x=LAB2_FREQS, y=_mass_law_curve(mass), mode="lines",
-                             name="Ley de masa ideal", line=dict(width=2, dash="dash", color="#6db8ef")))
-    ymax = max(65, float(np.nanmax(curve))+8)
-    for x0, x1, label, fill in _zone_bounds(fc):
-        if x0 >= 5000:
-            continue
-        fig.add_vrect(x0=x0, x1=max(x0*1.02, min(x1, 5000)), fillcolor=fill,
-                      line_width=0, layer="below")
-        xm = math.sqrt(x0*max(x0*1.02, min(x1,5000)))
-        fig.add_annotation(x=xm, y=ymax-2, text=label, showarrow=False,
-                           font=dict(size=11, color="#183a5a"), bgcolor="rgba(255,255,255,.82)")
-    fig.add_vline(x=fc, line_dash="dot", line_color="#d9475c")
-    fig.add_annotation(x=fc, y=8, text=f"fᶜ≈{fc:.0f} Hz", showarrow=True,
-                       arrowhead=2, font=dict(color="#a72d40"))
-    fig.update_layout(title=f"{name} · m′={mass:.1f} kg/m²", height=500,
-                      xaxis_title="Frecuencia central (Hz, escala logarítmica)",
-                      yaxis_title="Pérdida de transmisión TL / R (dB)",
-                      xaxis_type="log", yaxis_range=[0,ymax], hovermode="x unified",
-                      margin=dict(l=40,r=20,t=75,b=45),
-                      legend=dict(orientation="h",y=1.12))
-    fig.update_xaxes(tickvals=[63,125,250,500,1000,2000,4000],
-                     ticktext=["63","125","250","500","1k","2k","4k"])
-    st.plotly_chart(fig, use_container_width=True)
-
 def _lab2_heading(stage, title, purpose):
     header(f"ETAPA {stage} · LABORATORIO 2", title, purpose,
            show_overview=False, duration_minutes=LAB2_MINUTES[stage])
 
 def lab2_stage0():
-    header("ETAPA 0 · BIENVENIDA", "Laboratorio 2 · Modelos de predicción del aislamiento",
-           "Una ruta visual para conectar la solución constructiva, su modelo físico y la curva de pérdida de transmisión.")
-    total = sum(LAB2_MINUTES[:10])
-    st.markdown(
-        f'<div class="class-clock"><div><strong>⏱️ Bloque técnico desarrollado</strong>'
-        f'<br><span>Paneles simples, sistemas dobles, ventanas, bandas e índices globales</span></div>'
-        f'<div><strong>{total} min</strong></div></div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-band"><span>🗺️</span><h3>Tu ruta de aprendizaje</h3></div>',
-                unsafe_allow_html=True)
-    summaries = [
-        "Energía incidente, transmitida, τ y TL.",
-        "Incidencia angular y cuatro zonas físicas.",
-        "Yeso-cartón, vidrio y hormigón comparados.",
-        "Resonancia masa–aire–masa y conexiones.",
-        "TL de Sharp por tramos, f₀ y fₗ.",
-        "Panel pesado frente a tabique doble.",
-        "Ventana doble, cavidad y asimetría.",
-        "Frecuencia continua, octava y tercio.",
-        "Procedimiento de Rw, C y Ctr.",
-    ]
-    html = '<div class="route-grid">'
-    for i, summary in enumerate(summaries, 1):
-        title = LAB2_STAGE_TITLES[i][1] if "LAB2_STAGE_TITLES" in globals() else f"Etapa {i}"
-        html += (f'<div class="route-card"><span class="step">{i}</span><div><b>{title}</b>'
-                 f'<p>{summary}</p><span class="route-time">⏱️ {LAB2_MINUTES[i]} min</span></div></div>')
-    st.markdown(html + '</div>', unsafe_allow_html=True)
-    st.markdown('<div class="good" style="margin-top:1rem"><b>Así aprenderás:</b> '
-                'modelo físico → ecuación → simulación → curva por bandas → interpretación constructiva.</div>',
-                unsafe_allow_html=True)
+    _lab2_heading(0, "Ruta de las primeras dos horas",
+                  "Comprender cómo se predice la pérdida de transmisión de paneles simples y dobles.")
+    st.markdown("""
+    ### Resultado de aprendizaje
+    Al terminar este bloque podrás reconocer la solución física, escoger el modelo adecuado,
+    calcular sus variables principales e interpretar una curva de aislamiento sin confundir
+    un valor por banda con un número único.
+    """)
+    st.dataframe(pd.DataFrame([
+        ["00:00–00:10","Ruta y selección del modelo","Distinguir panel simple y panel doble"],
+        ["00:10–00:25","Pérdida de transmisión","Relacionar energía, τ y TL"],
+        ["00:25–00:55","Panel simple","Incidencia, masa, rigidez, resonancia y coincidencia"],
+        ["00:55–01:10","Casos reales","Comparar yeso-cartón, vidrio y hormigón"],
+        ["01:10–01:30","Panel doble","Masa–aire–masa, cámara y conexiones"],
+        ["01:30–01:55","Modelo de Sharp","Calcular TL por tramos y leer f₀ y fₗ"],
+        ["01:55–02:00","Comparación y cierre","Panel pesado frente a tabique liviano doble"],
+    ],columns=["Tiempo","Bloque","Evidencia"]),hide_index=True,use_container_width=True)
+    st.info("Los modelos entregan predicciones. El desempeño final también depende de montaje, sellos, encuentros, dimensiones y transmisiones laterales.")
 
 def lab2_stage1():
     _lab2_heading(1, "Pérdida de transmisión: de la energía a los decibeles",
                   "Interpretar cuánto sonido atraviesa una separación y por qué TL es una razón energética.")
-    _lab2_visual(_lab2_svg("simple"))
+    _lab2_image("panel_simple")
     left,right=st.columns([1.2,.8])
     with left:
-        st.markdown("""
+        st.markdown(r"""
         Una onda que llega a una separación distribuye su energía en tres rutas:
         una parte se **refleja**, otra se **disipa** internamente y otra se **transmite**.
-        Para aislamiento interesa la fracción transmitida.
-        """)
-        st.latex(r"\tau=\frac{W_t}{W_i}")
-        st.latex(r"TL=-10\log_{10}(\tau)=10\log_{10}\left(\frac{W_i}{W_t}\right)")
-        st.markdown("""
-        TL y **R** suelen expresar la reducción sonora del elemento por banda. Un TL alto
+        Para aislamiento interesa la fracción transmitida:
+
+        \[
+        \tau=\frac{W_t}{W_i}, \qquad TL=-10\log_{10}(\tau)
+        \]
+
+        TL y \(R\) suelen expresar la reducción sonora del elemento por banda. Un TL alto
         significa una fracción transmitida pequeña; no significa que el sonido desaparezca.
         """)
     with right:
@@ -4284,7 +4183,7 @@ def lab2_stage1():
 def lab2_stage2():
     _lab2_heading(2, "Panel simple: incidencia y cuatro zonas físicas",
                   "Relacionar masa, frecuencia, rigidez, resonancia y coincidencia con la forma de la curva.")
-    _lab2_visual(_lab2_svg("simple"))
+    _lab2_image("panel_simple")
     st.markdown("""
     Un **panel simple** es una hoja o conjunto de capas unidas rígidamente que vibran como
     una sola masa: vidrio monolítico, placa de yeso, tablero de madera, chapa o muro macizo.
@@ -4292,7 +4191,7 @@ def lab2_stage2():
     """)
     st.markdown("### Laboratorio angular")
     angle=st.slider("Ángulo de incidencia respecto de la normal",0,78,30,key="lab2_angle")
-    _lab2_visual(_lab2_svg("incidence",theta=angle))
+    _lab2_incidence_plot(angle)
     angular_factor=max(math.cos(math.radians(angle)),.01)
     st.markdown(
         f'<div class="lesson"><b>Lectura instantánea:</b> cos θ = {angular_factor:.3f}. '
@@ -4304,25 +4203,26 @@ def lab2_stage2():
         st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}(\overline{\tau})")
         st.warning("Error frecuente: promediar valores de TL directamente en dB. Primero se promedia τ y luego se transforma.")
     st.markdown("### Explorador de las cuatro zonas")
-    material=st.selectbox("Solución real",list(LAB2_MATERIALS),key="lab2_panel_material")
-    p=LAB2_MATERIALS[material]
-    cimg, cctrl = st.columns([.8,1.2])
-    with cimg:
-        _show_material(material, f"Muestra real · {material}")
-    with cctrl:
-        st.metric("Densidad de cálculo (fija)",f"{p['rho']:.0f} kg/m³")
-        h=st.slider("Espesor (mm)",float(p["hmin"]),float(p["hmax"]),
-                    float(p["h"]),0.5,key=f"lab2_panel_h_{material}")
-        mass,fc,curve=_material_curve(material,h)
-        st.metric("Masa superficial m′",f"{mass:.1f} kg/m²",
-                  help="m′ = densidad × espesor en metros")
-        st.latex(rf"m'=\rho h={p['rho']:.0f}\times {h/1000:.4f}={mass:.1f}\ \mathrm{{kg/m^2}}")
-    _plot_panel_zones(material,mass,fc,curve)
+    material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
+    props={
+        "Yeso-cartón":(800,12.5,2500,10),
+        "Vidrio":(2500,6.0,3200,12),
+        "Madera contrachapada":(600,18.0,1800,8),
+        "Hormigón":(2400,100.0,180,5),
+    }
+    rho,default_h,default_fc,default_loss=props[material]
+    h=st.slider("Espesor (mm)",4.0,200.0,float(default_h),0.5,key="lab2_panel_h")
+    mass=rho*h/1000
+    curve=_simple_real_curve(mass,default_fc,default_loss)
+    _plot_curves([
+        ("Respuesta aproximada",curve,"solid"),
+        ("Ley de masa ideal",_mass_law_curve(mass),"dash"),
+    ],f"{material} · m′ = {mass:.1f} kg/m²",[(default_fc,"fᶜ")])
     zones=pd.DataFrame([
         ["1 · Rigidez","Muy bajas frecuencias","La placa se comporta como un resorte; dimensiones y apoyos son decisivos."],
         ["2 · Resonancias","Bajas frecuencias","Los modos propios amplifican el movimiento y producen irregularidades."],
         ["3 · Ley de masa","Zona media","Al duplicar masa o frecuencia, la tendencia ideal aumenta cerca de 6 dB."],
-        ["4 · Coincidencia",f"Alrededor de {fc:.0f} Hz","La onda aérea acopla eficientemente con ondas de flexión y aparece una caída."],
+        ["4 · Coincidencia",f"Alrededor de {default_fc} Hz","La onda aérea acopla eficientemente con ondas de flexión y aparece una caída."],
     ],columns=["Zona","Ubicación","Interpretación"])
     st.dataframe(zones,hide_index=True,use_container_width=True)
     st.latex(r"R\approx20\log_{10}(m'f)-47")
@@ -4337,22 +4237,19 @@ def lab2_stage3():
     principal. La comparación debe hacerse por bandas, porque dos elementos con un valor
     global parecido pueden responder de forma distinta en graves o cerca de la coincidencia.
     """)
-    thicknesses={}
     c1,c2,c3=st.columns(3)
-    for col,name in zip((c1,c2,c3),LAB2_MATERIALS):
-        p=LAB2_MATERIALS[name]
+    cases=[
+        ("Yeso-cartón 12,5 mm","Placa liviana",10.0,2500,10,"yeso_carton"),
+        ("Vidrio monolítico 6 mm","Hoja transparente",15.0,3200,12,"vidrio"),
+        ("Hormigón 100 mm","Panel pesado",240.0,180,5,"hormigon"),
+    ]
+    for col,(name,desc,mass,fc,loss,image_key) in zip((c1,c2,c3),cases):
         with col:
-            _show_material(name)
-            thicknesses[name]=st.slider(f"Espesor de {name} (mm)",float(p["hmin"]),
-                                        float(p["hmax"]),float(p["h"]),0.5,
-                                        key=f"lab2_case_{name}")
-            m,fc,_=_material_curve(name,thicknesses[name])
-            st.caption(f"ρ fija={p['rho']:.0f} kg/m³ · m′={m:.1f} kg/m² · fᶜ≈{fc:.0f} Hz")
-    comparison=[]
-    for name,style in zip(LAB2_MATERIALS,["solid","dash","dot"]):
-        m,fc,curve=_material_curve(name,thicknesses[name])
-        comparison.append((f"{name} {thicknesses[name]:g} mm",curve,style))
-    _plot_curves(comparison,
+            st.markdown(f"#### {name}")
+            _lab2_image(image_key)
+            st.caption(f"{desc} · m′={mass:g} kg/m² · fᶜ≈{fc} Hz")
+    _plot_curves([(name,_simple_real_curve(mass,fc,loss),style)
+                  for (name,_,mass,fc,loss,_),style in zip(cases,["solid","dash","dot"])],
                  "Comparación simultánea de soluciones simples")
     st.markdown("""
     **Lectura profesional:** el hormigón domina por masa en gran parte del rango, pero su
@@ -4364,7 +4261,7 @@ def lab2_stage3():
 def lab2_stage4():
     _lab2_heading(4, "Panel doble y resonancia masa–aire–masa",
                   "Comprender cuándo dos hojas forman un sistema desacoplado y cómo la cámara modifica la curva.")
-    _lab2_visual(_lab2_svg("double"))
+    _lab2_image("panel_doble")
     st.markdown("""
     Un **panel doble** posee dos hojas que pueden vibrar de manera diferente, separadas por
     una cámara. Las hojas actúan como masas y el aire encerrado como resorte. Cerca de la
@@ -4391,7 +4288,7 @@ def lab2_stage4():
     ],"Simulador masa–aire–masa",[(f0,"f₀"),(fl,"fₗ")])
     st.latex(r"f_0=60\sqrt{\frac{1/m'_1+1/m'_2}{d}}")
     st.caption("d se expresa en metros. Aumentar la profundidad o las masas desplaza f₀ hacia frecuencias más bajas.")
-    _lab2_visual(_lab2_svg("metalcon"))
+    _lab2_image("metalcon")
     st.markdown("""
     En Metalcon simple, ambas caras se fijan a los mismos montantes: los apoyos repetidos
     forman una **conexión lineal rígida**. En doble estructura, cada hoja se fija a su propio
@@ -4401,17 +4298,18 @@ def lab2_stage4():
 def lab2_stage5():
     _lab2_heading(5, "Modelo de Sharp: TL por tramos",
                   "Seguir la ecuación activa, ubicar f₀ y fₗ e interpretar los cambios de pendiente.")
-    st.markdown("""
+    st.markdown(r"""
     Sharp representa el sistema doble mediante regiones. La ecuación cambia porque el
-    mecanismo dominante no es el mismo a ambos lados de **f₀** y **fₗ**.
-    """)
-    st.latex(r"""
+    mecanismo dominante no es el mismo a ambos lados de \(f_0\) y \(f_l\):
+
+    \[
     TL(f)=
     \begin{cases}
     TL_{(m'_1+m'_2)}, & f<f_0\\
-    TL_{m'_1}+TL_{m'_2}+20\log_{10}(fd)-29, & f_0\leq f<f_l\\
-    TL_{m'_1}+TL_{m'_2}+6, & f\geq f_l
+    TL_{m'_1}+TL_{m'_2}+20\log_{10}(fd)-29, & f_0\le f<f_l\\
+    TL_{m'_1}+TL_{m'_2}+6, & f\ge f_l
     \end{cases}
+    \]
     """)
     c1,c2,c3,c4=st.columns(4)
     m1=c1.number_input("m′₁ (kg/m²)",5.0,80.0,10.0,1.0,key="sharp_m1")
@@ -4449,205 +4347,40 @@ def lab2_stage5():
           "Aumentar la cámara","Una cámara más profunda reduce la rigidez del resorte de aire y disminuye f₀.")
 
 def lab2_stage6():
-    _lab2_heading(6, "Comparador constructivo interactivo",
-                  "Contrastar soluciones reales con masas, espesores y curvas visibles en una misma experiencia.")
-    st.markdown("""
-    Un panel pesado obtiene aislamiento principalmente por **inercia**. Un tabique liviano
-    de doble estructura lo obtiene por la combinación de **dos masas, cámara y
-    desacoplamiento**. La comparación correcta no se hace por apariencia ni por un único
-    valor: se revisa banda a banda y se identifican sus zonas débiles.
-    """)
-    c1,c2,c3=st.columns(3)
-    concrete_h=c1.slider("Hormigón (mm)",60,200,100,10,key="lab2_cmp_concrete")
-    leaf_mass=c2.slider("Masa de cada hoja (kg/m²)",8,35,20,key="lab2_cmp_leaf")
-    chamber=c3.slider("Cámara doble (mm)",70,220,140,10,key="lab2_cmp_chamber")
-    concrete_m=2400*concrete_h/1000
-    concrete_fc=180*100/concrete_h
-    concrete=_simple_real_curve(concrete_m,concrete_fc,5)
-    double,f0,fl=_sharp_curve(leaf_mass,leaf_mass,chamber,"Independiente")
+    _lab2_heading(6, "Comparación aplicada y cierre parcial",
+                  "Contrastar un panel pesado con un tabique liviano de doble estructura.")
+    concrete=_simple_real_curve(240,180,5)
+    double,f0,fl=_sharp_curve(20,20,140,"Independiente")
     left,right=st.columns(2)
     with left:
-        _show_material("Hormigón",f"Panel simple pesado · {concrete_h} mm · m′={concrete_m:.0f} kg/m²")
+        st.markdown("#### Panel pesado")
+        _lab2_image("comparador_hormigon")
+        st.caption("Hormigón 100 mm · una hoja · m′≈240 kg/m²")
     with right:
-        _lab2_visual(_lab2_svg("double"))
-        st.caption(f"Tabique doble · {leaf_mass}+{leaf_mass} kg/m² · cámara {chamber} mm")
+        st.markdown("#### Tabique liviano doble")
+        _lab2_image("comparador_tabique")
+        st.caption("Dos hojas · cámara 140 mm · bastidores independientes")
     _plot_curves([
         ("Hormigón 100 mm",concrete,"solid"),
         ("Tabique doble liviano",double,"dash"),
     ],"Dos estrategias distintas de aislamiento",[(f0,"f₀ doble"),(fl,"fₗ doble")])
-    delta=double-concrete
-    winner=np.where(delta>0,"Tabique doble","Hormigón")
-    st.dataframe(pd.DataFrame({"Frecuencia (Hz)":LAB2_FREQS,
-                               "Hormigón (dB)":np.round(concrete,1),
-                               "Tabique doble (dB)":np.round(double,1),
-                               "Mayor TL":winner}),hide_index=True,use_container_width=True)
-    st.success("La solución dominante puede cambiar con la frecuencia. El sistema doble "
-               "pierde desempeño cerca de f₀; por encima de la transición puede aprovechar "
-               "el desacoplamiento, siempre que no existan puentes ni fugas.")
-
-def _window_section_svg(h1, h2, gap):
-    scale=min(3.0,220/max(gap,1))
-    x1=330; x2=x1+max(70,gap*scale)
-    return f"""
-    <svg viewBox="0 0 900 390" role="img" aria-label="Corte técnico de ventana doble">
-      <defs>
-        <linearGradient id="glass" x1="0" x2="1"><stop stop-color="#dff7ff" stop-opacity=".55"/><stop offset="1" stop-color="#72c8df" stop-opacity=".8"/></linearGradient>
-        <marker id="winarr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#0a69c7"/></marker>
-      </defs>
-      <rect x="30" y="25" width="840" height="330" rx="20" fill="#eef7ff" stroke="#9fc8e8"/>
-      <path d="M250 80H650V315H250V80M280 110H620V285H280Z" fill="#566d7f" fill-rule="evenodd"/>
-      <rect x="{x1-h1*1.6:.1f}" y="105" width="{max(8,h1*1.6):.1f}" height="185" fill="url(#glass)" stroke="#2986a5" stroke-width="2"/>
-      <rect x="{x2:.1f}" y="105" width="{max(8,h2*1.6):.1f}" height="185" fill="url(#glass)" stroke="#2986a5" stroke-width="2"/>
-      <rect x="{x1:.1f}" y="105" width="{x2-x1:.1f}" height="185" fill="#ffffff" fill-opacity=".35" stroke="#9fc8e8" stroke-dasharray="6 5"/>
-      <rect x="{x1:.1f}" y="275" width="{x2-x1:.1f}" height="15" fill="#263d4d"/>
-      <line x1="90" y1="195" x2="{x1-h1*1.6-8:.1f}" y2="195" stroke="#0a69c7" stroke-width="5" marker-end="url(#winarr)"/>
-      <line x1="{x2+h2*1.6+8:.1f}" y1="195" x2="800" y2="195" stroke="#17a779" stroke-width="3" marker-end="url(#winarr)"/>
-      <text x="{x1-18:.1f}" y="88" text-anchor="middle" fill="#173f63" font-size="18">Vidrio 1 · {h1:g} mm</text>
-      <text x="{x2+24:.1f}" y="88" text-anchor="middle" fill="#173f63" font-size="18">Vidrio 2 · {h2:g} mm</text>
-      <text x="{(x1+x2)/2:.1f}" y="185" text-anchor="middle" fill="#173f63" font-size="18">Cámara de aire</text>
-      <text x="{(x1+x2)/2:.1f}" y="215" text-anchor="middle" fill="#173f63" font-size="17">d = {gap} mm</text>
-      <text x="450" y="335" text-anchor="middle" fill="#173f63" font-size="17">Marco · junquillos · sellos · separador inferior</text>
-    </svg>"""
-
-def lab2_stage7():
-    _lab2_heading(7,"Ventana doble: vidrios, cámara y modos",
-                  "Simular una ventana real y distinguir resonancia masa–aire–masa, coincidencia y modos de cavidad.")
-    st.markdown("""
-    Una ventana doble se modela como dos hojas de vidrio separadas por una cavidad finita.
-    No basta con sumar los TL de ambos vidrios: aparecen la resonancia masa–aire–masa,
-    coincidencias propias de cada hoja y modos asociados al ancho, alto y profundidad.
-    El marco, los junquillos y los **sellos de estanqueidad** completan el sistema.
+    st.success("""
+    **Conclusión:** más masa no garantiza superioridad en todas las bandas. Un sistema
+    liviano correctamente desacoplado puede alcanzar una pendiente mayor sobre su
+    resonancia; el panel pesado suele ser robusto en bajas frecuencias. La decisión exige
+    comparar curvas, espectro, espesor, peso, encuentros, costo y calidad de ejecución.
     """)
-    c1,c2,c3=st.columns(3)
-    h1=c1.slider("Vidrio exterior (mm)",4,16,6,key="win_h1")
-    gap=c2.slider("Separación (mm)",12,200,100,key="win_gap")
-    h2=c3.slider("Vidrio interior (mm)",4,16,10,key="win_h2")
-    _lab2_visual(_window_section_svg(h1,h2,gap))
-    c4,c5=st.columns(2)
-    width=c4.slider("Ancho útil (m)",.6,3.0,1.5,.1,key="win_width")
-    height=c5.slider("Alto útil (m)",.6,3.0,1.2,.1,key="win_height")
-    m1,m2=2.5*h1,2.5*h2
-    curve,f0,fl=_sharp_curve(m1,m2,gap,"Independiente")
-    mode_x=343/(2*width); mode_y=343/(2*height)
-    asym=abs(h1-h2)
-    curve=curve + min(4,asym*.45)
-    _plot_curves([("Ventana doble",curve,"solid"),
-                  ("Vidrio exterior solo",_simple_real_curve(m1,3200*6/h1,12),"dash")],
-                 "Respuesta aproximada de la ventana",[(f0,"f₀"),(mode_x,"modo ancho"),(mode_y,"modo alto")])
-    st.dataframe(pd.DataFrame([
-        ["Masa vidrio 1",f"{m1:.1f} kg/m²","ρvidrio≈2500 kg/m³ × espesor"],
-        ["Masa vidrio 2",f"{m2:.1f} kg/m²","ρvidrio≈2500 kg/m³ × espesor"],
-        ["Resonancia f₀",f"{f0:.0f} Hz","Controlada por masas y cámara"],
-        ["Primer modo axial ancho",f"{mode_x:.0f} Hz","c/(2·ancho)"],
-        ["Primer modo axial alto",f"{mode_y:.0f} Hz","c/(2·alto)"],
-    ],columns=["Resultado","Valor","Interpretación"]),hide_index=True,use_container_width=True)
-    st.info("Usar espesores distintos separa parcialmente las coincidencias de los vidrios. "
-            "Aumentar la cámara suele desplazar f₀ hacia abajo, pero no corrige una fuga en sellos o marco.")
+    st.markdown("### Puente hacia la segunda mitad")
+    st.write("En el siguiente bloque se desarrollarán ventanas dobles, bandas de octava y tercio de octava, y los números únicos Rw, C y Ctr.")
 
-def lab2_stage8():
-    _lab2_heading(8,"Frecuencia continua, octavas y tercios de octava",
-                  "Comprender cómo se construyen las bandas y cuándo usar cada resolución.")
-    st.markdown("""
-    La frecuencia física es continua: entre 100 y 101 Hz existen infinitos valores. Para medir,
-    calcular y comparar se agrupa la energía en bandas de ancho **proporcional**. Por eso el eje
-    correcto es logarítmico. En una octava, el límite superior duplica al inferior; una banda de
-    tercio divide cada octava en tres intervalos iguales sobre esa escala.
-    """)
-    center=st.selectbox("Octava a descomponer (Hz)",[125,250,500,1000,2000],index=3,key="band_center")
-    thirds=np.array([center/2**(1/3),center,center*2**(1/3)])
-    f=np.geomspace(center/2,center*2,240)
-    spectrum=70-7*np.log2(f/center)**2+3*np.sin(5*np.log2(f/center))
-    fig=go.Figure()
-    fig.add_trace(go.Scatter(x=f,y=spectrum,name="Frecuencia continua",line=dict(width=2,color="#7a8795")))
-    octave_level=10*np.log10(np.sum(10**(spectrum/10)))
-    for fc in thirds:
-        lo,hi=fc/2**(1/6),fc*2**(1/6)
-        mask=(f>=lo)&(f<hi)
-        lvl=10*np.log10(np.sum(10**(spectrum[mask]/10)))
-        fig.add_trace(go.Scatter(x=[lo,hi],y=[lvl,lvl],mode="lines",
-                                 name=f"Tercio {fc:.0f} Hz",line=dict(width=8)))
-    fig.add_trace(go.Scatter(x=[center/2**.5,center*2**.5],y=[octave_level,octave_level],
-                             mode="lines",name=f"Octava {center} Hz",
-                             line=dict(width=5,dash="dash",color="#102f55")))
-    fig.update_layout(height=480,xaxis_type="log",xaxis_title="Frecuencia (Hz)",
-                      yaxis_title="Nivel energético de banda (dB)",hovermode="x unified",
-                      title="La misma señal representada con tres resoluciones",
-                      margin=dict(l=40,r=20,t=70,b=40))
-    st.plotly_chart(fig,use_container_width=True)
-    st.latex(r"f_s=2f_i \qquad\text{(octava)}")
-    st.latex(r"f_{c,k+1}=2^{1/3}f_{c,k} \qquad\text{(tercio de octava)}")
-    st.dataframe(pd.DataFrame([
-        ["Continua / banda estrecha","Máximo detalle","Diagnóstico fino, tonos y resonancias"],
-        ["Octava","Resolución general","Inspección rápida, docencia y visión global"],
-        ["Tercio de octava","Tres bandas por octava","Ensayos de aislamiento y cálculo de Rw, C y Ctr"],
-    ],columns=["Representación","Resolución","Uso típico"]),hide_index=True,use_container_width=True)
-    st.warning("Los niveles de banda se obtienen sumando energía dentro de sus límites; "
-               "no se promedian aritméticamente los decibeles.")
+def _lab2_pending(stage, title):
+    _lab2_heading(stage,title,"Contenido reservado para la segunda mitad de la Clase 1.")
+    st.info("Esta etapa se desarrollará después de validar en aula las primeras dos horas.")
 
-def _rw_rating(values):
-    ref=np.array([33,36,39,42,45,48,51,52,53,54,55,56,56,56,56,56],dtype=float)
-    vals=np.asarray(values,dtype=float)
-    shift=-30
-    for s in range(-30,31):
-        deficits=np.maximum((ref+s)-vals,0)
-        if deficits.sum()<=32 and deficits.max()<=8:
-            shift=s
-    shifted=ref+shift
-    return int(round(shifted[7])),shifted
-
-def lab2_stage9():
-    _lab2_heading(9,"Números únicos de aislamiento: Rw, C y Ctr",
-                  "Convertir una curva de tercios de octava en un índice global sin perder la lectura espectral.")
-    st.markdown("""
-    **Rw** resume la curva de reducción sonora entre 100 y 3150 Hz mediante el desplazamiento
-    de una curva de referencia. No es un promedio. Las desviaciones desfavorables se controlan
-    antes de leer el valor desplazado a 500 Hz. **C** y **Ctr** adaptan ese resultado a dos
-    espectros de ruido distintos; se informan junto a Rw, no lo reemplazan.
-    """)
-    solution=st.selectbox("Curva de ensayo",["Yeso-cartón 12,5 mm","Vidrio 10 mm","Hormigón 100 mm","Tabique doble"],key="rw_solution")
-    freqs=np.array([100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150])
-    if solution=="Yeso-cartón 12,5 mm":
-        values=_simple_real_curve(10,2500,10)[np.isin(LAB2_FREQS,freqs)]
-    elif solution=="Vidrio 10 mm":
-        values=_simple_real_curve(25,1920,12)[np.isin(LAB2_FREQS,freqs)]
-    elif solution=="Hormigón 100 mm":
-        values=_simple_real_curve(240,180,5)[np.isin(LAB2_FREQS,freqs)]
-    else:
-        values=_sharp_curve(20,20,140,"Independiente")[0][np.isin(LAB2_FREQS,freqs)]
-    rw,reference=_rw_rating(values)
-    spec_c=np.array([-29,-26,-23,-21,-19,-17,-15,-13,-12,-11,-10,-9,-9,-9,-9,-9])
-    spec_ctr=np.array([-20,-20,-18,-16,-15,-14,-13,-12,-11,-9,-8,-9,-10,-11,-13,-15])
-    xa1=-10*np.log10(np.sum(10**((spec_c-values)/10)))
-    xa2=-10*np.log10(np.sum(10**((spec_ctr-values)/10)))
-    C=int(round(xa1-rw)); Ctr=int(round(xa2-rw))
-    fig=go.Figure()
-    fig.add_trace(go.Scatter(x=freqs,y=values,mode="lines+markers",name="Curva medida/predicha",line=dict(width=4)))
-    fig.add_trace(go.Scatter(x=freqs,y=reference,mode="lines",name="Referencia desplazada",line=dict(width=3,dash="dash")))
-    deficits=np.maximum(reference-values,0)
-    fig.add_trace(go.Bar(x=freqs,y=deficits,name="Desviación desfavorable",marker_color="rgba(215,66,80,.45)"))
-    fig.update_layout(height=500,xaxis_type="log",xaxis_title="Frecuencia central de tercio de octava (Hz)",
-                      yaxis_title="R (dB) / desviación (dB)",barmode="overlay",
-                      title=f"{solution} · ajuste de la curva de referencia",hovermode="x unified",
-                      legend=dict(orientation="h",y=1.12))
-    fig.update_xaxes(tickvals=[100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150])
-    st.plotly_chart(fig,use_container_width=True)
-    a,b,c=st.columns(3)
-    a.metric("Rw",f"{rw} dB")
-    b.metric("C",f"{C:+d} dB",help="Adaptación para espectro tipo ruido rosa / actividades interiores")
-    c.metric("Ctr",f"{Ctr:+d} dB",help="Adaptación con mayor peso relativo de bajas frecuencias, como tránsito")
-    st.latex(rf"R_w(C;C_{{tr}})={rw}\ ({C:+d};{Ctr:+d})\ \mathrm{{dB}}")
-    st.markdown(f"""
-    - **Rw = {rw} dB:** valor de la curva de referencia desplazada a 500 Hz.
-    - **Rw + C = {rw+C} dB:** lectura adaptada al primer espectro normalizado.
-    - **Rw + Ctr = {rw+Ctr} dB:** lectura adaptada al espectro con mayor contenido grave.
-
-    El número único permite clasificar, pero para diagnosticar una resonancia, coincidencia
-    o banda débil siempre hay que volver a la curva completa.
-    """)
-def lab2_stage10():
-    _lab2_heading(10,"Aplicación integradora",
-                  "Seleccionar el modelo y justificar qué información debe revisarse en la curva.")
-    st.info("La evaluación integradora se habilitará después de validar en aula las etapas 1 a 9.")
+def lab2_stage7(): _lab2_pending(7,"Ventanas dobles y modelo de cavidad")
+def lab2_stage8(): _lab2_pending(8,"Bandas de octava y tercio de octava")
+def lab2_stage9(): _lab2_pending(9,"Números únicos Rw, C y Ctr")
+def lab2_stage10(): _lab2_pending(10,"Aplicación integradora")
 
 LAB1_STAGE_TITLES = [
     ("Etapa 0","Introducción y ruta del curso"),
@@ -4663,17 +4396,17 @@ LAB1_STAGE_TITLES = [
     ("Etapa 10","Evaluación final del Laboratorio 1"),
 ]
 LAB2_STAGE_TITLES = [
-    ("Etapa 0","Bienvenida y ruta de aprendizaje"),
+    ("Etapa 0","Ruta de las primeras dos horas"),
     ("Etapa 1","Pérdida de transmisión: energía, τ y TL"),
     ("Etapa 2","Panel simple: incidencia y cuatro zonas"),
     ("Etapa 3","Casos reales de paneles simples"),
     ("Etapa 4","Panel doble y masa–aire–masa"),
     ("Etapa 5","Modelo de Sharp: TL por tramos"),
-    ("Etapa 6","Comparador constructivo interactivo"),
-    ("Etapa 7","Ventanas dobles y modos de cavidad"),
-    ("Etapa 8","Frecuencia, octavas y tercios de octava"),
-    ("Etapa 9","Números únicos Rw, C y Ctr"),
-    ("Etapa 10","Aplicación integradora"),
+    ("Etapa 6","Comparación aplicada y cierre parcial"),
+    ("Etapa 7","Ventanas dobles · segunda mitad"),
+    ("Etapa 8","Octavas y tercios · segunda mitad"),
+    ("Etapa 9","Rw, C y Ctr · segunda mitad"),
+    ("Etapa 10","Aplicación integradora · segunda mitad"),
 ]
 LAB_STAGE_TITLES = {1: LAB1_STAGE_TITLES, 2: LAB2_STAGE_TITLES}
 LAB_STAGE_FUNCTIONS = {
