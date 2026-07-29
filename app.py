@@ -4689,56 +4689,212 @@ def lab2_stage2():
         "Confundir la frecuencia crítica con una resonancia propia global de la placa.",
     )
 
-    st.markdown("### 8. Laboratorio angular con resultado acústico")
-    control_a,control_b=st.columns(2)
-    angle=control_a.slider("Ángulo respecto de la normal",0,78,30,key="lab2_angle")
-    angular_frequency=control_b.select_slider(
-        "Frecuencia de cálculo (Hz)", options=LAB2_FREQS.tolist(),
-        value=500, key="lab2_angle_frequency")
-    angular_mass=10.0
-    tau_angle=_mass_sheet_tau(angular_mass,angular_frequency,angle)
-    tl_angle=-10*math.log10(tau_angle)
-    tau_normal=_mass_sheet_tau(angular_mass,angular_frequency,0)
-    tl_normal=-10*math.log10(tau_normal)
-    chart_a,chart_b=st.columns(2)
+    st.markdown("### 8. Laboratorio de incidencia de campo y aislamiento")
+    st.markdown(r"""
+    Esta aplicación reúne lo desarrollado en los puntos 2, 3 y 4. Primero calcula
+    la transmisión de cada **rayo individual** y después combina energéticamente
+    todas las direcciones incluidas en el campo seleccionado.
+
+    1. Se calcula \(\tau(\theta)\) para cada dirección.
+    2. Los coeficientes se ponderan mediante \(\sin\theta\cos\theta\).
+    3. Se obtiene el promedio energético \(\overline{\tau}\).
+    4. El promedio se convierte a pérdida de transmisión:
+       \(TL=-10\log_{10}(\overline{\tau})\).
+    """)
+    lab_mode_options = [
+        "Incidencia normal · 0°",
+        "Campo de laboratorio · 0° a 78°",
+        "Campo difuso ideal · 0° a 90°",
+    ]
+    control_a, control_b, control_c = st.columns([1.35, 1, 1])
+    field_mode = control_a.selectbox(
+        "Campo que deseas analizar",
+        lab_mode_options,
+        index=1,
+        key="lab2_field_mode",
+    )
+    ray_angle = control_b.slider(
+        "Rayo individual θ",
+        0,
+        89,
+        30,
+        key="lab2_field_ray_angle",
+        help="Este rayo sirve para explorar una dirección; no representa por sí solo el campo.",
+    )
+    angular_frequency = control_c.select_slider(
+        "Frecuencia (Hz)",
+        options=LAB2_FREQS.tolist(),
+        value=500,
+        key="lab2_field_frequency",
+    )
+
+    angular_mass = 10.0
+    calculation_angles = np.linspace(0.0, 89.9, 900)
+    calculation_angles_rad = np.deg2rad(calculation_angles)
+    tau_by_angle = np.array([
+        _mass_sheet_tau(angular_mass, angular_frequency, float(theta))
+        for theta in calculation_angles
+    ])
+    weights_by_angle = (
+        np.sin(calculation_angles_rad) * np.cos(calculation_angles_rad)
+    )
+
+    def _field_average_tau(limit_degrees):
+        field_angles = np.linspace(0.0, float(limit_degrees), 900)
+        field_angles_rad = np.deg2rad(field_angles)
+        field_tau = np.array([
+            _mass_sheet_tau(
+                angular_mass, angular_frequency, float(theta)
+            )
+            for theta in field_angles
+        ])
+        field_weights = np.sin(field_angles_rad) * np.cos(field_angles_rad)
+        if hasattr(np, "trapezoid"):
+            numerator = np.trapezoid(
+                field_tau * field_weights, field_angles_rad
+            )
+            denominator = np.trapezoid(field_weights, field_angles_rad)
+        else:
+            numerator = np.trapz(
+                field_tau * field_weights, field_angles_rad
+            )
+            denominator = np.trapz(field_weights, field_angles_rad)
+        return max(float(numerator / max(denominator, 1e-15)), 1e-15)
+
+    tau_ray = _mass_sheet_tau(
+        angular_mass, angular_frequency, ray_angle
+    )
+    tau_normal = _mass_sheet_tau(
+        angular_mass, angular_frequency, 0
+    )
+    tau_field_78 = _field_average_tau(78.0)
+    tau_field_90 = _field_average_tau(89.9)
+    tl_ray = -10 * math.log10(tau_ray)
+    tl_normal = -10 * math.log10(tau_normal)
+    tl_field_78 = -10 * math.log10(tau_field_78)
+    tl_field_90 = -10 * math.log10(tau_field_90)
+
+    selected_limit = {
+        "Incidencia normal · 0°": 0.0,
+        "Campo de laboratorio · 0° a 78°": 78.0,
+        "Campo difuso ideal · 0° a 90°": 89.9,
+    }[field_mode]
+    selected_tau = {
+        "Incidencia normal · 0°": tau_normal,
+        "Campo de laboratorio · 0° a 78°": tau_field_78,
+        "Campo difuso ideal · 0° a 90°": tau_field_90,
+    }[field_mode]
+    selected_tl = -10 * math.log10(selected_tau)
+
+    chart_a, chart_b = st.columns(2)
     with chart_a:
         st.plotly_chart(
-            _lab2_incidence_figure(angle,tau_angle),
-            use_container_width=True,key="lab2_incidence_calculated")
-    angle_curve=np.array([
-        -10*math.log10(_mass_sheet_tau(angular_mass,float(f),angle))
-        for f in LAB2_FREQS
-    ])
-    normal_curve=np.array([
-        -10*math.log10(_mass_sheet_tau(angular_mass,float(f),0))
-        for f in LAB2_FREQS
-    ])
+            _lab2_incidence_figure(ray_angle, tau_ray),
+            use_container_width=True,
+            key="lab2_field_incidence_ray",
+        )
     with chart_b:
-        fig_angle=go.Figure()
-        fig_angle.add_trace(go.Scatter(x=LAB2_FREQS,y=normal_curve,
-            mode="lines",name="0° · normal",line=dict(width=3,dash="dash")))
-        fig_angle.add_trace(go.Scatter(x=LAB2_FREQS,y=angle_curve,
-            mode="lines+markers",name=f"{angle}° · seleccionado",line=dict(width=3)))
-        fig_angle.add_vline(x=angular_frequency,line_dash="dot")
-        fig_angle.update_layout(title="TL calculado según frecuencia y ángulo",
-            xaxis_title="Frecuencia (Hz)",yaxis_title="TL (dB)",
-            xaxis_type="log",height=390,hovermode="x unified",
-            margin=dict(l=35,r=15,t=55,b=40),
-            legend=dict(orientation="h",y=1.13))
-        st.plotly_chart(fig_angle,use_container_width=True,key="lab2_angle_tl_chart")
-    m1,m2,m3,m4=st.columns(4)
-    m1.metric("TL seleccionado",f"{tl_angle:.1f} dB")
-    m2.metric("τ seleccionado",f"{tau_angle:.3g}")
-    m3.metric("TL a 0°",f"{tl_normal:.1f} dB")
-    m4.metric("Diferencia angular",f"{tl_angle-tl_normal:+.1f} dB")
-    angular_factor=max(math.cos(math.radians(angle)),.01)
+        fig_field = go.Figure()
+        if selected_limit > 0:
+            fig_field.add_vrect(
+                x0=0,
+                x1=selected_limit,
+                fillcolor="#dbeafe",
+                opacity=0.38,
+                line_width=0,
+                annotation_text="Ángulos incluidos",
+                annotation_position="top left",
+            )
+        fig_field.add_trace(go.Scatter(
+            x=calculation_angles,
+            y=tau_by_angle,
+            mode="lines",
+            name="τ(θ)",
+            line=dict(color="#1565c0", width=3),
+            customdata=weights_by_angle,
+            hovertemplate=(
+                "θ=%{x:.1f}°<br>τ=%{y:.4g}"
+                "<br>ponderación=%{customdata:.3f}<extra></extra>"
+            ),
+        ))
+        fig_field.add_trace(go.Scatter(
+            x=[ray_angle],
+            y=[tau_ray],
+            mode="markers",
+            name=f"Rayo {ray_angle}°",
+            marker=dict(size=12, color="#c62828"),
+        ))
+        if selected_limit > 0:
+            fig_field.add_vline(
+                x=selected_limit,
+                line_dash="dash",
+                line_color="#ef6c00",
+            )
+        fig_field.update_layout(
+            title="Transmisión y ángulos incluidos en el promedio",
+            xaxis_title="Ángulo respecto de la normal (°)",
+            yaxis_title="Coeficiente de transmisión τ",
+            height=390,
+            margin=dict(l=35, r=15, t=55, b=40),
+            legend=dict(orientation="h", y=1.13),
+        )
+        st.plotly_chart(
+            fig_field,
+            use_container_width=True,
+            key="lab2_field_tau_by_angle",
+        )
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("TL del rayo", f"{tl_ray:.1f} dB", f"θ = {ray_angle}°")
+    m2.metric("TL normal", f"{tl_normal:.1f} dB", "0°")
+    m3.metric("TL de campo", f"{tl_field_78:.1f} dB", "0°–78°")
+    m4.metric("TL difuso ideal", f"{tl_field_90:.1f} dB", "0°–90°")
+
+    comparison_names = [
+        f"Rayo {ray_angle}°",
+        "Normal 0°",
+        "Campo 0°–78°",
+        "Difuso 0°–90°",
+    ]
+    comparison_values = [tl_ray, tl_normal, tl_field_78, tl_field_90]
+    fig_comparison = go.Figure(go.Bar(
+        x=comparison_names,
+        y=comparison_values,
+        marker_color=["#c62828", "#455a64", "#1565c0", "#7b1fa2"],
+        text=[f"{value:.1f} dB" for value in comparison_values],
+        textposition="outside",
+    ))
+    fig_comparison.update_layout(
+        title=(
+            f"Comparación a {angular_frequency} Hz · "
+            f"selección: {field_mode}"
+        ),
+        xaxis_title="Condición de incidencia",
+        yaxis_title="TL (dB)",
+        height=365,
+        margin=dict(l=35, r=15, t=60, b=45),
+        showlegend=False,
+    )
+    st.plotly_chart(
+        fig_comparison,
+        use_container_width=True,
+        key="lab2_field_tl_comparison",
+    )
+    transmitted_percent = 100.0 * selected_tau
     st.markdown(
-        f'<div class="lesson"><b>Lectura calculada:</b> para una hoja ideal de '
-        f'10 kg/m², {angular_frequency} Hz y θ={angle}°, cos θ={angular_factor:.3f}; '
-        f'τ={tau_angle:.4g} y TL={tl_angle:.1f} dB. En este modelo de masa, al acercarse '
-        'a incidencia rasante disminuye la componente normal que excita la hoja. '
-        'El resultado de campo no es el TL de un único ángulo: integra muchos ángulos.</div>',
-        unsafe_allow_html=True)
+        f'<div class="lesson"><b>Lectura de la selección:</b> '
+        f'<b>{field_mode}</b> entrega un TL de <b>{selected_tl:.1f} dB</b> '
+        f'y transmite aproximadamente <b>{transmitted_percent:.3g} %</b> de la '
+        f'energía incidente en este modelo ideal de masa. El rayo rojo de '
+        f'{ray_angle}° permite estudiar una dirección, pero no sustituye al promedio '
+        'energético del campo.</div>',
+        unsafe_allow_html=True,
+    )
+    st.info(
+        "Idea clave: el TL de campo entre 0° y 78° no es el TL de una onda que "
+        "llega a 78°. Es el resultado de combinar energéticamente todas las "
+        "incidencias comprendidas entre 0° y 78°."
+    )
     st.markdown("### 9. Explorador de las cuatro zonas")
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
     props={
