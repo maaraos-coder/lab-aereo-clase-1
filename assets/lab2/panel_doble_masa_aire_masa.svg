@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620">
+  <rect width="1200" height="620" rx="28" fill="#eef7ff"/>
+  <rect x="455" y="85" width="42" height="430" rx="5" fill="#8295a8" stroke="#173f63" stroke-width="5"/>
+  <rect x="703" y="85" width="42" height="430" rx="5" fill="#8295a8" stroke="#173f63" stroke-width="5"/>
+  <path d="M510 110q20-35 40 0t40 0t40 0t40 0v380q-20 35-40 0t-40 0t-40 0t-40 0z" fill="#f4c35b" opacity=".6"/>
+  <path d="M110 300c55-70 110 70 165 0s110-70 165 0" fill="none" stroke="#0967d2" stroke-width="12"/>
+  <path d="M760 300c55-45 110 45 165 0s110-45 165 0" fill="none" stroke="#17a779" stroke-width="7"/>
+  <text x="600" y="52" text-anchor="middle" fill="#173f63" font-family="Arial" font-size="34" font-weight="700">SISTEMA DOBLE · MASA–AIRE–MASA</text>
+  <text x="476" y="555" text-anchor="middle" fill="#173f63" font-family="Arial" font-size="26">Hoja 1 · m′₁</text>
+  <text x="724" y="555" text-anchor="middle" fill="#173f63" font-family="Arial" font-size="26">Hoja 2 · m′₂</text>
+  <line x1="497" y1="475" x2="703" y2="475" stroke="#173f63" stroke-width="4"/>
+  <text x="600" y="462" text-anchor="middle" fill="#173f63" font-family="Arial" font-size="26">Cámara d</text>
+  <text x="170" y="230" fill="#0967d2" font-family="Arial" font-size="25">Energía incidente</text>
+  <text x="860" y="230" fill="#087b59" font-family="Arial" font-size="25">Energía transmitida</text>
+</svg>
