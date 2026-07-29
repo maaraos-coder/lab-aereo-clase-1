@@ -4031,6 +4031,9 @@ LAB2_IMAGES = {
     "s2_punto2": "punto2_tipos_incidencia_profesional.webp",
     "s2_punto3": "punto3_rigidez_flexion_profesional.webp",
     "s2_punto4": "punto4_promedio_campo_profesional.webp",
+    "s2_tau_angulo": "punto3_tau_angulo_profesional.png",
+    "s2_ley_masa": "punto6_impedancia_ley_masa_profesional.png",
+    "s2_frecuencia_critica": "punto7_frecuencia_critica_profesional.png",
 }
 
 def _lab2_image(image_key, caption=None):
@@ -4044,6 +4047,35 @@ def _lab2_image(image_key, caption=None):
     st.warning(f"No se encontró la imagen: {expected}")
     st.caption("Súbela a GitHub con ese nombre exacto; no es necesario modificar el código.")
     return False
+
+def _lab2_plain_language_cards(simple, observe, mistake):
+    """Three short conceptual bridges for students without an engineering background."""
+    st.markdown(
+        f"""
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:.8rem;margin:.85rem 0 1.15rem">
+          <div style="background:#eef8ff;border:1px solid #b9def5;border-radius:14px;
+          padding:1rem;box-shadow:0 4px 14px rgba(20,77,115,.06)">
+            <div style="font-size:.76rem;font-weight:800;color:#0877c5;
+            letter-spacing:.05em;text-transform:uppercase">💡 En palabras simples</div>
+            <div style="margin-top:.45rem;color:#17324d;line-height:1.5">{simple}</div>
+          </div>
+          <div style="background:#f1fbf7;border:1px solid #bfe8d5;border-radius:14px;
+          padding:1rem;box-shadow:0 4px 14px rgba(20,77,115,.06)">
+            <div style="font-size:.76rem;font-weight:800;color:#13845f;
+            letter-spacing:.05em;text-transform:uppercase">👀 Qué debes observar</div>
+            <div style="margin-top:.45rem;color:#17324d;line-height:1.5">{observe}</div>
+          </div>
+          <div style="background:#fff8ec;border:1px solid #f1d39b;border-radius:14px;
+          padding:1rem;box-shadow:0 4px 14px rgba(20,77,115,.06)">
+            <div style="font-size:.76rem;font-weight:800;color:#a56108;
+            letter-spacing:.05em;text-transform:uppercase">⚠️ Error frecuente</div>
+            <div style="margin-top:.45rem;color:#17324d;line-height:1.5">{mistake}</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 def _lab2_incidence_figure(theta, tau=1.0):
     """Return incidence geometry; transmitted-ray weight follows calculated tau."""
@@ -4471,6 +4503,19 @@ def lab2_stage2():
     """)
 
     st.markdown("### 3. Coeficiente de transmisión sonora en función del ángulo")
+    _lab2_image(
+        "s2_tau_angulo",
+        "Una misma placa puede transmitir distinta fracción de energía según la dirección de llegada."
+    )
+    _lab2_plain_language_cards(
+        "Imagina que el sonido empuja la placa. Si llega de frente o inclinado, "
+        "no la hace trabajar exactamente de la misma manera; por eso cambia la fracción "
+        "de energía que logra atravesarla.",
+        "Compara el grosor y brillo del haz transmitido para 0°, un ángulo intermedio "
+        "y 78°. Ese cambio visual representa a τ(θ), no un cambio de material.",
+        "Pensar que 78° es un promedio de todos los ángulos. Es solo una dirección. "
+        "El resultado de campo se obtiene integrando muchas direcciones.",
+    )
     st.markdown("""
     Antes de estudiar un campo con muchas direcciones se debe resolver una dirección
     individual. Para una onda que llega con ángulo θ, el coeficiente de transmisión es:
@@ -4546,6 +4591,20 @@ def lab2_stage2():
     y obtenerse la ley de masa.
     """)
     st.markdown("### 6. De la impedancia de masa a la ley de masa aproximada")
+    _lab2_image(
+        "s2_ley_masa",
+        "La inercia de la placa se opone al movimiento y origina la tendencia ascendente de la ley de masa."
+    )
+    _lab2_plain_language_cards(
+        "Una placa pesada se parece a un carro difícil de empujar: para una misma "
+        "excitación se mueve menos y deja pasar menos energía. Esa oposición al "
+        "movimiento es la idea física detrás de la impedancia de masa.",
+        "La onda incidente mueve la placa; la onda transmitida sale más débil. En la "
+        "gráfica, duplicar la frecuencia —f, 2f, 4f— o duplicar m′ aumenta el TL "
+        "aproximadamente 6 dB dentro de la zona de masa.",
+        "Usar la recta de ley de masa en toda la curva. La aproximación no describe "
+        "las resonancias de baja frecuencia ni el valle de coincidencia.",
+    )
     st.markdown("""
     En la región donde domina la **inercia**, una hoja ideal puede representarse mediante
     su impedancia mecánica por unidad de superficie. Para una excitación armónica:
@@ -4574,6 +4633,21 @@ def lab2_stage2():
     """)
 
     st.markdown("### 7. Frecuencia crítica y fenómeno de coincidencia")
+    _lab2_image(
+        "s2_frecuencia_critica",
+        "En coincidencia, la onda aérea acopla eficientemente con la onda de flexión y aparece un valle de TL."
+    )
+    _lab2_plain_language_cards(
+        "Es parecido a empujar un columpio con el ritmo adecuado: la onda aérea "
+        "encuentra una condición que hace vibrar y radiar la placa con mucha eficiencia. "
+        "Por eso pasa más sonido justo en esa zona.",
+        "La línea discontinua muestra lo que predeciría la ley de masa. La curva real "
+        "se separa y forma un valle alrededor de fᶜ porque aumenta el acoplamiento y "
+        "la radiación hacia el otro lado.",
+        "Confundir frecuencia crítica con una resonancia propia del panel. La "
+        "coincidencia relaciona la onda aérea con una onda de flexión; son mecanismos "
+        "distintos.",
+    )
     st.markdown("""
     La **frecuencia crítica** no es una resonancia global de la placa ni el comienzo
     automático de la ley de masa. Es la frecuencia mínima a partir de la cual puede
