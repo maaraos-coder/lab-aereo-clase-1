@@ -4121,6 +4121,61 @@ def _mass_sheet_tau(mass, frequency, theta, rho_air=1.21, sound_speed=343.0):
     ratio = omega*mass*max(math.cos(math.radians(theta)), .001)/(2*rho_air*sound_speed)
     return 1.0/(1.0+ratio**2)
 
+def _field_average_tau(mass, frequency, theta_limit):
+    """Energy-weighted angular average for an ideal axisymmetric incidence field."""
+    if theta_limit <= 0:
+        return _mass_sheet_tau(mass, frequency, 0)
+    angles = np.linspace(0.0, float(theta_limit), 1201)
+    radians = np.radians(angles)
+    taus = np.array([_mass_sheet_tau(mass, frequency, angle) for angle in angles])
+    weights = np.sin(radians)*np.cos(radians)
+    integrate = getattr(np, "trapezoid", np.trapz)
+    denominator = integrate(weights, radians)
+    return float(integrate(taus*weights, radians)/denominator)
+
+def _lab2_field_figure(theta_limit, selected_angle, mass, frequency):
+    """Two-room teaching diagram: many arrivals form one field result."""
+    fig = go.Figure()
+    fig.add_shape(type="rect", x0=-0.035, x1=0.035, y0=-1.05, y1=1.05,
+                  fillcolor="#7f93a8", line_color="#173f63", line_width=2)
+    fig.add_shape(type="line", x0=-1.15, x1=1.12, y0=0, y1=0,
+                  line=dict(color="#73849a", width=1.5, dash="dot"))
+    if theta_limit <= 0:
+        ray_angles = [0.0]
+    else:
+        ray_angles = np.linspace(0.0, float(theta_limit), 9)
+    for angle in ray_angles:
+        rad = math.radians(float(angle))
+        tau = _mass_sheet_tau(mass, frequency, float(angle))
+        start = (-1.03*math.cos(rad), 1.03*math.sin(rad))
+        fig.add_trace(go.Scatter(
+            x=[start[0], 0], y=[start[1], 0], mode="lines",
+            line=dict(color="#1786d8", width=2.2), opacity=.32,
+            hovertemplate=f"{angle:.0f}°<br>τ = {tau:.4g}<extra></extra>",
+            showlegend=False))
+        fig.add_trace(go.Scatter(
+            x=[0, .72], y=[0, 0], mode="lines",
+            line=dict(color="#20ad7b", width=max(1.0, 6*math.sqrt(tau))),
+            opacity=min(.72, .18+7*tau), hoverinfo="skip", showlegend=False))
+    selected_rad = math.radians(selected_angle)
+    selected_tau = _mass_sheet_tau(mass, frequency, selected_angle)
+    fig.add_trace(go.Scatter(
+        x=[-1.08*math.cos(selected_rad), 0],
+        y=[1.08*math.sin(selected_rad), 0],
+        mode="lines+markers", name=f"Rayo seleccionado · {selected_angle}°",
+        line=dict(color="#f2a532", width=5), marker=dict(size=[5, 9]),
+        hovertemplate=f"{selected_angle}°<br>τ = {selected_tau:.4g}<extra></extra>"))
+    fig.add_annotation(x=-.58, y=-.83, text="Cámara emisora", showarrow=False)
+    fig.add_annotation(x=.58, y=-.83, text="Cámara receptora", showarrow=False)
+    fig.add_annotation(x=.08, y=.92, text="Placa", showarrow=False, textangle=-90)
+    fig.update_layout(
+        title=f"Campo angular integrado entre 0° y {theta_limit}°",
+        height=405, margin=dict(l=15, r=15, t=58, b=20),
+        xaxis=dict(range=[-1.2, 1.2], visible=False, scaleanchor="y"),
+        yaxis=dict(range=[-1.08, 1.08], visible=False),
+        legend=dict(orientation="h", y=1.08), hovermode="closest")
+    return fig
+
 def _critical_frequency(rho, h_mm, young_gpa, poisson, sound_speed=343.0):
     h = h_mm/1000
     surface_mass = rho*h
@@ -4682,156 +4737,145 @@ def lab2_stage2():
             "reduce aproximadamente f꜀. Esto no garantiza mayor TL en todas las bandas: "
             "también desplaza el valle de coincidencia.")
 
-    st.markdown("### 8. Laboratorio angular con resultado acústico")
+    st.markdown("### 8. Laboratorio de incidencia de campo y aislamiento")
     st.markdown("""
-    Este laboratorio responde una pregunta sencilla:
+    En una cámara de ensayo el sonido no llega como un único rayo. Llega a la placa desde
+    muchas direcciones y cada una transmite una fracción de energía diferente. Este
+    laboratorio construye el resultado de campo en cuatro pasos:
 
-    > **¿La misma placa aísla igual cuando el sonido llega de frente que cuando llega inclinado?**
-
-    No. La placa no cambia, pero sí cambia la manera en que la onda la empuja. El ángulo
-    se mide desde la línea perpendicular a la placa, llamada **normal**:
-
-    - **0° · de frente:** la onda llega perpendicularmente.
-    - **Entre 1° y 77° · inclinada:** la onda llega cada vez más de lado.
-    - **78° · casi rasante:** la onda avanza casi paralela a la superficie.
-
-    Mueve el ángulo y selecciona una frecuencia. Los rayos muestran la dirección de la
-    onda y el gráfico entrega el **resultado acústico calculado**, no solo una animación.
+    **ángulos de llegada → τ de cada ángulo → promedio energético τ̄ → TL de campo**
     """)
     st.info(
-        "**Cómo leer TL:** un valor mayor significa que la placa deja pasar menos energía "
-        "sonora. Si el TL disminuye, el aislamiento empeora para esa condición."
+        "**Idea clave sobre 78°:** no es “el ángulo real” de una sola onda. Es el límite "
+        "superior de un campo que integra todas las incidencias desde 0° hasta 78°. "
+        "Al excluir las incidencias casi rasantes, esta aproximación suele representar "
+        "mejor el campo producido en ensayos de laboratorio que el campo ideal hasta 90°."
     )
-    control_a,control_b=st.columns(2)
-    angle=control_a.slider("Ángulo respecto de la normal",0,78,30,key="lab2_angle")
-    angular_frequency=control_b.select_slider(
+
+    model_col, angle_col, freq_col = st.columns(3)
+    field_model = model_col.radio(
+        "Modelo de incidencia",
+        ["Normal · 0°", "Campo de laboratorio · 0°–78°", "Difuso ideal · 0°–90°"],
+        index=1, key="lab2_field_model")
+    selected_angle = angle_col.slider(
+        "Rayo individual que quieres explorar", 0, 89, 45, key="lab2_field_ray")
+    angular_frequency = freq_col.select_slider(
         "Frecuencia de cálculo (Hz)", options=LAB2_FREQS.tolist(),
-        value=500, key="lab2_angle_frequency")
-    angular_mass=10.0
-    tau_angle=_mass_sheet_tau(angular_mass,angular_frequency,angle)
-    tl_angle=-10*math.log10(tau_angle)
-    tau_normal=_mass_sheet_tau(angular_mass,angular_frequency,0)
-    tl_normal=-10*math.log10(tau_normal)
-    tau_78=_mass_sheet_tau(angular_mass,angular_frequency,78)
-    tl_78=-10*math.log10(tau_78)
-    chart_a,chart_b=st.columns(2)
-    with chart_a:
+        value=500, key="lab2_field_frequency")
+    angular_mass = 10.0
+    theta_limit = {
+        "Normal · 0°": 0,
+        "Campo de laboratorio · 0°–78°": 78,
+        "Difuso ideal · 0°–90°": 90,
+    }[field_model]
+    if theta_limit == 0:
+        selected_angle = 0
+    elif selected_angle > theta_limit:
+        st.caption(
+            f"El rayo de {selected_angle}° se muestra para explorarlo, pero queda fuera "
+            f"del promedio del modelo seleccionado, cuyo límite es {theta_limit}°."
+        )
+
+    tau_selected = _mass_sheet_tau(angular_mass, angular_frequency, selected_angle)
+    tl_selected = -10*math.log10(tau_selected)
+    tau_normal = _mass_sheet_tau(angular_mass, angular_frequency, 0)
+    tl_normal = -10*math.log10(tau_normal)
+    tau_field = _field_average_tau(angular_mass, angular_frequency, theta_limit)
+    tl_field = -10*math.log10(tau_field)
+    tau_78_field = _field_average_tau(angular_mass, angular_frequency, 78)
+    tl_78_field = -10*math.log10(tau_78_field)
+    tau_90_field = _field_average_tau(angular_mass, angular_frequency, 90)
+    tl_90_field = -10*math.log10(tau_90_field)
+
+    visual_col, curve_col = st.columns(2)
+    with visual_col:
         st.plotly_chart(
-            _lab2_incidence_figure(angle,tau_angle),
-            use_container_width=True,key="lab2_incidence_calculated")
-    angle_curve=np.array([
-        -10*math.log10(_mass_sheet_tau(angular_mass,float(f),angle))
-        for f in LAB2_FREQS
-    ])
-    normal_curve=np.array([
-        -10*math.log10(_mass_sheet_tau(angular_mass,float(f),0))
-        for f in LAB2_FREQS
-    ])
-    with chart_b:
-        fig_angle=go.Figure()
-        fig_angle.add_trace(go.Scatter(x=LAB2_FREQS,y=normal_curve,
-            mode="lines",name="0° · normal",line=dict(width=3,dash="dash")))
-        fig_angle.add_trace(go.Scatter(x=LAB2_FREQS,y=angle_curve,
-            mode="lines+markers",name=f"{angle}° · seleccionado",line=dict(width=3)))
-        fig_angle.add_vline(x=angular_frequency,line_dash="dot")
-        fig_angle.update_layout(title="TL calculado según frecuencia y ángulo",
-            xaxis_title="Frecuencia (Hz)",yaxis_title="TL (dB)",
-            xaxis_type="log",height=390,hovermode="x unified",
-            margin=dict(l=35,r=15,t=55,b=40),
-            legend=dict(orientation="h",y=1.13))
-        st.plotly_chart(fig_angle,use_container_width=True,key="lab2_angle_tl_chart")
-    m1,m2,m3,m4=st.columns(4)
-    m1.metric("TL seleccionado",f"{tl_angle:.1f} dB")
-    m2.metric("Energía transmitida",f"{100*tau_angle:.3f} %")
-    m3.metric("TL a 0°",f"{tl_normal:.1f} dB")
-    m4.metric("Cambio respecto de 0°",f"{tl_angle-tl_normal:+.1f} dB")
-    angular_factor=max(math.cos(math.radians(angle)),.01)
-    selected_difference=tl_angle-tl_normal
-    selected_energy_ratio=tau_angle/tau_normal
-    if angle == 0:
-        selected_plain_result=(
-            "Elegiste incidencia normal. Esta es la referencia: la onda llega de frente "
-            "y el modelo obtiene el TL más alto de la comparación angular."
-        )
-    elif selected_difference > -1.0:
-        selected_plain_result=(
-            f"Al inclinar la llegada hasta {angle}°, el cambio todavía es pequeño: "
-            f"{abs(selected_difference):.1f} dB menos que a 0°."
-        )
-    elif selected_difference > -6.0:
-        selected_plain_result=(
-            f"Al llegar a {angle}°, el aislamiento calculado baja "
-            f"{abs(selected_difference):.1f} dB y atraviesa aproximadamente "
-            f"{selected_energy_ratio:.1f} veces más energía que a 0°."
-        )
-    else:
-        selected_plain_result=(
-            f"A {angle}° la onda llega muy inclinada. El TL baja "
-            f"{abs(selected_difference):.1f} dB y atraviesa aproximadamente "
-            f"{selected_energy_ratio:.1f} veces más energía que a 0°."
-        )
-    st.success(f"**Resultado en palabras simples:** {selected_plain_result}")
+            _lab2_field_figure(theta_limit, selected_angle, angular_mass,
+                               angular_frequency),
+            use_container_width=True, key="lab2_field_chamber")
+    with curve_col:
+        plot_angles = np.linspace(0, 89.9, 360)
+        plot_taus = np.array([
+            _mass_sheet_tau(angular_mass, angular_frequency, value)
+            for value in plot_angles])
+        fig_tau = go.Figure()
+        fig_tau.add_trace(go.Scatter(
+            x=plot_angles, y=100*plot_taus, mode="lines",
+            name="Energía transmitida", line=dict(width=3)))
+        fig_tau.add_vrect(
+            x0=0, x1=theta_limit, opacity=.13, line_width=0,
+            annotation_text=f"Ángulos incluidos: 0°–{theta_limit}°")
+        if theta_limit == 78:
+            fig_tau.add_vrect(
+                x0=78, x1=90, opacity=.10, line_width=0,
+                annotation_text="Rasantes excluidas")
+        fig_tau.add_trace(go.Scatter(
+            x=[selected_angle], y=[100*tau_selected], mode="markers",
+            name=f"Rayo {selected_angle}°", marker=dict(size=12)))
+        fig_tau.update_layout(
+            title=f"τ(θ) a {angular_frequency} Hz",
+            xaxis_title="Ángulo respecto de la normal (°)",
+            yaxis_title="Energía transmitida (%)", height=405,
+            margin=dict(l=40, r=15, t=58, b=42),
+            legend=dict(orientation="h", y=1.10), hovermode="x")
+        st.plotly_chart(fig_tau, use_container_width=True, key="lab2_field_tau_curve")
+
+    st.markdown("#### Paso 1 · Comprende un rayo individual")
+    ray_a, ray_b, ray_c = st.columns(3)
+    ray_a.metric("Ángulo explorado", f"{selected_angle}°")
+    ray_b.metric("τ del rayo", f"{tau_selected:.5f}",
+                 help="Fracción de energía que atraviesa la placa.")
+    ray_c.metric("TL del rayo", f"{tl_selected:.1f} dB")
     st.markdown(
-        f"""
-        **Lectura guiada del resultado**
-
-        1. La placa usada en el ejemplo tiene una masa superficial de **10 kg/m²**.
-        2. A **{angular_frequency} Hz** y **{angle}°**, su TL calculado es
-           **{tl_angle:.1f} dB**.
-        3. Eso significa que transmite aproximadamente **{100*tau_angle:.3f} %** de la
-           energía que recibe.
-        4. Comparada con la llegada de frente, la inclinación produce un cambio de
-           **{selected_difference:+.1f} dB**.
-
-        El valor de **τ = {tau_angle:.4g}** es la misma transmisión expresada como
-        proporción: τ = 1 significaría que pasa toda la energía y τ cercano a 0, que
-        pasa muy poca.
-        """)
-    st.markdown("#### Comparación didáctica: sonido de frente y sonido casi de lado")
-    c0,c78,cd=st.columns(3)
-    c0.metric("Incidencia normal · 0°",f"{tl_normal:.1f} dB")
-    c78.metric("Incidencia oblicua · 78°",f"{tl_78:.1f} dB")
-    cd.metric("Diferencia 78° − 0°",f"{tl_78-tl_normal:+.1f} dB")
-    energy_ratio_78=tau_78/tau_normal
-    st.warning(
-        f"**Traducción del ejemplo:** a 78°, el TL es "
-        f"{abs(tl_78-tl_normal):.1f} dB menor que a 0°. No significa que el sonido sea "
-        f"“13,6 % mayor”: la escala es logarítmica. En este caso atraviesa cerca de "
-        f"**{energy_ratio_78:.0f} veces más energía sonora** que con incidencia normal."
+        f"A **{selected_angle}°**, τ = **{tau_selected:.5f}**: atraviesa aproximadamente "
+        f"el **{100*tau_selected:.3f} %** de la energía incidente. Al transformar esa "
+        f"fracción a decibeles se obtiene un TL de **{tl_selected:.1f} dB**."
     )
-    st.markdown(
-        """
-        **¿Por qué ocurre?** Imagina que intentas empujar una puerta:
-
-        - Si empujas **de frente**, toda la acción se dirige perpendicularmente hacia
-          la puerta.
-        - Si empujas **muy de lado**, solo una parte de esa acción actúa en la dirección
-          perpendicular.
-
-        En el modelo ideal ocurre algo equivalente. La parte efectiva asociada a la
-        dirección normal se representa mediante **cos θ**. Al aumentar el ángulo,
-        cos θ disminuye; con ello aumenta la fracción transmitida τ y disminuye el TL.
-
-        La expresión técnica que realiza ese cálculo es:
-        """)
     st.latex(r"\tau(\theta)=\left[1+\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)^2\right]^{-1}")
+    st.latex(r"TL(\theta)=-10\log_{10}\left[\tau(\theta)\right]")
+
+    st.markdown("#### Paso 2 · Reúne muchos ángulos para formar el campo")
     st.markdown(
-        f"""
-        - A **0°**, cos θ = 1 y el modelo entrega **{tl_normal:.1f} dB**.
-        - A **78°**, cos θ ≈ {math.cos(math.radians(78)):.3f}; τ aumenta y el TL baja
-          a **{tl_78:.1f} dB**.
+        f"El modelo **{field_model}** incorpora las transmisiones de todos los ángulos "
+        f"entre **0° y {theta_limit}°**. No todos pesan igual: el factor "
+        "**sen θ · cos θ** representa su aporte energético al campo."
+    )
+    st.latex(
+        r"\overline{\tau}_{\theta_{\mathrm{lim}}}="
+        r"\frac{\int_0^{\theta_{\mathrm{lim}}}\tau(\theta)\sin\theta\cos\theta\,d\theta}"
+        r"{\int_0^{\theta_{\mathrm{lim}}}\sin\theta\cos\theta\,d\theta}"
+    )
+    st.warning(
+        "Primero se promedian las fracciones de energía τ. No se promedian directamente "
+        "los valores de TL en decibeles."
+    )
 
-        **No confundir 78° con “campo de incidencia”:** el valor a 78° de las tarjetas
-        corresponde a **una sola onda** que llega con ese ángulo. En cambio, un resultado
-        de campo combina ondas que llegan desde muchos ángulos, desde 0° hasta un límite
-        cercano a 78°, y promedia primero su energía. Por eso no se obtiene tomando
-        únicamente el TL a 78°.
+    st.markdown("#### Paso 3 · Convierte el promedio energético en TL de campo")
+    field_a, field_b, field_c = st.columns(3)
+    field_a.metric("τ̄ del campo", f"{tau_field:.5f}")
+    field_b.metric("Energía media transmitida", f"{100*tau_field:.3f} %")
+    field_c.metric("TL del campo", f"{tl_field:.1f} dB")
+    st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}\left(\overline{\tau}\right)")
 
-        **Alcance del cálculo:** esta comparación usa una hoja ideal controlada por masa.
-        Una placa real también presenta resonancias, coincidencia, bordes y pérdidas; por
-        eso el resultado sirve para comprender el efecto del ángulo, no para reemplazar
-        un ensayo de laboratorio.
-        """)
+    st.markdown("#### Paso 4 · Compara los tres resultados")
+    compare_a, compare_b, compare_c = st.columns(3)
+    compare_a.metric("Normal · solo 0°", f"{tl_normal:.1f} dB",
+                     f"τ = {tau_normal:.5f}")
+    compare_b.metric("Campo de laboratorio · hasta 78°", f"{tl_78_field:.1f} dB",
+                     f"τ̄ = {tau_78_field:.5f}")
+    compare_c.metric("Difuso ideal · hasta 90°", f"{tl_90_field:.1f} dB",
+                     f"τ̄ = {tau_90_field:.5f}")
+    st.success(
+        f"**Conclusión:** para esta placa de 10 kg/m² a {angular_frequency} Hz, integrar "
+        f"el campo hasta 78° entrega **{tl_78_field:.1f} dB**. Ese valor no corresponde "
+        "al TL de una onda a 78°, sino al promedio energético de todas las incidencias "
+        "entre 0° y 78°. La truncación elimina los aportes casi rasantes y busca una "
+        "aproximación más representativa de los ensayos reales."
+    )
+    st.caption(
+        "Modelo didáctico de hoja ideal controlada por masa. Una placa real también "
+        "presenta resonancias, coincidencia, amortiguamiento, apoyos y dimensiones finitas."
+    )
     st.markdown("### 9. Explorador de las cuatro zonas")
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
     props={
