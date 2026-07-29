@@ -4129,7 +4129,15 @@ def _field_average_tau(mass, frequency, theta_limit):
     radians = np.radians(angles)
     taus = np.array([_mass_sheet_tau(mass, frequency, angle) for angle in angles])
     weights = np.sin(radians)*np.cos(radians)
-    integrate = getattr(np, "trapezoid", np.trapz)
+    # No usar np.trapz como valor por defecto de getattr: Python evalúa ese
+    # argumento inmediatamente y NumPy 2.x puede no exponer dicho alias.
+    integrate = getattr(np, "trapezoid", None)
+    if integrate is None:
+        integrate = getattr(np, "trapz", None)
+    if integrate is None:
+        # Respaldo compatible con versiones presentes y futuras de NumPy.
+        def integrate(y, x):
+            return np.sum((y[1:] + y[:-1]) * np.diff(x) * 0.5)
     denominator = integrate(weights, radians)
     return float(integrate(taus*weights, radians)/denominator)
 
