@@ -4479,12 +4479,6 @@ def lab2_stage2():
     No existe una segunda hoja independiente ni una cámara que actúe como resorte.
     """)
     st.markdown("### 1. ¿Qué define a una placa simple?")
-    _lab2_image("s2_punto1")
-    _lab2_plain_language_cards(
-        "La masa superficial indica cuánto pesa un metro cuadrado de placa.",
-        "Compara placas del mismo tamaño: la más densa o gruesa tendrá mayor m′.",
-        "Usar la masa total de la pared. La ley de masa utiliza kg/m², no kg.",
-    )
     st.markdown("""
     Se considera **placa simple** al elemento que, frente a la excitación sonora, se
     desplaza y flexiona esencialmente como una sola hoja. Puede estar constituido por
@@ -4507,13 +4501,13 @@ def lab2_stage2():
     movimiento, pero la respuesta real también depende de la rigidez de flexión, las
     dimensiones, los apoyos, el amortiguamiento y la frecuencia.
     """)
-    st.markdown("### 2. Incidencia normal y oblicua")
-    _lab2_image("s2_punto2")
+    _lab2_image("s2_punto1")
     _lab2_plain_language_cards(
-        "El sonido puede llegar de frente o inclinado; el ángulo cambia cómo empuja la placa.",
-        "El ángulo se mide desde la línea perpendicular a la placa: 0° es incidencia normal.",
-        "Medir θ desde la superficie o creer que 78° representa por sí solo todo el campo.",
+        "La masa superficial indica cuánto pesa un metro cuadrado de placa.",
+        "Compara placas del mismo tamaño: la más densa o gruesa tendrá mayor m′.",
+        "Usar la masa total de la pared. La ley de masa utiliza kg/m², no kg.",
     )
+    st.markdown("### 2. Incidencia normal y oblicua")
     st.markdown("""
     El ángulo **θ se mide respecto de la línea normal a la placa**, no respecto de su
     superficie:
@@ -4526,6 +4520,12 @@ def lab2_stage2():
     en un recinto reverberante existe energía que alcanza la placa desde muchas direcciones:
     eso se representa mediante un promedio energético angular.
     """)
+    _lab2_image("s2_punto2")
+    _lab2_plain_language_cards(
+        "El sonido puede llegar de frente o inclinado; el ángulo cambia cómo empuja la placa.",
+        "El ángulo se mide desde la línea perpendicular a la placa: 0° es incidencia normal.",
+        "Medir θ desde la superficie o creer que 78° representa por sí solo todo el campo.",
+    )
     st.markdown("### 3. Coeficiente de transmisión sonora según el ángulo")
     st.latex(r"\tau(\theta)=\left[1+\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)^2\right]^{-1}")
     st.latex(r"TL(\theta)=-10\log_{10}\left[\tau(\theta)\right]")
@@ -4593,12 +4593,6 @@ def lab2_stage2():
     coeficientes de transmisión τ y después se transforma el resultado a decibeles.
     """)
     st.markdown("### 5. Rigidez de flexión: la placa también se deforma")
-    _lab2_image("s2_punto3")
-    _lab2_plain_language_cards(
-        "La placa no solo se desplaza: también se curva. D mide cuánto cuesta doblarla.",
-        "El espesor aparece elevado al cubo; pequeños cambios de h modifican mucho la rigidez.",
-        "Suponer que una placa más pesada siempre tiene proporcionalmente mayor rigidez.",
-    )
     st.markdown("""
     Una placa simple no se desplaza únicamente como una masa rígida: también se curva.
     La resistencia que opone a esa deformación se denomina **rigidez de flexión**:
@@ -4628,23 +4622,13 @@ def lab2_stage2():
     sonora entre ambas caras que hace vibrar la placa. En la región donde domina la
     inercia puede simplificarse este equilibrio y obtenerse la ley de masa.
     """)
-    st.markdown("### 6. De la impedancia de masa a la ley de masa aproximada")
-    _lab2_image("s2_ley_masa",
-                "Zona controlada por masa: una placa más pesada opone mayor inercia.")
-    st.markdown(
-        '<div class="lesson"><b>Lectura para no ingenieros</b>'
-        '<p>En esta zona, el sonido intenta mover la placa como una masa. '
-        'Aumentar la masa superficial o la frecuencia dificulta ese movimiento '
-        'y eleva la pérdida de transmisión.</p>'
-        '<p>Es una tendencia, no toda la curva: las resonancias y la coincidencia '
-        'pueden producir pérdidas locales de aislamiento.</p></div>',
-        unsafe_allow_html=True,
-    )
+    _lab2_image("s2_punto3")
     _lab2_plain_language_cards(
-        "Una placa pesada se parece a un carro difícil de empujar: se mueve menos ante el sonido.",
-        "En la zona de masa, duplicar m′ o la frecuencia aumenta el TL aproximadamente 6 dB.",
-        "Extender la recta de ley de masa a resonancias y coincidencia, donde deja de ser válida.",
+        "La placa no solo se desplaza: también se curva. D mide cuánto cuesta doblarla.",
+        "El espesor aparece elevado al cubo; pequeños cambios de h modifican mucho la rigidez.",
+        "Suponer que una placa más pesada siempre tiene proporcionalmente mayor rigidez.",
     )
+    st.markdown("### 6. De la impedancia de masa a la ley de masa aproximada")
     st.markdown("""
     En la región donde domina la **inercia**, una hoja ideal puede representarse mediante
     su impedancia mecánica por unidad de superficie. Para una excitación armónica:
@@ -4671,10 +4655,15 @@ def lab2_stage2():
     adoptado y solo describe la tendencia de la zona controlada por masa, lejos de las
     resonancias, la coincidencia, las fugas y las transmisiones laterales.
     """)
+    _lab2_image("s2_ley_masa",
+                "Zona controlada por masa: una placa más pesada opone mayor inercia.")
+    _lab2_plain_language_cards(
+        "Una placa pesada se parece a un carro difícil de empujar: se mueve menos ante el sonido.",
+        "En la zona de masa, duplicar m′ o la frecuencia aumenta el TL aproximadamente 6 dB.",
+        "Extender la recta de ley de masa a resonancias y coincidencia, donde deja de ser válida.",
+    )
 
     st.markdown("### 7. Frecuencia crítica y coincidencia")
-    _lab2_image("s2_frecuencia_critica",
-                "Coincidencia entre la onda sonora y la onda de flexión de una placa.")
     st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
     st.markdown("""
     La **frecuencia crítica** es la zona en que la onda sonora puede acoplarse con
@@ -4692,6 +4681,8 @@ def lab2_stage2():
         "η no determina por sí solo fᶜ; influye principalmente en la profundidad "
         "y anchura del valle de coincidencia."
     )
+    _lab2_image("s2_frecuencia_critica",
+                "Coincidencia entre la onda sonora y la onda de flexión de una placa.")
     _lab2_plain_language_cards(
         "Es una zona donde la onda aérea logra hacer vibrar la placa con especial eficiencia.",
         "La curva real forma un valle respecto de la tendencia ideal de ley de masa.",
