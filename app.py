@@ -2292,7 +2292,7 @@ def quirt_window_curve(m1,m2,gap,height,width,alpha,freqs=FREQS):
 
 def stage6():
     header("ETAPA 6 · MATERIA + SIMULADORES","Fundamentos físicos del aislamiento acústico",
-           "Modelos de tu tesis AKUZOFT: placas simples, Sharp, resonancia y ventanas dobles mediante Quirt.")
+           "Modelos físicos de placas simples, Sharp, resonancia y ventanas dobles mediante Quirt.")
     full_matter(6)
     tabs=st.tabs(["Transmisión y R","Ley de masa","Coincidencia","Sharp · panel doble","Quirt · ventanas","Elementos compuestos"])
     with tabs[0]:
@@ -4023,6 +4023,7 @@ LAB2_IMAGES = {
     "panel_doble": "panel_doble_masa_aire_masa.svg",
     "metalcon": "metalcon_simple_vs_doble.svg",
     "yeso_carton": "material_yeso_carton.svg",
+    "madera": "material_madera.svg",
     "vidrio": "material_vidrio_monolitico.svg",
     "hormigon": "material_hormigon.svg",
     "comparador_hormigon": "comparador_panel_hormigon.svg",
@@ -4704,9 +4705,9 @@ def lab2_stage2():
         "Disminuye aproximadamente en proporción inversa al espesor",
         "Como m′ crece con h y D con h³, fᶜ es aproximadamente proporcional a 1/h para un mismo material.")
 
-def _panel_simple_tau_tesis(frequency, angles_rad, surface_mass, stiffness,
-                            loss_factor, rho_air=1.21, sound_speed=343.0):
-    """Coeficiente angular del modelo original de placa simple de AKUZOFT."""
+def _panel_simple_tau(frequency, angles_rad, surface_mass, stiffness,
+                      loss_factor, rho_air=1.18, sound_speed=343.0):
+    """Coeficiente de transmisión angular para una placa simple homogénea."""
     omega = 2*np.pi*np.asarray(frequency, dtype=float)
     theta = np.asarray(angles_rad, dtype=float)
     omega_grid = omega[..., np.newaxis]
@@ -4724,21 +4725,21 @@ def _panel_simple_tau_tesis(frequency, angles_rad, surface_mass, stiffness,
     return 1/np.maximum(real_part**2+imaginary_part**2, 1e-15)
 
 
-def _panel_simple_field_tl_tesis(frequencies, surface_mass, stiffness,
-                                 loss_factor, theta_limit_deg=78.0):
-    """Integra τ entre 0° y theta_limit con la ponderación de incidencia de campo."""
-    # Regla del punto medio: evita depender de np.trapz/np.trapezoid entre
-    # versiones de NumPy y no evalúa los extremos 0°/90°.
-    edges = np.linspace(0, math.radians(theta_limit_deg), 722)
-    angles = (edges[:-1]+edges[1:])/2
-    delta_theta = edges[1]-edges[0]
-    tau_angular = _panel_simple_tau_tesis(
+def _panel_simple_field_tl(frequencies, surface_mass, stiffness,
+                           loss_factor):
+    """Cálculo de campo de SONARA para una placa simple (0 a 80 grados)."""
+    angles = np.linspace(0.0, (4.0 / 9.0) * np.pi, 720)
+    tau_angular = _panel_simple_tau(
         frequencies, angles, surface_mass, stiffness, loss_factor
     )
     weights = np.sin(angles)*np.cos(angles)
-    integral = np.sum(tau_angular*weights, axis=-1)*delta_theta
-    normalizer = 1/(0.5*math.sin(math.radians(theta_limit_deg))**2)
-    tau_field = np.clip(normalizer*integral, 1e-15, 1.0)
+    integrand = tau_angular*weights
+    if hasattr(np, "trapezoid"):
+        integral = np.trapezoid(integrand, angles, axis=-1)
+    else:
+        integral = np.trapz(integrand, angles, axis=-1)
+    normalizer = 2.0904
+    tau_field = np.maximum(normalizer*integral, 1e-12)
     tl_field = -10*np.log10(tau_field)
     return tau_field, tl_field, angles, tau_angular, normalizer
 
@@ -4757,7 +4758,7 @@ def lab2_stage3():
 
     En este primer ejercicio no se aplicará la ley de masa aproximada ni una corrección
     dibujada para la coincidencia. La curva se obtendrá directamente con la ecuación
-    angular de placa simple de la tesis **AKUZOFT** y su integración de campo hasta 78°.
+    angular de placa simple y su integración de campo.
     """)
     _lab2_image(
         "yeso_carton",
@@ -4861,8 +4862,8 @@ def lab2_stage3():
 
     selected_f=float(selected_frequency)
     tau_field_one,tl_field_one,angles,tau_angular,normalizer=(
-        _panel_simple_field_tl_tesis(
-            np.array([selected_f]),surface_mass,stiffness,eta,78.0
+        _panel_simple_field_tl(
+            np.array([selected_f]),surface_mass,stiffness,eta
         )
     )
     tau_selected=tau_angular[0]
@@ -4917,8 +4918,8 @@ def lab2_stage3():
 
     st.markdown("### Paso 5 · Curva continua de TL en frecuencia lineal")
     frequencies=np.arange(50.0,5000.0+1,10.0)
-    tau_field,tl_field,_,_,_= _panel_simple_field_tl_tesis(
-        frequencies,surface_mass,stiffness,eta,78.0)
+    tau_field,tl_field,_,_,_= _panel_simple_field_tl(
+        frequencies,surface_mass,stiffness,eta)
     selected_index=int(np.argmin(np.abs(frequencies-selected_f)))
     fig=go.Figure()
     fig.add_trace(go.Scatter(
@@ -4949,8 +4950,8 @@ def lab2_stage3():
 
     st.markdown("### Paso 6 · Lectura de resultados")
     sample_frequencies=np.array([125.,250.,500.,1000.,2000.,4000.])
-    sample_tau,sample_tl,_,_,_=_panel_simple_field_tl_tesis(
-        sample_frequencies,surface_mass,stiffness,eta,78.0)
+    sample_tau,sample_tl,_,_,_=_panel_simple_field_tl(
+        sample_frequencies,surface_mass,stiffness,eta)
     results=pd.DataFrame({
         "Frecuencia (Hz)":sample_frequencies.astype(int),
         "τ̄ campo":sample_tau,
@@ -5152,7 +5153,7 @@ def lab2_stage9(): _lab2_pending(9,"Números únicos Rw, C y Ctr")
 def lab2_stage10(): _lab2_pending(10,"Aplicación integradora")
 
 def lab2_stage3():
-    """Ejercicio comparativo de tres placas simples con el modelo AKUZOFT."""
+    """Ejercicio comparativo de tres placas simples homogéneas."""
     _lab2_heading(
         3,
         "Ejercicio aplicado: comparación de tres placas simples",
@@ -5176,7 +5177,7 @@ def lab2_stage3():
     st.info(
         "**Método común para las tres alternativas:** primero se calcula "
         "τ(θ,f), después se integran energéticamente todas las incidencias entre "
-        "0° y 78° y, finalmente, el resultado se transforma en TL de campo."
+        "0° y 80° y, finalmente, el resultado se transforma en TL de campo."
     )
 
     st.markdown("### 1 · Modelo físico utilizado")
@@ -5185,45 +5186,57 @@ def lab2_stage3():
         st.latex(r"m'=\rho h")
         st.caption("Masa superficial de la placa.")
     with e2:
-        st.latex(r"B=\frac{Eh^3}{12(1-\nu^2)}")
+        st.latex(r"B=\frac{Eh^3}{12}")
         st.caption("Rigidez de flexión por unidad de ancho.")
     with e3:
         st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{B}}")
         st.caption("Frecuencia crítica del modelo.")
-    with st.expander("Ver la ecuación angular original de AKUZOFT"):
-        st.latex(
-            r"\tau(\theta,f)=\left\{\left[1+\eta"
-            r"\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)"
-            r"\left(\frac{\omega^2B\sin^4\theta}{c^4m'}\right)\right]^2+"
-            r"\left[\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)"
-            r"\left(1-\frac{\omega^2B\sin^4\theta}{c^4m'}\right)\right]^2"
-            r"\right\}^{-1}"
-        )
-        st.latex(
-            r"\overline{\tau}_{campo}(f)=2{,}0904"
-            r"\int_0^{78^\circ}\tau(\theta,f)\cos\theta\sin\theta\,d\theta"
-        )
-        st.latex(
-            r"TL_{campo}(f)=-10\log_{10}\left[\overline{\tau}_{campo}(f)\right]"
-        )
-        st.caption(
-            "ω = 2πf; ρ₀ = 1,21 kg/m³; c = 343 m/s. "
-            "78° es el límite superior de integración, no un único rayo."
-        )
+    st.markdown("#### Coeficiente de transmisión para cada frecuencia y ángulo")
+    st.latex(
+        r"\tau(\theta,f)=\left\{\left[1+\eta"
+        r"\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)"
+        r"\left(\frac{\omega^2B\sin^4\theta}{c^4m'}\right)\right]^2+"
+        r"\left[\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)"
+        r"\left(1-\frac{\omega^2B\sin^4\theta}{c^4m'}\right)\right]^2"
+        r"\right\}^{-1}"
+    )
+    st.markdown("#### Coeficiente de transmisión de campo")
+    st.latex(
+        r"\overline{\tau}_{campo}(f)=2{,}0904"
+        r"\int_0^{80^\circ}\tau(\theta,f)\cos\theta\sin\theta\,d\theta"
+    )
+    st.markdown("#### Pérdida por transmisión de campo")
+    st.latex(
+        r"TL_{campo}(f)=10\log_{10}\left(\frac{1}"
+        r"{\overline{\tau}_{campo}(f)}\right)"
+        r"=-10\log_{10}\left[\overline{\tau}_{campo}(f)\right]"
+    )
+    st.caption(
+        "ω = 2πf; ρ₀ = 1,18 kg/m³; c = 343 m/s. "
+        "80° es el límite superior de integración, no un único rayo."
+    )
+    st.markdown(r"""
+    **Variables utilizadas:** \(\rho\) es la densidad del material (kg/m³);
+    \(h\), el espesor (m); \(m'\), la masa superficial (kg/m²); \(E\), el
+    módulo de Young (Pa); \(B\), la rigidez a flexión (N·m); \(\eta\), el
+    factor de pérdidas; \(f\), la frecuencia (Hz); \(\omega=2\pi f\), la
+    frecuencia angular; y \(\theta\), el ángulo de incidencia medido respecto
+    de la normal a la placa.
+    """)
 
     presets={
         "Yeso-cartón":{
-            "rho":800.0,"h":12.5,"e":2.5,"nu":0.30,"eta":0.030,
+            "rho":800.0,"h":12.5,"e":2.5,"eta":0.030,
             "color":"#1677d2",
             "note":"Placa liviana de referencia.",
         },
         "Madera":{
-            "rho":600.0,"h":18.0,"e":10.0,"nu":0.30,"eta":0.020,
+            "rho":600.0,"h":18.0,"e":10.0,"eta":0.020,
             "color":"#d58b16",
             "note":"Modelo isotrópico simplificado; la madera real depende de la dirección de las fibras.",
         },
         "Hormigón":{
-            "rho":2400.0,"h":100.0,"e":30.0,"nu":0.20,"eta":0.010,
+            "rho":2400.0,"h":100.0,"e":30.0,"eta":0.010,
             "color":"#d64545",
             "note":"Elemento pesado homogéneo de referencia.",
         },
@@ -5244,6 +5257,11 @@ def lab2_stage3():
         with tab:
             st.markdown(f"#### Caso · {material}")
             st.caption(preset["note"])
+            _lab2_image(
+                {"Yeso-cartón":"yeso_carton","Madera":"madera",
+                 "Hormigón":"hormigon"}[material],
+                f"{material}: elemento homogéneo de una sola capa.",
+            )
             c1,c2,c3=st.columns(3)
             rho=c1.number_input(
                 "Densidad ρ (kg/m³)",300.0,3000.0,preset["rho"],10.0,
@@ -5254,22 +5272,18 @@ def lab2_stage3():
             young_gpa=c3.number_input(
                 "Módulo de Young E (GPa)",0.1,100.0,preset["e"],0.1,
                 key=f"lab2_s3_{slug}_e")
-            c4,c5=st.columns(2)
-            poisson=c4.number_input(
-                "Coeficiente de Poisson ν",0.05,0.49,preset["nu"],0.01,
-                format="%.2f",key=f"lab2_s3_{slug}_nu")
-            eta=c5.number_input(
+            eta=st.number_input(
                 "Factor de pérdidas η",0.001,0.200,preset["eta"],0.001,
                 format="%.3f",key=f"lab2_s3_{slug}_eta")
 
             h=h_mm/1000
             surface_mass=rho*h
-            stiffness=young_gpa*1e9*h**3/(12*(1-poisson**2))
+            stiffness=young_gpa*1e9*h**3/12
             critical_frequency=343.0**2/(2*math.pi)*math.sqrt(surface_mass/stiffness)
-            tau_field,tl_field,_,_,_=_panel_simple_field_tl_tesis(
-                frequencies,surface_mass,stiffness,eta,78.0)
-            sample_tau,sample_tl,_,_,_=_panel_simple_field_tl_tesis(
-                sample_frequencies,surface_mass,stiffness,eta,78.0)
+            tau_field,tl_field,_,_,_=_panel_simple_field_tl(
+                frequencies,surface_mass,stiffness,eta)
+            sample_tau,sample_tl,_,_,_=_panel_simple_field_tl(
+                sample_frequencies,surface_mass,stiffness,eta)
             material_results[material]={
                 "m":surface_mass,"B":stiffness,"fc":critical_frequency,
                 "tau":tau_field,"tl":tl_field,"sample_tau":sample_tau,
@@ -5341,7 +5355,7 @@ def lab2_stage3():
                 x=result["fc"],line_dash="dot",line_color=result["color"],
                 annotation_text=f"fᶜ {material}",annotation_position="top")
     comparison.update_layout(
-        title="Comparación de TL de campo · mismas ecuaciones y campo hasta 78°",
+        title="Comparación de TL de campo · mismas ecuaciones y campo hasta 80°",
         xaxis_title="Frecuencia (Hz) · escala lineal",
         yaxis_title="TL de campo (dB)",
         xaxis=dict(type="linear",range=[50,5000],dtick=500),
@@ -5412,7 +5426,7 @@ def lab2_stage3():
         [
             "Porque primero debe combinarse la energía transmitida y después convertirse a decibeles",
             "Porque los valores de TL no dependen del ángulo",
-            "Porque 78° representa una única incidencia real",
+            "Porque 80° representa una única incidencia real",
             "Porque así se elimina la frecuencia crítica",
         ],
         "Porque primero debe combinarse la energía transmitida y después convertirse a decibeles",
