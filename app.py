@@ -4683,6 +4683,25 @@ def lab2_stage2():
             "también desplaza el valle de coincidencia.")
 
     st.markdown("### 8. Laboratorio angular con resultado acústico")
+    st.markdown("""
+    Este laboratorio responde una pregunta sencilla:
+
+    > **¿La misma placa aísla igual cuando el sonido llega de frente que cuando llega inclinado?**
+
+    No. La placa no cambia, pero sí cambia la manera en que la onda la empuja. El ángulo
+    se mide desde la línea perpendicular a la placa, llamada **normal**:
+
+    - **0° · de frente:** la onda llega perpendicularmente.
+    - **Entre 1° y 77° · inclinada:** la onda llega cada vez más de lado.
+    - **78° · casi rasante:** la onda avanza casi paralela a la superficie.
+
+    Mueve el ángulo y selecciona una frecuencia. Los rayos muestran la dirección de la
+    onda y el gráfico entrega el **resultado acústico calculado**, no solo una animación.
+    """)
+    st.info(
+        "**Cómo leer TL:** un valor mayor significa que la placa deja pasar menos energía "
+        "sonora. Si el TL disminuye, el aislamiento empeora para esa condición."
+    )
     control_a,control_b=st.columns(2)
     angle=control_a.slider("Ángulo respecto de la normal",0,78,30,key="lab2_angle")
     angular_frequency=control_b.select_slider(
@@ -4723,41 +4742,95 @@ def lab2_stage2():
         st.plotly_chart(fig_angle,use_container_width=True,key="lab2_angle_tl_chart")
     m1,m2,m3,m4=st.columns(4)
     m1.metric("TL seleccionado",f"{tl_angle:.1f} dB")
-    m2.metric("τ seleccionado",f"{tau_angle:.3g}")
+    m2.metric("Energía transmitida",f"{100*tau_angle:.3f} %")
     m3.metric("TL a 0°",f"{tl_normal:.1f} dB")
-    m4.metric("Diferencia angular",f"{tl_angle-tl_normal:+.1f} dB")
+    m4.metric("Cambio respecto de 0°",f"{tl_angle-tl_normal:+.1f} dB")
     angular_factor=max(math.cos(math.radians(angle)),.01)
+    selected_difference=tl_angle-tl_normal
+    selected_energy_ratio=tau_angle/tau_normal
+    if angle == 0:
+        selected_plain_result=(
+            "Elegiste incidencia normal. Esta es la referencia: la onda llega de frente "
+            "y el modelo obtiene el TL más alto de la comparación angular."
+        )
+    elif selected_difference > -1.0:
+        selected_plain_result=(
+            f"Al inclinar la llegada hasta {angle}°, el cambio todavía es pequeño: "
+            f"{abs(selected_difference):.1f} dB menos que a 0°."
+        )
+    elif selected_difference > -6.0:
+        selected_plain_result=(
+            f"Al llegar a {angle}°, el aislamiento calculado baja "
+            f"{abs(selected_difference):.1f} dB y atraviesa aproximadamente "
+            f"{selected_energy_ratio:.1f} veces más energía que a 0°."
+        )
+    else:
+        selected_plain_result=(
+            f"A {angle}° la onda llega muy inclinada. El TL baja "
+            f"{abs(selected_difference):.1f} dB y atraviesa aproximadamente "
+            f"{selected_energy_ratio:.1f} veces más energía que a 0°."
+        )
+    st.success(f"**Resultado en palabras simples:** {selected_plain_result}")
     st.markdown(
-        f'<div class="lesson"><b>Lectura calculada:</b> para una hoja ideal de '
-        f'10 kg/m², {angular_frequency} Hz y θ={angle}°, cos θ={angular_factor:.3f}; '
-        f'τ={tau_angle:.4g} y TL={tl_angle:.1f} dB. En este modelo de masa, al acercarse '
-        'a incidencia rasante disminuye la componente normal que excita la hoja. '
-        'El resultado de campo no es el TL de un único ángulo: integra muchos ángulos.</div>',
-        unsafe_allow_html=True)
-    st.markdown("#### ¿Por qué el TL a 0° y a 78° no es igual?")
+        f"""
+        **Lectura guiada del resultado**
+
+        1. La placa usada en el ejemplo tiene una masa superficial de **10 kg/m²**.
+        2. A **{angular_frequency} Hz** y **{angle}°**, su TL calculado es
+           **{tl_angle:.1f} dB**.
+        3. Eso significa que transmite aproximadamente **{100*tau_angle:.3f} %** de la
+           energía que recibe.
+        4. Comparada con la llegada de frente, la inclinación produce un cambio de
+           **{selected_difference:+.1f} dB**.
+
+        El valor de **τ = {tau_angle:.4g}** es la misma transmisión expresada como
+        proporción: τ = 1 significaría que pasa toda la energía y τ cercano a 0, que
+        pasa muy poca.
+        """)
+    st.markdown("#### Comparación didáctica: sonido de frente y sonido casi de lado")
     c0,c78,cd=st.columns(3)
     c0.metric("Incidencia normal · 0°",f"{tl_normal:.1f} dB")
     c78.metric("Incidencia oblicua · 78°",f"{tl_78:.1f} dB")
     cd.metric("Diferencia 78° − 0°",f"{tl_78-tl_normal:+.1f} dB")
+    energy_ratio_78=tau_78/tau_normal
+    st.warning(
+        f"**Traducción del ejemplo:** a 78°, el TL es "
+        f"{abs(tl_78-tl_normal):.1f} dB menor que a 0°. No significa que el sonido sea "
+        f"“13,6 % mayor”: la escala es logarítmica. En este caso atraviesa cerca de "
+        f"**{energy_ratio_78:.0f} veces más energía sonora** que con incidencia normal."
+    )
     st.markdown(
-        f"""
-        En el modelo de hoja controlada por masa aparece el término **cos θ**:
+        """
+        **¿Por qué ocurre?** Imagina que intentas empujar una puerta:
+
+        - Si empujas **de frente**, toda la acción se dirige perpendicularmente hacia
+          la puerta.
+        - Si empujas **muy de lado**, solo una parte de esa acción actúa en la dirección
+          perpendicular.
+
+        En el modelo ideal ocurre algo equivalente. La parte efectiva asociada a la
+        dirección normal se representa mediante **cos θ**. Al aumentar el ángulo,
+        cos θ disminuye; con ello aumenta la fracción transmitida τ y disminuye el TL.
+
+        La expresión técnica que realiza ese cálculo es:
         """)
     st.latex(r"\tau(\theta)=\left[1+\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)^2\right]^{-1}")
     st.markdown(
         f"""
-        A **0°**, cos θ = 1 y la componente normal de la excitación es máxima: la
-        oposición inercial de la hoja se aprovecha completamente y el modelo entrega
-        **TL = {tl_normal:.1f} dB**. A **78°**, cos θ ≈ {math.cos(math.radians(78)):.3f};
-        el término inercial efectivo disminuye, **τ aumenta** y el aislamiento calculado
-        baja a **{tl_78:.1f} dB**. La diferencia es **{tl_78-tl_normal:+.1f} dB** para
-        {angular_frequency} Hz y m′ = 10 kg/m².
+        - A **0°**, cos θ = 1 y el modelo entrega **{tl_normal:.1f} dB**.
+        - A **78°**, cos θ ≈ {math.cos(math.radians(78)):.3f}; τ aumenta y el TL baja
+          a **{tl_78:.1f} dB**.
 
-        **Importante:** el resultado de “campo a 78°” no es el TL de una sola onda a
-        78°. El valor de 78° es el límite superior de una integración que combina todas
-        las incidencias entre 0° y 78°, ponderadas energéticamente. Se trunca antes de
-        90° porque la hipótesis ideal cerca de incidencia rasante no representa bien
-        paneles finitos ni campos reverberantes reales.
+        **No confundir 78° con “campo de incidencia”:** el valor a 78° de las tarjetas
+        corresponde a **una sola onda** que llega con ese ángulo. En cambio, un resultado
+        de campo combina ondas que llegan desde muchos ángulos, desde 0° hasta un límite
+        cercano a 78°, y promedia primero su energía. Por eso no se obtiene tomando
+        únicamente el TL a 78°.
+
+        **Alcance del cálculo:** esta comparación usa una hoja ideal controlada por masa.
+        Una placa real también presenta resonancias, coincidencia, bordes y pérdidas; por
+        eso el resultado sirve para comprender el efecto del ángulo, no para reemplazar
+        un ensayo de laboratorio.
         """)
     st.markdown("### 9. Explorador de las cuatro zonas")
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
