@@ -4455,7 +4455,7 @@ def lab2_stage2():
     movimiento, pero la respuesta real también depende de la rigidez de flexión, las
     dimensiones, los apoyos, el amortiguamiento y la frecuencia.
     """)
-    st.markdown("### 2. Incidencia normal, oblicua, aleatoria y de campo")
+    st.markdown("### 2. Incidencia normal y oblicua")
     _lab2_image("s2_punto2")
     st.markdown("""
     El ángulo **θ se mide respecto de la línea normal a la placa**, no respecto de su
@@ -4465,9 +4465,45 @@ def lab2_stage2():
     - **Incidencia oblicua (0° < θ < 90°):** la onda llega inclinada.
     - **Incidencia rasante (θ próxima a 90°):** la propagación es casi paralela a la placa.
 
-    La incidencia normal y la oblicua describen una sola dirección de llegada. En cambio,
-    en un recinto reverberante existe energía que alcanza la placa desde muchas direcciones:
-    eso se representa mediante un promedio energético angular.
+    La incidencia normal y la oblicua describen una sola dirección de llegada. El ángulo
+    modifica la componente normal de la propagación y, por ello, el coeficiente de
+    transmisión y el TL calculado para la hoja.
+    """)
+
+    st.markdown("### 3. Coeficiente de transmisión sonora en función del ángulo")
+    st.markdown("""
+    Antes de estudiar un campo con muchas direcciones se debe resolver una dirección
+    individual. Para una onda que llega con ángulo θ, el coeficiente de transmisión es:
+    """)
+    st.latex(r"\tau(\theta)=\frac{W_t(\theta)}{W_i(\theta)}")
+    st.markdown("""
+    En una hoja ideal controlada por masa, situada entre dos medios de aire iguales:
+    """)
+    st.latex(r"\tau(\theta)=\left[1+\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)^2\right]^{-1}")
+    st.latex(r"TL(\theta)=-10\log_{10}\left[\tau(\theta)\right]")
+    st.markdown("""
+    - **ω = 2πf**: frecuencia angular, en rad/s.
+    - **m′**: masa superficial de la placa, en kg/m².
+    - **ρ₀c**: impedancia característica del aire.
+    - **θ**: ángulo medido desde la normal.
+
+    Esta expresión permite calcular un resultado para cada ángulo. En el modelo de masa,
+    al aumentar θ disminuye cos θ, aumenta τ y disminuye TL. Esto no significa que un
+    campo reverberante sea equivalente a una sola onda rasante: el resultado de campo
+    exige combinar energéticamente todas las direcciones presentes.
+    """)
+
+    st.markdown("### 4. Incidencia aleatoria e incidencia de campo")
+    _lab2_image("s2_punto4")
+    st.markdown("""
+    En un recinto reverberante la placa no recibe energía desde un único ángulo. La
+    **incidencia aleatoria** representa ondas que llegan desde múltiples direcciones;
+    el **campo difuso ideal** supone una distribución estadística uniforme hasta 90°.
+    Para aproximar mejor el comportamiento de paneles finitos y campos reales, el
+    promedio de campo suele truncarse a un ángulo límite cercano a 78°.
+
+    El promedio debe efectuarse sobre la energía transmitida, no directamente sobre
+    valores expresados en decibeles:
     """)
     st.latex(
         r"\overline{\tau}="
@@ -4478,15 +4514,13 @@ def lab2_stage2():
     )
     st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}\left(\overline{\tau}\right)")
     st.markdown("""
-    - **Incidencia aleatoria o campo difuso ideal:** supone direcciones distribuidas
-      estadísticamente hasta 90°.
-    - **Incidencia de campo:** aproximación práctica del promedio angular; frecuentemente
-      se limita la integración cerca de 78° para representar mejor resultados experimentales.
-
-    No se promedian directamente valores de TL en decibeles. Primero se promedian los
-    coeficientes de transmisión τ y después se transforma el resultado a decibeles.
+    El factor sin θ cos θ pondera cuánto aporta energéticamente cada dirección sobre la
+    superficie. Para campo difuso ideal, θₗᵢₘ = 90°; para la aproximación de campo
+    truncado, θₗᵢₘ ≈ 78°. El TL de campo se obtiene recién después de calcular
+    τ̄. Por eso **no corresponde promediar los TL ni usar solamente el TL a 78°**.
     """)
-    st.markdown("### 3. Rigidez de flexión: la placa también se deforma")
+
+    st.markdown("### 5. Rigidez de flexión: la placa también se deforma")
     _lab2_image("s2_punto3")
     st.markdown("""
     Una placa simple no se desplaza únicamente como una masa rígida: también se curva.
@@ -4511,8 +4545,7 @@ def lab2_stage2():
     la placa. En la región donde domina la inercia puede simplificarse el comportamiento
     y obtenerse la ley de masa.
     """)
-    st.markdown("### 4. De la impedancia de masa a la ley de masa aproximada")
-    _lab2_image("s2_punto4")
+    st.markdown("### 6. De la impedancia de masa a la ley de masa aproximada")
     st.markdown("""
     En la región donde domina la **inercia**, una hoja ideal puede representarse mediante
     su impedancia mecánica por unidad de superficie. Para una excitación armónica:
@@ -4540,7 +4573,42 @@ def lab2_stage2():
     resonancias, la coincidencia, las fugas y las transmisiones laterales.
     """)
 
-    st.markdown("### 5. Laboratorio angular con resultado acústico")
+    st.markdown("### 7. Frecuencia crítica y fenómeno de coincidencia")
+    st.markdown("""
+    La **frecuencia crítica** no es una resonancia global de la placa ni el comienzo
+    automático de la ley de masa. Es la frecuencia mínima a partir de la cual puede
+    producirse coincidencia entre la proyección de la onda acústica en el plano de la
+    placa y una onda libre de flexión de la propia placa.
+
+    Para una placa delgada, homogénea e isótropa:
+    """)
+    st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
+    st.markdown("""
+    - **f꜀**: frecuencia crítica, en Hz.
+    - **c**: velocidad del sonido en el aire, en m/s.
+    - **m′**: masa superficial, en kg/m².
+    - **D**: rigidez de flexión, en N·m.
+
+    En f < f꜀ no existe un ángulo real que satisfaga la condición de coincidencia. En
+    f = f꜀ la coincidencia comienza teóricamente para incidencia rasante. Para f > f꜀,
+    la coincidencia puede aparecer a un ángulo particular:
+    """)
+    st.latex(r"\sin\theta_c=\sqrt{\frac{f_c}{f}}")
+    st.markdown("""
+    Cerca de esta condición la onda aérea excita con gran eficiencia las ondas de
+    flexión; la placa también radia con mayor eficiencia hacia el recinto receptor.
+    Como consecuencia, τ aumenta y el TL presenta un valle respecto de la ley de masa.
+    El factor de pérdida η, los apoyos, el tamaño finito y la construcción real controlan
+    la profundidad y anchura de ese valle.
+
+    Al combinar m′ = ρh con D = Eh³/[12(1−ν²)] se obtiene la tendencia:
+    """)
+    st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
+    st.info("Aumentar el espesor eleva fuertemente la rigidez y, para un mismo material, "
+            "reduce aproximadamente f꜀. Esto no garantiza mayor TL en todas las bandas: "
+            "también desplaza el valle de coincidencia.")
+
+    st.markdown("### 8. Laboratorio angular con resultado acústico")
     control_a,control_b=st.columns(2)
     angle=control_a.slider("Ángulo respecto de la normal",0,78,30,key="lab2_angle")
     angular_frequency=control_b.select_slider(
@@ -4617,7 +4685,7 @@ def lab2_stage2():
         90° porque la hipótesis ideal cerca de incidencia rasante no representa bien
         paneles finitos ni campos reverberantes reales.
         """)
-    st.markdown("### 6. Explorador de las cuatro zonas")
+    st.markdown("### 9. Explorador de las cuatro zonas")
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
     props={
         # densidad, espesor, E [GPa], nu, eta aproximada
@@ -4682,7 +4750,7 @@ def lab2_stage2():
         frecuencia crítica más baja.
         """)
     st.caption("Modelo didáctico: muestra mecanismos y tendencias; no sustituye una curva de ensayo del producto.")
-    st.markdown("### 7. Preguntas de comprensión")
+    st.markdown("### 10. Preguntas de comprensión")
     check("lab2_s2_q1",
         "¿De dónde proviene el término aproximado −47 dB de la ley de masa?",
         [
