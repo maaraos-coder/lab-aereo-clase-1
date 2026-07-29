@@ -4027,10 +4027,10 @@ LAB2_IMAGES = {
     "hormigon": "material_hormigon.svg",
     "comparador_hormigon": "comparador_panel_hormigon.svg",
     "comparador_tabique": "comparador_tabique_doble.svg",
-    "s2_punto1": "punto1_placa_masa_superficial.svg",
-    "s2_punto2": "punto2_tipos_incidencia.svg",
-    "s2_punto3": "punto3_rigidez_flexion.svg",
-    "s2_punto4": "punto4_promedio_campo.svg",
+    "s2_punto1": "punto1_placa_masa_superficial_profesional.webp",
+    "s2_punto2": "punto2_tipos_incidencia_profesional.webp",
+    "s2_punto3": "punto3_rigidez_flexion_profesional.webp",
+    "s2_punto4": "punto4_promedio_campo_profesional.webp",
 }
 
 def _lab2_image(image_key, caption=None):
@@ -4617,10 +4617,6 @@ def lab2_stage2():
         90° porque la hipótesis ideal cerca de incidencia rasante no representa bien
         paneles finitos ni campos reverberantes reales.
         """)
-    with st.expander("Ver nuevamente el desarrollo del promedio angular"):
-        st.latex(r"\overline{\tau}=\frac{\int_0^{78^\circ}\tau(\theta)\sin\theta\cos\theta\,d\theta}{\int_0^{78^\circ}\sin\theta\cos\theta\,d\theta}")
-        st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}(\overline{\tau})")
-        st.warning("Error frecuente: promediar valores de TL directamente en dB. Primero se promedia τ y luego se transforma.")
     st.markdown("### 6. Explorador de las cuatro zonas")
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
     props={
