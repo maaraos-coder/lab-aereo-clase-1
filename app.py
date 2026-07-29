@@ -4188,7 +4188,9 @@ def _plot_curves(series, title, markers=None, highlight=None):
         xaxis_type="log", hovermode="x unified", height=430,
         margin=dict(l=35,r=20,t=65,b=40), legend=dict(orientation="h",y=1.12))
     fig.update_xaxes(tickvals=[63,125,250,500,1000,2000,4000],
-                     ticktext=["63","125","250","500","1k","2k","4k"])
+                     ticktext=["63","125","250","500","1k","2k","4k"],
+                     range=[math.log10(50),math.log10(5000)],
+                     autorange=False)
     st.plotly_chart(fig, use_container_width=True)
 
 def _lab2_heading(stage, title, purpose):
@@ -4690,17 +4692,31 @@ def lab2_stage2():
     )
 
     st.markdown("### 8. Laboratorio de incidencia de campo y aislamiento")
-    st.markdown(r"""
+    st.markdown("""
     Esta aplicación reúne lo desarrollado en los puntos 2, 3 y 4. Primero calcula
     la transmisión de cada **rayo individual** y después combina energéticamente
     todas las direcciones incluidas en el campo seleccionado.
 
-    1. Se calcula \(\tau(\theta)\) para cada dirección.
-    2. Los coeficientes se ponderan mediante \(\sin\theta\cos\theta\).
-    3. Se obtiene el promedio energético \(\overline{\tau}\).
-    4. El promedio se convierte a pérdida de transmisión:
-       \(TL=-10\log_{10}(\overline{\tau})\).
+    El procedimiento técnico se realiza en cuatro pasos:
     """)
+    st.markdown("1. Se calcula el coeficiente de transmisión de cada dirección:")
+    st.latex(r"\tau(\theta)")
+    st.markdown("2. Cada dirección se pondera según su aporte al campo:")
+    st.latex(r"w(\theta)=\sin(\theta)\cos(\theta)")
+    st.markdown("3. Se obtiene el promedio energético de los coeficientes:")
+    st.latex(
+        r"\overline{\tau}="
+        r"\frac{\int_{0}^{\theta_{\max}}\tau(\theta)"
+        r"\sin(\theta)\cos(\theta)\,d\theta}"
+        r"{\int_{0}^{\theta_{\max}}\sin(\theta)\cos(\theta)\,d\theta}"
+    )
+    st.markdown("4. El promedio energético se convierte a pérdida de transmisión:")
+    st.latex(r"TL=-10\log_{10}\left(\overline{\tau}\right)")
+    st.caption(
+        "Símbolos: τ = coeficiente de transmisión; θ = ángulo de incidencia; "
+        "w(θ) = ponderación angular; τ̄ = coeficiente de transmisión promedio; "
+        "θmáx = ángulo máximo incluido; TL = pérdida de transmisión, en dB."
+    )
     lab_mode_options = [
         "Incidencia normal · 0°",
         "Campo de laboratorio · 0° a 78°",
@@ -4912,6 +4928,41 @@ def lab2_stage2():
     mass,stiffness,calculated_fc=_critical_frequency(rho,h,young,poisson)
     default_loss=max(5,min(16,5-10*math.log10(eta)))
     curve=_simple_real_curve(mass,calculated_fc,default_loss)
+    zone_explanations={
+        "1 · Rigidez":(
+            "A muy baja frecuencia dominan la rigidez, el tamaño, los apoyos y las "
+            "fijaciones. Al variar el material o el espesor cambia la rigidez a "
+            "flexión D; por eso esta zona no puede predecirse solo con la masa "
+            "superficial m′."
+        ),
+        "2 · Resonancias":(
+            "Los modos propios dependen de la relación D/m′, de las dimensiones y "
+            "de los bordes. Una placa más rígida desplaza sus modos; una placa mayor "
+            "o más pesada tiende a llevarlos hacia frecuencias menores."
+        ),
+        "3 · Ley de masa":(
+            "Entre las resonancias y la coincidencia domina la inercia. En esta "
+            "región resulta útil la ley de masa: al duplicar m′ o la frecuencia, "
+            "el aislamiento aumenta aproximadamente 6 dB."
+        ),
+        "4 · Coincidencia":(
+            f"Para la selección actual, la frecuencia crítica es aproximadamente "
+            f"{calculated_fc:.0f} Hz. En torno a ella, la onda aérea se acopla con "
+            "una onda de flexión de la placa y aumenta la energía transmitida."
+        ),
+    }
+    st.markdown("#### Cómo interpretar la zona seleccionada")
+    st.markdown(
+        f"**{selected_zone}.** {zone_explanations[selected_zone]} "
+        "En el gráfico, el fondo coloreado identifica el intervalo donde domina "
+        "este mecanismo."
+    )
+    if selected_zone=="1 · Rigidez":
+        st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
+    elif selected_zone=="3 · Ley de masa":
+        st.latex(r"TL\approx20\log_{10}(m'f)-47")
+    elif selected_zone=="4 · Coincidencia":
+        st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
     # Rangos didácticos para mostrar dónde domina cada mecanismo. La zona de
     # coincidencia sigue a fᶜ, por lo que cambia al modificar material o espesor.
     zone_highlights={
@@ -4934,47 +4985,6 @@ def lab2_stage2():
     z1.metric("Masa superficial m′",f"{mass:.1f} kg/m²")
     z2.metric("Rigidez D",f"{stiffness:.1f} N·m")
     z3.metric("Frecuencia crítica fᶜ",f"{calculated_fc:.0f} Hz")
-    zone_explanations={
-        "1 · Rigidez":(
-            "A muy baja frecuencia dominan la rigidez, el tamaño, los apoyos y las "
-            "fijaciones. Al variar el material o el espesor cambia D = Eh³/[12(1−ν²)]; "
-            "por eso esta zona no puede predecirse solo con m′."
-        ),
-        "2 · Resonancias":(
-            "Los modos propios dependen de D/m′, de las dimensiones y de los bordes. "
-            "Una placa más rígida desplaza sus modos; una placa mayor o más pesada tiende "
-            "a llevarlos hacia frecuencias menores. Los valles no son una recta de masa."
-        ),
-        "3 · Ley de masa":(
-            "Entre resonancias y coincidencia domina la inercia. Aquí sí es útil "
-            "TL ≈ 20 log₁₀(m′f) − 47: duplicar m′ o f aporta aproximadamente 6 dB. "
-            "La línea discontinua es una tendencia, no toda la respuesta real."
-        ),
-        "4 · Coincidencia":(
-            f"Para la selección actual, fᶜ ≈ {calculated_fc:.0f} Hz. En torno a esa "
-            "frecuencia la onda aérea se acopla con una onda de flexión y aumenta la "
-            "radiación transmitida. Cambiar E, ρ o h desplaza fᶜ; el amortiguamiento η "
-            "modifica la profundidad y anchura del valle."
-        ),
-    }
-    st.markdown("#### Las cuatro zonas, siempre visibles")
-    zone_cards = st.columns(2)
-    for index, (zone_title, zone_text) in enumerate(zone_explanations.items()):
-        with zone_cards[index % 2]:
-            plain_language = {
-                "1 · Rigidez": "La placa se comporta como una superficie elástica: importan mucho sus apoyos y cuánto cuesta doblarla.",
-                "2 · Resonancias": "La placa tiene frecuencias en las que vibra con mayor facilidad y puede dejar pasar más sonido.",
-                "3 · Ley de masa": "Aquí domina el peso por metro cuadrado: una placa más pesada suele ser más difícil de mover.",
-                "4 · Coincidencia": "La onda del aire y la vibración de la placa se sincronizan y aparece una pérdida localizada de aislamiento.",
-            }[zone_title]
-            st.markdown(
-                f'<div class="lesson"><b>{zone_title}</b><p>{zone_text}</p>'
-                f'<p><b>En sencillo:</b> {plain_language}</p></div>',
-                unsafe_allow_html=True,
-            )
-    st.markdown(
-        f'<div class="lesson"><b>{selected_zone} · por qué cambia:</b> '
-        f'{zone_explanations[selected_zone]}</div>',unsafe_allow_html=True)
     st.caption("Modelo didáctico: muestra mecanismos y tendencias; no sustituye una curva de ensayo del producto.")
     st.markdown("### 10. Preguntas de comprensión")
     check("lab2_s2_q1",
