@@ -4171,77 +4171,210 @@ def lab2_stage0():
     )
 
 def lab2_stage1():
-    _lab2_heading(1, "Pérdida de transmisión: de la energía a los decibeles",
-                  "Interpretar cuánto sonido atraviesa una separación y por qué TL es una razón energética.")
+    _lab2_heading(
+        1,
+        "Pérdida de transmisión: τ, TL y escala decibel",
+        "Comprender el decibel como una relación logarítmica y convertir, en ambos sentidos, entre coeficiente de transmisión y pérdida de transmisión.",
+    )
     _lab2_image("panel_simple")
-    left,right=st.columns([1.2,.8])
-    with left:
-        st.markdown("""
-        Una onda que llega a una separación distribuye su energía en tres rutas:
-        una parte se **refleja**, otra se **disipa** internamente y otra se **transmite**.
-        Para el aislamiento interesa cuantificar qué fracción logra atravesar el elemento.
-        """)
-        st.latex(r"\tau=\frac{W_t}{W_i}")
-        st.latex(r"TL=-10\log_{10}(\tau)=10\log_{10}\left(\frac{W_i}{W_t}\right)")
-        st.markdown("""
-        **TL** y **R** suelen expresar la reducción sonora del elemento por banda. Un TL alto
-        significa una fracción transmitida pequeña; no significa que el sonido desaparezca.
-        """)
-    with right:
-        tl=st.slider("TL de la separación (dB)",10,60,30,key="lab2_tl")
-        tau=10**(-tl/10)
-        st.metric("Energía que atraviesa",f"{100*tau:.6f} %")
-        st.metric("Fracción transmitida τ",f"{tau:.2e}")
-        st.caption("Cada aumento de 10 dB divide por 10 la energía transmitida.")
-    st.markdown('<div class="section-band"><span>🎯</span><h3>Aplicación interactiva: diseña la separación para un caso real</h3></div>', unsafe_allow_html=True)
-    source_levels = {
-        "Conversación elevada en oficina": 72,
-        "Televisor o música doméstica": 82,
-        "Sala de ensayo musical": 95,
-        "Maquinaria en recinto técnico": 100,
-    }
-    receiver_targets = {
-        "Oficina para trabajo concentrado": 40,
-        "Sala de reuniones": 35,
-        "Dormitorio durante la noche": 30,
-        "Recinto técnico sin ocupación permanente": 55,
-    }
+
+    st.markdown("### 1. El decibel no es una cantidad absoluta")
+    st.markdown(r"""
+    El **decibel (dB)** expresa de forma logarítmica la **relación entre dos cantidades**.
+    No es una unidad absoluta como el watt, el metro o el pascal. En relaciones de
+    potencia o energía se utiliza:
+    """)
+    st.latex(r"L=10\log_{10}\left(\frac{W_1}{W_0}\right)")
+    st.markdown(r"""
+    En acústica las potencias, intensidades y presiones abarcan rangos enormes. La escala
+    logarítmica los convierte en valores manejables y permite interpretar órdenes de
+    magnitud: una razón energética de 10 equivale a 10 dB; de 100, a 20 dB; y de
+    1.000, a 30 dB.
+    """)
+
     c1,c2=st.columns(2)
-    source=c1.selectbox("Fuente en el recinto emisor",list(source_levels),key="lab2_tl_source")
-    receiver=c2.selectbox("Uso del recinto receptor",list(receiver_targets),key="lab2_tl_receiver")
-    incident_level=source_levels[source]
-    target_level=receiver_targets[receiver]
-    transmitted_level=incident_level-tl
-    margin=target_level-transmitted_level
-    fig=go.Figure()
-    fig.add_trace(go.Bar(
-        x=["Recinto emisor","Recinto receptor","Objetivo receptor"],
-        y=[incident_level,transmitted_level,target_level],
-        marker_color=["#0b69d1","#ef8b2c","#18a779"],
-        text=[f"{incident_level} dB",f"{transmitted_level:.0f} dB",f"{target_level} dB"],
-        textposition="outside",
-        hovertemplate="%{x}: %{y:.0f} dB<extra></extra>",
-    ))
-    fig.update_layout(
-        title="Efecto ideal del TL sobre el nivel que llega al recinto receptor",
-        yaxis_title="Nivel sonoro de referencia (dB)",
-        yaxis_range=[0,max(110,incident_level+10)],
-        height=360,showlegend=False,margin=dict(l=35,r=20,t=65,b=40),
+    with c1:
+        st.markdown("#### Nivel de presión sonora")
+        st.latex(r"L_p=20\log_{10}\left(\frac{p}{p_0}\right)")
+        st.markdown(
+            r"Compara una presión acústica \(p\) con la referencia "
+            r"\(p_0=20\ \mu\mathrm{Pa}\). Ejemplo: \(85\ \mathrm{dB\ SPL}\)."
+        )
+    with c2:
+        st.markdown("#### Pérdida de transmisión")
+        st.latex(r"TL=10\log_{10}\left(\frac{W_i}{W_t}\right)")
+        st.markdown(
+            r"Compara potencia incidente \(W_i\) y transmitida \(W_t\). "
+            r"Un \(TL=30\ \mathrm{dB}\) **no** es un sonido de 30 dB."
+        )
+    st.info(
+        "Decir solamente «40 dB» está incompleto: siempre debe indicarse la magnitud, "
+        "por ejemplo 40 dB SPL, TL = 40 dB o R = 40 dB."
     )
-    st.plotly_chart(fig,use_container_width=True)
-    if margin>=0:
-        st.success(f"**Objetivo alcanzado:** el nivel calculado es {transmitted_level:.0f} dB, con un margen ideal de {margin:.0f} dB.")
+
+    st.markdown("### 2. Del coeficiente τ a la pérdida de transmisión TL")
+    st.markdown(r"""
+    El coeficiente de transmisión \(\tau\) es la fracción adimensional de la potencia
+    incidente que atraviesa la separación:
+    """)
+    st.latex(r"\tau=\frac{W_t}{W_i}\qquad 0\leq\tau\leq1")
+    st.markdown("La definición de pérdida de transmisión es:")
+    st.latex(r"TL=10\log_{10}\left(\frac{W_i}{W_t}\right)")
+    st.markdown(r"Como \(W_i/W_t=1/\tau\), la sustitución entrega:")
+    st.latex(r"TL=10\log_{10}\left(\frac{1}{\tau}\right)")
+    st.latex(r"\boxed{TL=-10\log_{10}(\tau)}")
+    st.markdown("Y para realizar la conversión inversa:")
+    st.latex(r"\boxed{\tau=10^{-TL/10}}")
+
+    st.markdown("### 3. Explorador técnico τ ↔ TL")
+    control_mode=st.radio(
+        "Variable que deseas controlar",
+        ["TL (dB)","τ (coeficiente de transmisión)"],
+        horizontal=True,
+        key="lab2_tau_tl_mode",
+    )
+    if control_mode=="TL (dB)":
+        tl=float(st.slider(
+            "Pérdida de transmisión TL (dB)",0,60,30,1,key="lab2_tau_tl_db"
+        ))
+        tau=10**(-tl/10)
     else:
-        required=incident_level-target_level
-        st.warning(f"**Aún no alcanza:** faltan {-margin:.0f} dB de reducción. Para este ejercicio se requiere al menos TL = {required:.0f} dB.")
-    st.caption(
-        "Aplicación didáctica de una trayectoria directa: L₂ ≈ L₁ − TL. "
-        "En un proyecto real deben incorporarse el espectro por bandas, la absorción del recinto, "
-        "el área del elemento y las transmisiones laterales."
+        exponent=st.slider(
+            "Exponente de τ en escala logarítmica (τ = 10ˣ)",
+            -6.0,0.0,-3.0,0.1,key="lab2_tau_exponent",
+        )
+        tau=10**exponent
+        tl=-10*math.log10(tau)
+
+    transmitted_pct=100*tau
+    not_transmitted_pct=100*(1-tau)
+    m1,m2,m3=st.columns(3)
+    m1.metric("TL",f"{tl:.1f} dB")
+    m2.metric("τ",f"{tau:.6g}")
+    m3.metric("Energía transmitida",f"{transmitted_pct:.6g} %")
+
+    incident_units=1_000_000.0
+    transmitted_units=incident_units*tau
+    energy_fig=go.Figure()
+    energy_fig.add_trace(go.Bar(
+        x=["Potencia incidente Wi","Potencia transmitida Wt"],
+        y=[incident_units,transmitted_units],
+        marker_color=["#0b69d1","#ef8b2c"],
+        text=[f"{incident_units:,.0f} unidades",f"{transmitted_units:,.3g} unidades"],
+        textposition="outside",
+        hovertemplate="%{x}<br>%{y:,.6g} unidades<extra></extra>",
+    ))
+    energy_fig.update_layout(
+        title="Comparación energética en escala logarítmica",
+        yaxis_title="Potencia relativa (unidades)",
+        yaxis_type="log",
+        yaxis_range=[-1,6.45],
+        height=360,
+        showlegend=False,
+        margin=dict(l=35,r=20,t=65,b=40),
     )
-    check("lab2_tl_q","Si τ disminuye de 0,01 a 0,001, ¿qué ocurre con TL?",
-          ["Disminuye 10 dB","Aumenta 10 dB","Aumenta 1 dB"],"Aumenta 10 dB",
-          "La energía transmitida se divide por diez; por la escala logarítmica, TL aumenta 10 dB.")
+    st.plotly_chart(energy_fig,use_container_width=True)
+
+    tau_curve=np.logspace(0,-6,241)
+    tl_curve=-10*np.log10(tau_curve)
+    relation_fig=go.Figure()
+    relation_fig.add_trace(go.Scatter(
+        x=tau_curve,y=tl_curve,mode="lines",name="TL = −10 log₁₀(τ)",
+        line=dict(width=4,color="#0b69d1"),
+    ))
+    relation_fig.add_trace(go.Scatter(
+        x=[tau],y=[tl],mode="markers+text",name="Selección actual",
+        marker=dict(size=13,color="#ef8b2c"),
+        text=[f"τ={tau:.3g} · TL={tl:.1f} dB"],
+        textposition="top center",
+    ))
+    relation_fig.update_layout(
+        title="Relación logarítmica entre τ y TL",
+        xaxis_title="Coeficiente de transmisión τ",
+        yaxis_title="Pérdida de transmisión TL (dB)",
+        xaxis_type="log",
+        xaxis_autorange="reversed",
+        yaxis_range=[0,64],
+        height=390,
+        hovermode="closest",
+        margin=dict(l=35,r=20,t=65,b=40),
+    )
+    relation_fig.update_xaxes(
+        tickvals=[1,1e-1,1e-2,1e-3,1e-4,1e-5,1e-6],
+        ticktext=["1","0,1","0,01","0,001","10⁻⁴","10⁻⁵","10⁻⁶"],
+    )
+    st.plotly_chart(relation_fig,use_container_width=True)
+    st.markdown(
+        f'<div class="lesson"><b>Lectura técnica:</b> de 1.000.000 unidades incidentes, '
+        f'atraviesan {transmitted_units:,.3g}. Esto corresponde a τ = {tau:.6g}, '
+        f'{transmitted_pct:.6g} % transmitido y TL = {tl:.1f} dB. '
+        f'La fracción no transmitida es {not_transmitted_pct:.6g} %; este último valor '
+        f'no debe confundirse automáticamente con absorción, porque también incluye energía reflejada.</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### 4. ¿Por qué aquí se usa TL y después aparecerá R?")
+    st.markdown(r"""
+    En esta etapa usamos **TL** (*Transmission Loss*) porque partimos de la relación física
+    entre potencia incidente y transmitida y trabajamos con modelos predictivos. En ensayos
+    normalizados de elementos constructivos se usa habitualmente el **índice de reducción
+    acústica \(R\)**, obtenido a partir de los niveles de las cámaras y de las condiciones
+    del ensayo. Ambos describen el aislamiento por bandas y pueden coincidir bajo
+    condiciones ideales, pero el símbolo debe corresponder al contexto y al método de
+    obtención. Más adelante, la curva \(R(f)\) permitirá calcular \(R_w\).
+    """)
+
+    st.markdown("### 5. Preguntas de comprensión")
+    check(
+        "lab2_s1_q1",
+        "Un panel tiene τ = 0,01. ¿Qué porcentaje de la energía incidente lo atraviesa?",
+        ["10 %","1 %","0,1 %","0,01 %"],
+        "1 %",
+        "τ es una fracción: 0,01 × 100 = 1 %.",
+    )
+    check(
+        "lab2_s1_q2",
+        "Si τ = 0,001, ¿qué TL se obtiene mediante TL = −10 log₁₀(τ)?",
+        ["10 dB","20 dB","30 dB","40 dB"],
+        "30 dB",
+        "log₁₀(0,001) = −3; por tanto, TL = −10(−3) = 30 dB.",
+    )
+    check(
+        "lab2_s1_q3",
+        "¿Cuál afirmación describe correctamente el decibel?",
+        [
+            "Es una unidad absoluta de potencia sonora",
+            "Expresa logarítmicamente una relación entre cantidades",
+            "Siempre representa nivel de presión sonora",
+            "Es equivalente a un watt",
+        ],
+        "Expresa logarítmicamente una relación entre cantidades",
+        "El dB expresa una razón logarítmica; la magnitud concreta depende de la ecuación y de sus referencias.",
+    )
+    check(
+        "lab2_s1_q4",
+        "El panel A tiene TL = 20 dB y el B, TL = 30 dB. ¿Qué comparación es correcta?",
+        [
+            "B transmite diez veces menos energía que A",
+            "B transmite solamente 10 % menos energía que A",
+            "A y B transmiten la misma energía",
+            "B transmite el doble de energía que A",
+        ],
+        "B transmite diez veces menos energía que A",
+        "Un aumento de 10 dB en TL divide por diez la energía transmitida.",
+    )
+    check(
+        "lab2_s1_q5",
+        "¿Por qué se usa TL en esta etapa y R en un ensayo normalizado de una partición?",
+        [
+            "TL se relaciona aquí con un modelo energético; R corresponde al resultado normalizado del elemento ensayado",
+            "TL se usa solo en exteriores y R solo en interiores",
+            "TL se mide en watt y R en decibeles",
+            "No existe diferencia de contexto entre ambos símbolos",
+        ],
+        "TL se relaciona aquí con un modelo energético; R corresponde al resultado normalizado del elemento ensayado",
+        "TL es habitual en la formulación física y predictiva; R es la denominación normalizada del índice de reducción acústica por bandas.",
+    )
 
 def lab2_stage2():
     _lab2_heading(2, "Panel simple: incidencia y cuatro zonas físicas",
