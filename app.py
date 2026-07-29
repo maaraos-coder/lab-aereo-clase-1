@@ -4127,24 +4127,48 @@ def _lab2_heading(stage, title, purpose):
            show_overview=False, duration_minutes=LAB2_MINUTES[stage])
 
 def lab2_stage0():
-    _lab2_heading(0, "Ruta de las primeras dos horas",
-                  "Comprender cómo se predice la pérdida de transmisión de paneles simples y dobles.")
-    st.markdown("""
-    ### Resultado de aprendizaje
-    Al terminar este bloque podrás reconocer la solución física, escoger el modelo adecuado,
-    calcular sus variables principales e interpretar una curva de aislamiento sin confundir
-    un valor por banda con un número único.
-    """)
-    st.dataframe(pd.DataFrame([
-        ["00:00–00:10","Ruta y selección del modelo","Distinguir panel simple y panel doble"],
-        ["00:10–00:25","Pérdida de transmisión","Relacionar energía, τ y TL"],
-        ["00:25–00:55","Panel simple","Incidencia, masa, rigidez, resonancia y coincidencia"],
-        ["00:55–01:10","Casos reales","Comparar yeso-cartón, vidrio y hormigón"],
-        ["01:10–01:30","Panel doble","Masa–aire–masa, cámara y conexiones"],
-        ["01:30–01:55","Modelo de Sharp","Calcular TL por tramos y leer f₀ y fₗ"],
-        ["01:55–02:00","Comparación y cierre","Panel pesado frente a tabique liviano doble"],
-    ],columns=["Tiempo","Bloque","Evidencia"]),hide_index=True,use_container_width=True)
-    st.info("Los modelos entregan predicciones. El desempeño final también depende de montaje, sellos, encuentros, dimensiones y transmisiones laterales.")
+    header(
+        "ETAPA 0 · BIENVENIDA",
+        "Laboratorio 2 · Modelos de predicción del aislamiento acústico",
+        "Una experiencia visual para reconocer el sistema constructivo, seleccionar el modelo físico y leer correctamente su curva de pérdida de transmisión.",
+    )
+    st.markdown(
+        '<div class="class-clock"><div><strong>⏱️ Duración de este bloque: 2 horas</strong>'
+        '<br><span>Conceptos físicos, simuladores, casos constructivos y comparación de soluciones</span>'
+        '</div><div><strong>120 min</strong></div></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="section-band"><span>🗺️</span><h3>Tu ruta de aprendizaje</h3></div>',
+        unsafe_allow_html=True,
+    )
+    route = [
+        ("Pérdida de transmisión", "Relaciona la energía incidente y transmitida con τ y TL.", 15),
+        ("Panel simple", "Reconoce incidencia, rigidez, resonancias, ley de masa y coincidencia.", 30),
+        ("Casos reales", "Compara yeso-cartón, vidrio monolítico y hormigón por bandas.", 15),
+        ("Panel doble", "Explora masas, cámara de aire, resonancia y conexiones estructurales.", 20),
+        ("Modelo de Sharp", "Calcula f₀, fₗ y el TL correspondiente en cada tramo.", 25),
+        ("Comparación aplicada", "Contrasta un panel pesado con un tabique liviano desacoplado.", 5),
+    ]
+    html = '<div class="route-grid">'
+    for i, (title, description, minutes) in enumerate(route, 1):
+        html += (
+            f'<div class="route-card"><span class="step">{i}</span><div>'
+            f'<b>{title}</b><p>{description}</p>'
+            f'<span class="route-time">⏱️ {minutes} min</span></div></div>'
+        )
+    st.markdown(html + "</div>", unsafe_allow_html=True)
+    st.markdown(
+        '<div class="good" style="margin-top:1rem"><b>Así aprenderás:</b> '
+        'concepto visual → fundamento físico → ecuación → simulación → caso real → interpretación de la curva.</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="warn" style="margin-top:.8rem"><b>Alcance del modelo:</b> '
+        'las predicciones corresponden al elemento idealizado. El resultado construido también '
+        'depende del montaje, sellos, encuentros, dimensiones y transmisiones laterales.</div>',
+        unsafe_allow_html=True,
+    )
 
 def lab2_stage1():
     _lab2_heading(1, "Pérdida de transmisión: de la energía a los decibeles",
@@ -4152,16 +4176,15 @@ def lab2_stage1():
     _lab2_image("panel_simple")
     left,right=st.columns([1.2,.8])
     with left:
-        st.markdown(r"""
+        st.markdown("""
         Una onda que llega a una separación distribuye su energía en tres rutas:
         una parte se **refleja**, otra se **disipa** internamente y otra se **transmite**.
-        Para aislamiento interesa la fracción transmitida:
-
-        \[
-        \tau=\frac{W_t}{W_i}, \qquad TL=-10\log_{10}(\tau)
-        \]
-
-        TL y \(R\) suelen expresar la reducción sonora del elemento por banda. Un TL alto
+        Para el aislamiento interesa cuantificar qué fracción logra atravesar el elemento.
+        """)
+        st.latex(r"\tau=\frac{W_t}{W_i}")
+        st.latex(r"TL=-10\log_{10}(\tau)=10\log_{10}\left(\frac{W_i}{W_t}\right)")
+        st.markdown("""
+        **TL** y **R** suelen expresar la reducción sonora del elemento por banda. Un TL alto
         significa una fracción transmitida pequeña; no significa que el sonido desaparezca.
         """)
     with right:
@@ -4170,12 +4193,52 @@ def lab2_stage1():
         st.metric("Energía que atraviesa",f"{100*tau:.6f} %")
         st.metric("Fracción transmitida τ",f"{tau:.2e}")
         st.caption("Cada aumento de 10 dB divide por 10 la energía transmitida.")
-    st.dataframe(pd.DataFrame([
-        [20,"1 %","1 de cada 100 unidades"],
-        [30,"0,1 %","1 de cada 1.000 unidades"],
-        [40,"0,01 %","1 de cada 10.000 unidades"],
-        [50,"0,001 %","1 de cada 100.000 unidades"],
-    ],columns=["TL","Energía transmitida","Lectura"]),hide_index=True,use_container_width=True)
+    st.markdown('<div class="section-band"><span>🎯</span><h3>Aplicación interactiva: diseña la separación para un caso real</h3></div>', unsafe_allow_html=True)
+    source_levels = {
+        "Conversación elevada en oficina": 72,
+        "Televisor o música doméstica": 82,
+        "Sala de ensayo musical": 95,
+        "Maquinaria en recinto técnico": 100,
+    }
+    receiver_targets = {
+        "Oficina para trabajo concentrado": 40,
+        "Sala de reuniones": 35,
+        "Dormitorio durante la noche": 30,
+        "Recinto técnico sin ocupación permanente": 55,
+    }
+    c1,c2=st.columns(2)
+    source=c1.selectbox("Fuente en el recinto emisor",list(source_levels),key="lab2_tl_source")
+    receiver=c2.selectbox("Uso del recinto receptor",list(receiver_targets),key="lab2_tl_receiver")
+    incident_level=source_levels[source]
+    target_level=receiver_targets[receiver]
+    transmitted_level=incident_level-tl
+    margin=target_level-transmitted_level
+    fig=go.Figure()
+    fig.add_trace(go.Bar(
+        x=["Recinto emisor","Recinto receptor","Objetivo receptor"],
+        y=[incident_level,transmitted_level,target_level],
+        marker_color=["#0b69d1","#ef8b2c","#18a779"],
+        text=[f"{incident_level} dB",f"{transmitted_level:.0f} dB",f"{target_level} dB"],
+        textposition="outside",
+        hovertemplate="%{x}: %{y:.0f} dB<extra></extra>",
+    ))
+    fig.update_layout(
+        title="Efecto ideal del TL sobre el nivel que llega al recinto receptor",
+        yaxis_title="Nivel sonoro de referencia (dB)",
+        yaxis_range=[0,max(110,incident_level+10)],
+        height=360,showlegend=False,margin=dict(l=35,r=20,t=65,b=40),
+    )
+    st.plotly_chart(fig,use_container_width=True)
+    if margin>=0:
+        st.success(f"**Objetivo alcanzado:** el nivel calculado es {transmitted_level:.0f} dB, con un margen ideal de {margin:.0f} dB.")
+    else:
+        required=incident_level-target_level
+        st.warning(f"**Aún no alcanza:** faltan {-margin:.0f} dB de reducción. Para este ejercicio se requiere al menos TL = {required:.0f} dB.")
+    st.caption(
+        "Aplicación didáctica de una trayectoria directa: L₂ ≈ L₁ − TL. "
+        "En un proyecto real deben incorporarse el espectro por bandas, la absorción del recinto, "
+        "el área del elemento y las transmisiones laterales."
+    )
     check("lab2_tl_q","Si τ disminuye de 0,01 a 0,001, ¿qué ocurre con TL?",
           ["Disminuye 10 dB","Aumenta 10 dB","Aumenta 1 dB"],"Aumenta 10 dB",
           "La energía transmitida se divide por diez; por la escala logarítmica, TL aumenta 10 dB.")
@@ -4298,19 +4361,17 @@ def lab2_stage4():
 def lab2_stage5():
     _lab2_heading(5, "Modelo de Sharp: TL por tramos",
                   "Seguir la ecuación activa, ubicar f₀ y fₗ e interpretar los cambios de pendiente.")
-    st.markdown(r"""
+    st.markdown("""
     Sharp representa el sistema doble mediante regiones. La ecuación cambia porque el
-    mecanismo dominante no es el mismo a ambos lados de \(f_0\) y \(f_l\):
-
-    \[
-    TL(f)=
-    \begin{cases}
-    TL_{(m'_1+m'_2)}, & f<f_0\\
-    TL_{m'_1}+TL_{m'_2}+20\log_{10}(fd)-29, & f_0\le f<f_l\\
-    TL_{m'_1}+TL_{m'_2}+6, & f\ge f_l
-    \end{cases}
-    \]
+    mecanismo dominante no es el mismo a ambos lados de **f₀** y **fₗ**:
     """)
+    st.latex(
+        r"TL(f)=\begin{cases}"
+        r"TL_{(m'_1+m'_2)}, & f<f_0\\"
+        r"TL_{m'_1}+TL_{m'_2}+20\log_{10}(fd)-29, & f_0\leq f<f_l\\"
+        r"TL_{m'_1}+TL_{m'_2}+6, & f\geq f_l"
+        r"\end{cases}"
+    )
     c1,c2,c3,c4=st.columns(4)
     m1=c1.number_input("m′₁ (kg/m²)",5.0,80.0,10.0,1.0,key="sharp_m1")
     m2=c2.number_input("m′₂ (kg/m²)",5.0,80.0,10.0,1.0,key="sharp_m2")
