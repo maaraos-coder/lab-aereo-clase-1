@@ -4566,36 +4566,6 @@ def lab2_stage2():
     Esta rigidez determina los modos propios y, junto con m′, la propagación de las ondas
     de flexión y la frecuencia crítica.
     """)
-    st.markdown("#### Parámetros que controlan la respuesta")
-    parameter_cards = [
-        ("Densidad ρ",
-         "Cantidad de materia contenida en un volumen.",
-         "Dos placas del mismo espesor pueden pesar distinto por m² porque sus materiales tienen densidades diferentes."),
-        ("Espesor h",
-         "Distancia entre las dos caras de esta única placa.",
-         "Al aumentarlo crecen la masa superficial y, con mucha mayor intensidad, la rigidez."),
-        ("Módulo de Young E",
-         "Resistencia del material a deformarse elásticamente.",
-         "Un valor alto significa que cuesta más curvar la placa."),
-        ("Coeficiente de Poisson ν",
-         "Relaciona la deformación longitudinal con la transversal.",
-         "Es un valor sin unidades que participa en el cálculo completo de la rigidez."),
-        ("Factor de pérdidas η",
-         "Capacidad del material para disipar vibración.",
-         "Un valor mayor amortigua la respuesta y tiende a suavizar los valles resonantes."),
-    ]
-    for row_start in range(0, len(parameter_cards), 3):
-        parameter_columns = st.columns(3)
-        for column, (title, technical, simple) in zip(
-            parameter_columns, parameter_cards[row_start:row_start + 3]
-        ):
-            with column:
-                st.markdown(
-                    f'<div class="lesson"><b>{title}</b><p>{technical}</p>'
-                    f'<p><b>En sencillo:</b> {simple}</p></div>',
-                    unsafe_allow_html=True,
-                )
-
     st.markdown("#### Ecuación de movimiento de una placa simple sometida a presión sonora")
     st.markdown("""
     Para describir cómo responde la placa cuando el sonido la excita, se plantea su
@@ -4610,20 +4580,17 @@ def lab2_stage2():
     inercia puede simplificarse este equilibrio y obtenerse la ley de masa.
     """)
     st.markdown("### 6. De la impedancia de masa a la ley de masa aproximada")
-    mass_visual, mass_explanation = st.columns([1.05, 1])
-    with mass_visual:
-        _lab2_image("s2_ley_masa",
-                    "Zona controlada por masa: una placa más pesada opone mayor inercia.")
-    with mass_explanation:
-        st.markdown(
-            '<div class="lesson"><b>Lectura para no ingenieros</b>'
-            '<p>En esta zona, el sonido intenta mover la placa como una masa. '
-            'Aumentar la masa superficial o la frecuencia dificulta ese movimiento '
-            'y eleva la pérdida de transmisión.</p>'
-            '<p>Es una tendencia, no toda la curva: las resonancias y la coincidencia '
-            'pueden producir pérdidas locales de aislamiento.</p></div>',
-            unsafe_allow_html=True,
-        )
+    _lab2_image("s2_ley_masa",
+                "Zona controlada por masa: una placa más pesada opone mayor inercia.")
+    st.markdown(
+        '<div class="lesson"><b>Lectura para no ingenieros</b>'
+        '<p>En esta zona, el sonido intenta mover la placa como una masa. '
+        'Aumentar la masa superficial o la frecuencia dificulta ese movimiento '
+        'y eleva la pérdida de transmisión.</p>'
+        '<p>Es una tendencia, no toda la curva: las resonancias y la coincidencia '
+        'pueden producir pérdidas locales de aislamiento.</p></div>',
+        unsafe_allow_html=True,
+    )
     _lab2_plain_language_cards(
         "Una placa pesada se parece a un carro difícil de empujar: se mueve menos ante el sonido.",
         "En la zona de masa, duplicar m′ o la frecuencia aumenta el TL aproximadamente 6 dB.",
@@ -4657,28 +4624,25 @@ def lab2_stage2():
     """)
 
     st.markdown("### 7. Frecuencia crítica y coincidencia")
-    coincidence_visual, coincidence_text = st.columns([1.05, 1])
-    with coincidence_visual:
-        _lab2_image("s2_frecuencia_critica",
-                    "Coincidencia entre la onda sonora y la onda de flexión de una placa.")
-    with coincidence_text:
-        st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
-        st.markdown("""
-        La **frecuencia crítica** es la zona en que la onda sonora puede acoplarse con
-        una onda de flexión de la placa. Ese acoplamiento facilita la transmisión y
-        puede producir un valle en la curva de aislamiento.
+    _lab2_image("s2_frecuencia_critica",
+                "Coincidencia entre la onda sonora y la onda de flexión de una placa.")
+    st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
+    st.markdown("""
+    La **frecuencia crítica** es la zona en que la onda sonora puede acoplarse con
+    una onda de flexión de la placa. Ese acoplamiento facilita la transmisión y
+    puede producir un valle en la curva de aislamiento.
 
-        **En sencillo:** existe una zona donde la placa vibra de una forma especialmente
-        favorable para que el sonido pase. Se calcula usando la masa superficial y la
-        rigidez explicadas antes; no es un parámetro independiente.
-        """)
-        st.latex(r"m'=\rho h")
-        st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
-        st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
-        st.caption(
-            "η no determina por sí solo fᶜ; influye principalmente en la profundidad "
-            "y anchura del valle de coincidencia."
-        )
+    **En sencillo:** existe una zona donde la placa vibra de una forma especialmente
+    favorable para que el sonido pase. Se calcula usando la masa superficial y la
+    rigidez explicadas antes; no es un parámetro independiente.
+    """)
+    st.latex(r"m'=\rho h")
+    st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
+    st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
+    st.caption(
+        "η no determina por sí solo fᶜ; influye principalmente en la profundidad "
+        "y anchura del valle de coincidencia."
+    )
     _lab2_plain_language_cards(
         "Es una zona donde la onda aérea logra hacer vibrar la placa con especial eficiencia.",
         "La curva real forma un valle respecto de la tendencia ideal de ley de masa.",
