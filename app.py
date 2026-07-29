@@ -3883,7 +3883,7 @@ def lab2_stage4():
 def lab2_stage5():
     _lab2_heading(5, "ISO 12354 como puente de diseño",
                   "Pasar del dato del elemento al comportamiento esperado del edificio.")
-    st.markdown("""
+    st.markdown(r"""
     ### Secuencia didáctica simplificada
 
     **1. Entrada:** curva o índice del elemento ensayado.  
@@ -3902,7 +3902,7 @@ def lab2_stage6():
     _lab2_heading(6, "Ejercicio guiado · Sala de Reuniones Dirección",
                   "Resolver el caso junto al docente y documentar cada decisión.")
     st.image(str(ROOT/"assets/course_visuals/stage6_double_wall.webp"),use_container_width=True)
-    st.markdown("""
+    st.markdown(r"""
     ### Ficha de trabajo
 
     - Delimita emisor, receptor y separación.
@@ -5027,41 +5027,331 @@ def lab2_stage3():
     )
 
 def lab2_stage4():
-    _lab2_heading(4, "Panel doble y resonancia masa–aire–masa",
-                  "Comprender cuándo dos hojas forman un sistema desacoplado y cómo la cámara modifica la curva.")
-    _lab2_image("panel_doble")
-    st.markdown("""
-    Un **panel doble** posee dos hojas que pueden vibrar de manera diferente, separadas por
-    una cámara. Las hojas actúan como masas y el aire encerrado como resorte. Cerca de la
-    resonancia **f₀**, ambas hojas se acoplan y el aislamiento disminuye. Por encima de esa
-    zona, el desacoplamiento puede superar claramente a una sola hoja de masa equivalente.
+    """Explicación técnica de dos placas simples separadas por una cámara de aire."""
+    _lab2_heading(
+        4,
+        "Pérdida de transmisión en paneles dobles",
+        "Comprender el sistema masa–aire–masa, sus frecuencias características y las tres regiones del modelo.",
+    )
+    _lab2_image(
+        "panel_doble",
+        "Modelo idealizado: dos placas homogéneas simples separadas por una cámara de aire.",
+    )
+    st.markdown(r"""
+    ### Introducción
 
-    La lana mineral reduce la energía de los modos de la cámara, pero no reemplaza la
-    separación estructural ni corrige puentes rígidos.
+    Un panel doble está formado por **dos placas separadas por una cámara de
+    aire**. A diferencia de una placa simple, su comportamiento no depende
+    solamente de la masa y la rigidez de cada hoja: el aire encerrado actúa como
+    un resorte y acopla el movimiento de ambas placas.
+
+    El conjunto puede representarse como un sistema **masa–aire–masa**:
+
+    - La placa 1 constituye la primera masa.
+    - La cámara de aire aporta la elasticidad.
+    - La placa 2 constituye la segunda masa.
+
+    Este mecanismo produce una frecuencia de resonancia \(f_0\) y obliga a
+    estudiar la pérdida por transmisión mediante tres regiones. Por eso, agregar
+    una segunda placa no genera la misma mejora en todas las frecuencias.
     """)
-    c1,c2,c3=st.columns(3)
-    m1=c1.slider("Masa hoja 1 (kg/m²)",5,40,10,key="lab2_d_m1")
-    m2=c2.slider("Masa hoja 2 (kg/m²)",5,40,10,key="lab2_d_m2")
-    depth=c3.slider("Cámara d (mm)",30,200,70,key="lab2_d_depth")
-    connection=st.radio("Conexión constructiva",
-        ["Independiente","Montante compartido","Puente accidental"],horizontal=True,key="lab2_connection")
-    curve,f0,fl=_sharp_curve(m1,m2,depth,connection)
-    a,b,c=st.columns(3)
-    a.metric("Resonancia f₀",f"{f0:.0f} Hz")
-    b.metric("Transición fₗ",f"{fl:.0f} Hz")
-    c.metric("Masa total",f"{m1+m2} kg/m²")
-    _plot_curves([
-        (f"Sistema doble · {connection}",curve,"solid"),
-        ("Una hoja de igual masa",_mass_law_curve(m1+m2),"dash"),
-    ],"Simulador masa–aire–masa",[(f0,"f₀"),(fl,"fₗ")])
-    st.latex(r"f_0=60\sqrt{\frac{1/m'_1+1/m'_2}{d}}")
-    st.caption("d se expresa en metros. Aumentar la profundidad o las masas desplaza f₀ hacia frecuencias más bajas.")
-    _lab2_image("metalcon")
-    st.markdown("""
-    En Metalcon simple, ambas caras se fijan a los mismos montantes: los apoyos repetidos
-    forman una **conexión lineal rígida**. En doble estructura, cada hoja se fija a su propio
-    bastidor y no existe conexión directa si también se separan soleras, tornillos y refuerzos.
+    st.info(
+        "**Continuidad con la Etapa 3:** cada hoja se calcula primero como una placa "
+        "simple con integración de campo entre 0° y 78°. Después, ambas curvas se "
+        "combinan mediante la ecuación de panel doble."
+    )
+    st.caption(
+        "En esta explicación se utiliza el modelo teórico ideal. Las correcciones "
+        "por absorbente, montantes, fijaciones, fugas y transmisiones laterales no "
+        "forman parte de esta etapa."
+    )
+
+    st.markdown("### 1 · Propiedades de las dos placas")
+    st.markdown(r"""
+        Cada hoja conserva las propiedades del panel simple estudiado en la
+        Etapa 3. Para la placa \(i\):
     """)
+    st.latex(r"m'_i=\rho_i h_i")
+    st.latex(r"B_i=\frac{E_i h_i^3}{12}")
+    st.caption(
+        "Para cada hoja i, m′ es la masa superficial en kg/m² y B es la rigidez "
+        "a flexión en N·m."
+    )
+
+    st.markdown("### 2 · Resonancia masa–aire–masa")
+    st.markdown(r"""
+    En \(f_0\), las dos placas y el aire de la cámara interactúan con mayor
+    intensidad. Esta resonancia constituye una zona desfavorable porque puede
+    reducir el aislamiento del sistema. Su posición depende de las masas
+    superficiales y de la profundidad \(d\) de la cámara:
+    """)
+    st.latex(
+        r"f_0=\frac{1}{2\pi}"
+        r"\sqrt{\rho_0c^2}"
+        r"\sqrt{\frac{m'_1+m'_2}{m'_1m'_2d}}"
+    )
+    st.markdown(r"""
+    Al aumentar la masa de las hojas o la profundidad de la cámara, \(f_0\)
+    normalmente se desplaza hacia frecuencias más bajas.
+
+    La segunda frecuencia característica, \(f_1\), marca el cambio hacia la
+    región superior del modelo:
+    """)
+    st.latex(r"f_1=\frac{c}{2\pi d}")
+    st.caption(
+        "En ambas expresiones, d se ingresa en metros; ρ₀ = 1,18 kg/m³ y c = 343 m/s."
+    )
+
+    st.markdown("### 3 · Ecuación por regiones")
+    st.latex(
+        r"TL_D(f)=\begin{cases}"
+        r"TL_{eq}(f), & f<f_0\\[4pt]"
+        r"TL_1(f)+TL_2(f)+20\log_{10}(fd)-29, & f_0\leq f<f_1\\[4pt]"
+        r"TL_1(f)+TL_2(f)+6, & f\geq f_1"
+        r"\end{cases}"
+    )
+    st.markdown(r"""
+    **Región 1 · Bajo \(f_0\).** Las placas se comportan de manera acoplada y se
+    representan como un panel equivalente. Todavía no se obtiene el beneficio
+    completo de la cámara.
+    """)
+    st.latex(r"m'_{eq}=m'_1+m'_2")
+    st.latex(r"B_{eq}=B_1+B_2")
+    st.latex(r"\eta_{eq}=\eta_1+\eta_2")
+    st.markdown(r"""
+    **Región 2 · Entre \(f_0\) y \(f_1\).** Se desarrolla el comportamiento
+    masa–aire–masa. La pérdida por transmisión depende de las dos placas y
+    aparece explícitamente la profundidad \(d\) de la cámara.
+
+    **Región 3 · Sobre \(f_1\).** El modelo combina la pérdida por transmisión
+    de ambas hojas y agrega 6 dB.
+    """)
+    st.caption(
+        "TL₁, TL₂ y TLₑq se obtienen con el mismo cálculo angular y de campo "
+        "utilizado para las placas simples en la Etapa 3."
+    )
+
+    materials={
+        "Yeso-cartón":{"rho":800.0,"E":2.5,"eta":0.030,"h":12.5},
+        "Madera":{"rho":600.0,"E":10.0,"eta":0.020,"h":18.0},
+        "Hormigón":{"rho":2400.0,"E":30.0,"eta":0.010,"h":100.0},
+    }
+    st.markdown("### 4 · Explorador técnico del modelo")
+    st.markdown(
+        "Modifica los parámetros para observar cómo cambian las masas superficiales, "
+        "las frecuencias características y la curva. Esta sección ilustra la teoría; "
+        "el ejercicio de aplicación aparece al final."
+    )
+    col_left,col_right=st.columns(2)
+    with col_left:
+        st.markdown("#### Placa 1")
+        material_1=st.selectbox(
+            "Material de la placa 1",list(materials),index=0,
+            key="lab2_s4_material_1")
+        default_1=materials[material_1]
+        h1_mm=st.number_input(
+            "Espesor de la placa 1 (mm)",4.0,300.0,float(default_1["h"]),0.5,
+            key="lab2_s4_h1")
+    with col_right:
+        st.markdown("#### Placa 2")
+        material_2=st.selectbox(
+            "Material de la placa 2",list(materials),index=0,
+            key="lab2_s4_material_2")
+        default_2=materials[material_2]
+        h2_mm=st.number_input(
+            "Espesor de la placa 2 (mm)",4.0,300.0,float(default_2["h"]),0.5,
+            key="lab2_s4_h2")
+    depth_mm=st.slider(
+        "Profundidad de la cámara d (mm)",20,300,70,5,
+        key="lab2_s4_depth")
+
+    h1=h1_mm/1000
+    h2=h2_mm/1000
+    d=depth_mm/1000
+    m1=default_1["rho"]*h1
+    m2=default_2["rho"]*h2
+    b1=default_1["E"]*1e9*h1**3/12
+    b2=default_2["E"]*1e9*h2**3/12
+    eta1=default_1["eta"]
+    eta2=default_2["eta"]
+    rho_air=1.18
+    sound_speed=343.0
+    f0=(1/(2*math.pi))*math.sqrt(rho_air*sound_speed**2)*math.sqrt(
+        (m1+m2)/(m1*m2*d)
+    )
+    f1=sound_speed/(2*math.pi*d)
+
+    frequencies=np.arange(50.0,5000.0+1,10.0)
+    _,tl1,_,_,_=_panel_simple_field_tl(frequencies,m1,b1,eta1)
+    _,tl2,_,_,_=_panel_simple_field_tl(frequencies,m2,b2,eta2)
+    _,tl_equivalent,_,_,_=_panel_simple_field_tl(
+        frequencies,m1+m2,b1+b2,eta1+eta2
+    )
+    tl_double=np.empty_like(frequencies)
+    region_1=frequencies < f0
+    region_2=(frequencies >= f0) & (frequencies < f1)
+    region_3=frequencies >= f1
+    tl_double[region_1]=tl_equivalent[region_1]
+    tl_double[region_2]=(
+        tl1[region_2]+tl2[region_2]
+        +20*np.log10(frequencies[region_2]*d)-29
+    )
+    tl_double[region_3]=tl1[region_3]+tl2[region_3]+6
+
+    a,b,c,d_metric=st.columns(4)
+    a.metric("Masa placa 1",f"{m1:.2f} kg/m²")
+    b.metric("Masa placa 2",f"{m2:.2f} kg/m²")
+    c.metric("Resonancia f₀",f"{f0:.0f} Hz")
+    d_metric.metric("Transición f₁",f"{f1:.0f} Hz")
+
+    st.markdown("#### Curva y tres regiones del modelo")
+    fig=go.Figure()
+    fig.add_vrect(
+        x0=50,x1=min(f0,5000),fillcolor="#dcecff",opacity=.42,
+        line_width=0,annotation_text="1 · Panel equivalente",
+        annotation_position="top left")
+    if f0 < 5000:
+        fig.add_vrect(
+            x0=max(50,f0),x1=min(f1,5000),fillcolor="#fff0cf",opacity=.42,
+            line_width=0,annotation_text="2 · Masa–aire–masa",
+            annotation_position="top left")
+    if f1 < 5000:
+        fig.add_vrect(
+            x0=max(50,f1),x1=5000,fillcolor="#dcf5e8",opacity=.42,
+            line_width=0,annotation_text="3 · Región superior",
+            annotation_position="top left")
+    fig.add_trace(go.Scatter(
+        x=frequencies,y=tl1,mode="lines",name=f"Placa 1 · {material_1}",
+        line=dict(color="#5598d4",width=2,dash="dot")))
+    fig.add_trace(go.Scatter(
+        x=frequencies,y=tl2,mode="lines",name=f"Placa 2 · {material_2}",
+        line=dict(color="#d99734",width=2,dash="dot")))
+    fig.add_trace(go.Scatter(
+        x=frequencies,y=tl_double,mode="lines",name="Panel doble",
+        line=dict(color="#173f63",width=4)))
+    if 50 <= f0 <= 5000:
+        fig.add_vline(x=f0,line_dash="dash",line_color="#d64545",
+                      annotation_text="f₀",annotation_position="top")
+    if 50 <= f1 <= 5000:
+        fig.add_vline(x=f1,line_dash="dash",line_color="#16845b",
+                      annotation_text="f₁",annotation_position="top")
+    fig.update_layout(
+        title="Pérdida por transmisión · placas simples y sistema doble",
+        xaxis_title="Frecuencia (Hz) · escala lineal",
+        yaxis_title="TL de campo (dB)",
+        xaxis=dict(type="linear",range=[50,5000],dtick=500),
+        height=510,hovermode="x unified",
+        margin=dict(l=40,r=20,t=75,b=45),
+        legend=dict(orientation="h",y=1.16))
+    st.plotly_chart(fig,use_container_width=True,key="lab2_s4_double_curve")
+    st.caption(
+        "Las discontinuidades en f₀ y f₁ pertenecen a la formulación idealizada por "
+        "tramos. La predicción no incorpora fugas, uniones rígidas ni transmisiones laterales."
+    )
+
+    st.markdown("#### Resultados por frecuencia")
+    sample_frequencies=np.array([125.,250.,500.,1000.,2000.,4000.])
+    sample_indices=[int(np.argmin(np.abs(frequencies-f))) for f in sample_frequencies]
+    table=pd.DataFrame({
+        "Frecuencia (Hz)":sample_frequencies.astype(int),
+        "TL placa 1 (dB)":tl1[sample_indices],
+        "TL placa 2 (dB)":tl2[sample_indices],
+        "TL panel doble (dB)":tl_double[sample_indices],
+        "Región":[
+            "1 · Panel equivalente" if f < f0 else
+            "2 · Masa–aire–masa" if f < f1 else
+            "3 · Región superior"
+            for f in sample_frequencies
+        ],
+    })
+    st.dataframe(
+        table.style.format({
+            "TL placa 1 (dB)":"{:.1f}",
+            "TL placa 2 (dB)":"{:.1f}",
+            "TL panel doble (dB)":"{:.1f}",
+        }),
+        use_container_width=True,hide_index=True)
+
+    st.markdown("### 5 · Ejercicio breve de aplicación")
+    st.markdown(r"""
+    Una sala de máquinas debe separarse de una oficina mediante dos placas y una
+    cámara de aire. Utiliza el explorador con la configuración seleccionada y:
+
+    1. Informa \(m'_1\), \(m'_2\), \(f_0\) y \(f_1\).
+    2. Identifica qué región está activa a 125, 500, 1.000 y 4.000 Hz.
+    3. Compara el \(TL\) del panel doble con el de cada placa simple.
+    4. Modifica solamente la profundidad de la cámara y explica cómo cambian
+       \(f_0\), \(f_1\) y el comportamiento entre 500 y 2.000 Hz.
+    5. Recomienda una profundidad de cámara y justifica técnicamente tu decisión.
+    """)
+    analysis=st.text_area(
+        "Conclusión técnica",
+        key="lab2_s4_analysis",height=150,
+        placeholder=(
+            "Las masas superficiales son... La resonancia f₀ aparece en... "
+            "Entre 500 y 2.000 Hz el sistema... Aumentaría/disminuiría la cámara porque..."
+        ))
+    if st.button("Comprobar mi análisis",key="lab2_s4_check_analysis"):
+        if len(analysis.strip()) < 140:
+            st.warning(
+                "La conclusión aún es breve. Incluye m′₁, m′₂, f₀, f₁, al menos "
+                "dos valores de TL y una decisión sobre la cámara.")
+        else:
+            st.success(
+                "La extensión es suficiente. Verifica que tu decisión se apoye en "
+                "los valores calculados y en la región activa del modelo.")
+
+    st.markdown("### 6 · Comprobación conceptual")
+    check(
+        "lab2_s4_q1",
+        "¿Qué representa físicamente el aire contenido en la cámara?",
+        ["Un resorte acústico","Una tercera placa rígida","Una fuente sonora","Una fuga"],
+        "Un resorte acústico",
+        "Las dos placas actúan como masas y el aire encerrado aporta la elasticidad del sistema."
+    )
+    check(
+        "lab2_s4_q2",
+        "¿Qué sucede normalmente con f₀ al aumentar la profundidad de la cámara?",
+        ["Disminuye","Aumenta","No cambia","Se hace igual a f₁"],
+        "Disminuye",
+        "Al aumentar d disminuye la rigidez efectiva del resorte de aire y la resonancia se desplaza hacia abajo."
+    )
+    check(
+        "lab2_s4_q3",
+        "¿Qué modelo se aplica por debajo de f₀?",
+        [
+            "Un panel equivalente con masas, rigideces y pérdidas combinadas",
+            "La suma de ambas placas más 6 dB",
+            "Solo la placa más pesada",
+            "La ecuación de la cámara sin considerar las placas",
+        ],
+        "Un panel equivalente con masas, rigideces y pérdidas combinadas",
+        "Bajo f₀ el cálculo utiliza m′eq, Beq y ηeq para representar la respuesta conjunta."
+    )
+    check(
+        "lab2_s4_q4",
+        "¿Cuál expresión corresponde a la región entre f₀ y f₁?",
+        [
+            "TL₁ + TL₂ + 20 log₁₀(fd) − 29",
+            "TL₁ + TL₂ + 6",
+            "TL de la placa 1 solamente",
+            "20 log₁₀(m′₁ + m′₂)",
+        ],
+        "TL₁ + TL₂ + 20 log₁₀(fd) − 29",
+        "En la región intermedia intervienen ambas hojas y aparece explícitamente la profundidad de la cámara."
+    )
+    check(
+        "lab2_s4_q5",
+        "¿Por qué esta curva no predice por sí sola el desempeño completo de un tabique construido?",
+        [
+            "Porque no incorpora montantes, fijaciones, fugas, encuentros ni transmisiones laterales",
+            "Porque solo puede calcularse a 78 Hz",
+            "Porque las masas superficiales no afectan el aislamiento",
+            "Porque un panel doble siempre funciona como una placa simple",
+        ],
+        "Porque no incorpora montantes, fijaciones, fugas, encuentros ni transmisiones laterales",
+        "El ejercicio representa el mecanismo ideal de dos placas y una cámara; la obra agrega caminos estructurales y defectos posibles."
+    )
 
 def lab2_stage5():
     _lab2_heading(5, "Modelo de Sharp: TL por tramos",
@@ -5530,7 +5820,7 @@ LAB2_STAGE_TITLES = [
     ("Etapa 1","Pérdida de transmisión: energía, τ y TL"),
     ("Etapa 2","Panel simple: incidencia y cuatro zonas"),
     ("Etapa 3","Comparación aplicada de placas simples"),
-    ("Etapa 4","Panel doble y masa–aire–masa"),
+    ("Etapa 4","Pérdida de transmisión en paneles dobles"),
     ("Etapa 5","Modelo de Sharp: TL por tramos"),
     ("Etapa 6","Comparación aplicada y cierre parcial"),
     ("Etapa 7","Ventanas dobles · segunda mitad"),
