@@ -4423,6 +4423,10 @@ def lab2_stage2():
     _lab2_heading(2, "Panel simple: incidencia y cuatro zonas físicas",
                   "Relacionar masa, frecuencia, rigidez, resonancia y coincidencia con la forma de la curva.")
     _lab2_image("panel_simple")
+    st.caption(
+        "Placa simple sometida a una onda sonora: una parte de la energía se refleja, "
+        "otra hace vibrar la placa y una fracción se transmite al recinto receptor."
+    )
     st.markdown("""
     Un **panel simple** es una hoja o conjunto de capas unidas rígidamente que vibran como
     una sola masa: vidrio monolítico, placa de yeso, tablero de madera, chapa o muro macizo.
@@ -4498,6 +4502,62 @@ def lab2_stage2():
     Esta rigidez determina los modos propios y, junto con m′, la propagación de las ondas
     de flexión y la frecuencia crítica.
     """)
+    st.markdown("#### Parámetros que controlan la respuesta")
+    parameter_cards = [
+        ("Densidad ρ",
+         "Cantidad de materia contenida en un volumen.",
+         "Dos placas del mismo espesor pueden pesar distinto por m² porque sus materiales tienen densidades diferentes."),
+        ("Espesor h",
+         "Distancia entre las dos caras de esta única placa.",
+         "Al aumentarlo crecen la masa superficial y, con mucha mayor intensidad, la rigidez."),
+        ("Módulo de Young E",
+         "Resistencia del material a deformarse elásticamente.",
+         "Un valor alto significa que cuesta más curvar la placa."),
+        ("Coeficiente de Poisson ν",
+         "Relaciona la deformación longitudinal con la transversal.",
+         "Es un valor sin unidades que participa en el cálculo completo de la rigidez."),
+        ("Factor de pérdidas η",
+         "Capacidad del material para disipar vibración.",
+         "Un valor mayor amortigua la respuesta y tiende a suavizar los valles resonantes."),
+    ]
+    for row_start in range(0, len(parameter_cards), 3):
+        parameter_columns = st.columns(3)
+        for column, (title, technical, simple) in zip(
+            parameter_columns, parameter_cards[row_start:row_start + 3]
+        ):
+            with column:
+                st.markdown(
+                    f'<div class="lesson"><b>{title}</b><p>{technical}</p>'
+                    f'<p><b>En sencillo:</b> {simple}</p></div>',
+                    unsafe_allow_html=True,
+                )
+
+    st.markdown("#### Frecuencia crítica y coincidencia")
+    coincidence_visual, coincidence_text = st.columns([1.05, 1])
+    with coincidence_visual:
+        st.image(
+            str(ROOT / "assets/course_visuals/stage6_coincidence.webp"),
+            caption="Coincidencia entre la onda sonora y la onda de flexión de una placa.",
+            use_container_width=True,
+        )
+    with coincidence_text:
+        st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
+        st.markdown("""
+        La **frecuencia crítica** es la zona en que la onda sonora puede acoplarse con
+        una onda de flexión de la placa. Ese acoplamiento facilita la transmisión y
+        puede producir un valle en la curva de aislamiento.
+
+        **En sencillo:** existe una zona donde la placa vibra de una forma especialmente
+        favorable para que el sonido pase. Se calcula usando la masa superficial y la
+        rigidez explicadas antes; no es un parámetro independiente.
+        """)
+        st.latex(r"m'=\rho h")
+        st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
+        st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
+        st.caption(
+            "η no determina por sí solo fᶜ; influye principalmente en la profundidad "
+            "y anchura del valle de coincidencia."
+        )
     st.markdown("#### Ecuación de movimiento de una placa simple sometida a presión sonora")
     st.markdown("""
     Para describir cómo responde la placa cuando el sonido la excita, se plantea su
@@ -4512,6 +4572,23 @@ def lab2_stage2():
     inercia puede simplificarse este equilibrio y obtenerse la ley de masa.
     """)
     st.markdown("### 4. De la impedancia de masa a la ley de masa aproximada")
+    mass_visual, mass_explanation = st.columns([1.05, 1])
+    with mass_visual:
+        st.image(
+            str(ROOT / "assets/course_visuals/stage6_mass_law.webp"),
+            caption="Zona controlada por masa: una placa más pesada opone mayor inercia.",
+            use_container_width=True,
+        )
+    with mass_explanation:
+        st.markdown(
+            '<div class="lesson"><b>Lectura para no ingenieros</b>'
+            '<p>En esta zona, el sonido intenta mover la placa como una masa. '
+            'Aumentar la masa superficial o la frecuencia dificulta ese movimiento '
+            'y eleva la pérdida de transmisión.</p>'
+            '<p>Es una tendencia, no toda la curva: las resonancias y la coincidencia '
+            'pueden producir pérdidas locales de aislamiento.</p></div>',
+            unsafe_allow_html=True,
+        )
     st.markdown("""
     En la región donde domina la **inercia**, una hoja ideal puede representarse mediante
     su impedancia mecánica por unidad de superficie. Para una excitación armónica:
@@ -4637,22 +4714,24 @@ def lab2_stage2():
             "modifica la profundidad y anchura del valle."
         ),
     }
+    st.markdown("#### Las cuatro zonas, siempre visibles")
+    zone_cards = st.columns(2)
+    for index, (zone_title, zone_text) in enumerate(zone_explanations.items()):
+        with zone_cards[index % 2]:
+            plain_language = {
+                "1 · Rigidez": "La placa se comporta como una superficie elástica: importan mucho sus apoyos y cuánto cuesta doblarla.",
+                "2 · Resonancias": "La placa tiene frecuencias en las que vibra con mayor facilidad y puede dejar pasar más sonido.",
+                "3 · Ley de masa": "Aquí domina el peso por metro cuadrado: una placa más pesada suele ser más difícil de mover.",
+                "4 · Coincidencia": "La onda del aire y la vibración de la placa se sincronizan y aparece una pérdida localizada de aislamiento.",
+            }[zone_title]
+            st.markdown(
+                f'<div class="lesson"><b>{zone_title}</b><p>{zone_text}</p>'
+                f'<p><b>En sencillo:</b> {plain_language}</p></div>',
+                unsafe_allow_html=True,
+            )
     st.markdown(
         f'<div class="lesson"><b>{selected_zone} · por qué cambia:</b> '
         f'{zone_explanations[selected_zone]}</div>',unsafe_allow_html=True)
-    with st.expander("Desarrollo de la frecuencia crítica"):
-        st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
-        st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
-        st.markdown("Para una placa homogénea se combinan las siguientes relaciones:")
-        st.latex(r"m'=\rho h")
-        st.latex(r"D\propto Eh^3")
-        st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
-        st.markdown("""
-        Por eso aumentar el espesor reduce aproximadamente la frecuencia crítica: la
-        rigidez crece con el cubo del espesor, mucho más rápido que la masa superficial,
-        que crece linealmente. Materiales con mayor relación rigidez/masa presentan una
-        frecuencia crítica más baja.
-        """)
     st.caption("Modelo didáctico: muestra mecanismos y tendencias; no sustituye una curva de ensayo del producto.")
     st.markdown("### 7. Preguntas de comprensión")
     check("lab2_s2_q1",
@@ -5456,6 +5535,11 @@ def lab2_stage3():
     cómo la densidad, el espesor, la rigidez y el amortiguamiento modifican la masa
     superficial, la frecuencia crítica y la curva completa de aislamiento.
     """)
+    st.success("""
+    **En palabras simples:** probaremos tres “paredes de una sola pieza”. La aplicación
+    enviará sonido contra cada una desde muchas direcciones y calculará cuánto logra
+    atravesarla. Una curva más alta significa que pasa menos sonido.
+    """)
     _lab2_image(
         "panel_simple",
         "Modelo utilizado: una placa homogénea simple, sin cámara, montantes ni una segunda hoja.",
@@ -5466,18 +5550,75 @@ def lab2_stage3():
         "0° y 78° y, finalmente, el resultado se transforma en TL de campo."
     )
 
+    st.markdown("### Las tres placas que se compararán")
+    image_col_1,image_col_2,image_col_3=st.columns(3)
+    with image_col_1:
+        st.markdown("#### Yeso-cartón")
+        _lab2_image(
+            "yeso_carton",
+            "Una placa simple de yeso-cartón, sin perfiles, cámara ni segunda hoja.",
+        )
+        st.markdown(
+            "**En palabras simples:** es una hoja liviana. Se mueve con mayor "
+            "facilidad cuando recibe sonido y, por eso, normalmente deja pasar más "
+            "energía que una placa pesada."
+        )
+    with image_col_2:
+        st.markdown("#### Madera")
+        _lab2_image(
+            "madera",
+            "Un panel simple y macizo de madera, sin entramado ni revestimientos.",
+        )
+        st.markdown(
+            "**En palabras simples:** combina un peso moderado con una rigidez "
+            "mayor que la del yeso-cartón. Su respuesta cambia con la frecuencia "
+            "y con la facilidad con que el panel puede flexionarse."
+        )
+    with image_col_3:
+        st.markdown("#### Hormigón")
+        _lab2_image(
+            "hormigon",
+            "Un muro simple y macizo de hormigón, sin cámaras ni capas adicionales.",
+        )
+        st.markdown(
+            "**En palabras simples:** concentra mucha masa en cada metro cuadrado. "
+            "Cuesta más hacerlo vibrar, por lo que generalmente transmite menos "
+            "sonido que las alternativas livianas."
+        )
+    st.caption(
+        "Las imágenes representan una sola hoja homogénea de cada material. "
+        "No corresponden a tabiques dobles ni a sistemas con cámara de aire."
+    )
+
     st.markdown("### 1 · Modelo físico utilizado")
     st.markdown("#### Masa superficial")
     st.latex(r"m'=\rho h")
     st.caption("Masa por unidad de superficie de la placa, expresada en kg/m².")
+    st.info(
+        "**Explicación para no ingenieros:** indica cuánto pesa un metro cuadrado "
+        "de la placa. No importa cuánto pesa el muro completo, sino cuánto material "
+        "hay en cada m². En general, una placa con mayor masa superficial es más "
+        "difícil de mover y puede aislar mejor."
+    )
 
     st.markdown("#### Rigidez a flexión")
     st.latex(r"B=\frac{E h^3}{12}")
     st.caption("Rigidez a flexión por unidad de ancho, expresada en N·m.")
+    st.info(
+        "**Explicación para no ingenieros:** representa qué tan difícil es doblar "
+        "la placa. Una lámina flexible vibra con facilidad; una muy rígida se opone "
+        "a curvarse. El espesor influye mucho porque aparece elevado al cubo."
+    )
 
     st.markdown("#### Frecuencia crítica")
     st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{B}}")
     st.caption("Frecuencia a partir de la cual puede producirse el fenómeno de coincidencia.")
+    st.info(
+        "**Explicación para no ingenieros:** es una frecuencia especialmente "
+        "desfavorable. Cerca de ella, el sonido del aire logra hacer vibrar la placa "
+        "de manera muy eficiente y el aislamiento puede presentar una caída, aunque "
+        "la placa sea pesada."
+    )
 
     st.markdown("#### Coeficiente de transmisión para cada frecuencia y ángulo")
     st.write(
@@ -5496,16 +5637,33 @@ def lab2_stage3():
         r"\frac{1}{\left[1+\eta A(\theta,f)C(\theta,f)\right]^2"
         r"+\left[A(\theta,f)\left(1-C(\theta,f)\right)\right]^2}"
     )
+    st.info(
+        "**Explicación para no ingenieros:** τ es la fracción de energía sonora que "
+        "consigue atravesar la placa. Si τ es grande, pasa más sonido; si τ es "
+        "pequeño, la placa aísla mejor. Se calcula para distintas frecuencias y "
+        "ángulos porque el sonido no siempre llega de frente."
+    )
     st.markdown("#### Coeficiente de transmisión de campo")
     st.latex(
         r"\overline{\tau}_{campo}(f)=2{,}0904"
         r"\int_0^{78^\circ}\tau(\theta,f)\cos\theta\sin\theta\,d\theta"
+    )
+    st.info(
+        "**Explicación para no ingenieros:** en un recinto real el sonido llega "
+        "desde muchas direcciones. Esta integración reúne todas esas incidencias "
+        "entre 0° y 78° en un único valor energético representativo del campo sonoro."
     )
     st.markdown("#### Pérdida por transmisión de campo")
     st.latex(
         r"TL_{campo}(f)=10\log_{10}\left(\frac{1}"
         r"{\overline{\tau}_{campo}(f)}\right)"
         r"=-10\log_{10}\left[\overline{\tau}_{campo}(f)\right]"
+    )
+    st.info(
+        "**Explicación para no ingenieros:** TL expresa el aislamiento en decibeles. "
+        "Un TL mayor significa que atraviesa menos energía sonora. Por ejemplo, una "
+        "subida de la curva indica una mejora; un valle señala una frecuencia donde "
+        "la placa está aislando menos."
     )
     st.caption(
         "ω = 2πf; ρ₀ = 1,18 kg/m³; c = 343 m/s. "
@@ -5555,6 +5713,14 @@ def lab2_stage3():
     comparar correctamente, la aplicación aplicará el mismo intervalo de frecuencia,
     campo angular y ecuaciones a todas las alternativas.
     """)
+    st.markdown("""
+    **Guía rápida de los controles**
+
+    - **Densidad:** qué tan concentrada está la materia; no es el peso total.
+    - **Espesor:** distancia entre las dos caras de esta única placa.
+    - **Módulo de Young:** resistencia del material a deformarse.
+    - **Factor de pérdidas:** capacidad del material para amortiguar su vibración.
+    """)
     tabs=st.tabs(list(presets.keys()))
     for tab,(material,preset) in zip(tabs,presets.items()):
         slug={"Yeso-cartón":"yeso","Madera":"madera","Hormigón":"hormigon"}[material]
@@ -5583,6 +5749,26 @@ def lab2_stage3():
                 "**una única placa simple, homogénea e infinita**. No se incorporan "
                 "montantes, uniones, cavidades, segundas hojas ni transmisiones laterales."
             )
+            st.markdown({
+                "Yeso-cartón":(
+                    "**Cómo interpretar este caso:** al ser una placa liviana y "
+                    "delgada, tendrá una masa superficial baja. Observa dónde aparece "
+                    "su frecuencia crítica y si la curva presenta allí una pérdida "
+                    "de aislamiento."
+                ),
+                "Madera":(
+                    "**Cómo interpretar este caso:** el mayor espesor aumenta tanto "
+                    "la masa como, con mucha más fuerza, la rigidez. Comprueba si eso "
+                    "hace que su curva y su frecuencia crítica sean distintas de las "
+                    "del yeso-cartón."
+                ),
+                "Hormigón":(
+                    "**Cómo interpretar este caso:** su elevada densidad y espesor "
+                    "producen una masa superficial muy grande. Compara cuánto aumenta "
+                    "el TL y recuerda que aquí se modela solo el material, no sus "
+                    "encuentros ni posibles fugas en obra."
+                ),
+            }[material])
             c1,c2,c3=st.columns(3)
             rho=c1.number_input(
                 "Densidad ρ (kg/m³)",300.0,3000.0,preset["rho"],10.0,
@@ -5615,6 +5801,10 @@ def lab2_stage3():
             m1.metric("Masa superficial m′",f"{surface_mass:.2f} kg/m²")
             m2.metric("Rigidez B",f"{stiffness:,.1f} N·m")
             m3.metric("Frecuencia crítica fᶜ",f"{critical_frequency:,.0f} Hz")
+            st.caption(
+                "Estos resultados indican cuánto pesa la placa por metro cuadrado, "
+                "cuánto se resiste a curvarse y dónde puede aparecer la coincidencia."
+            )
             if 50 <= critical_frequency <= 5000:
                 st.warning(
                     f"fᶜ = {critical_frequency:,.0f} Hz está dentro del intervalo. "
@@ -5645,6 +5835,11 @@ def lab2_stage3():
             st.plotly_chart(
                 fig_material,use_container_width=True,
                 key=f"lab2_s3_{slug}_curve")
+            st.info(
+                "**Cómo leer la curva:** de izquierda a derecha se pasa de sonidos "
+                "graves a agudos; cuanto más alta está la línea, mayor es el "
+                "aislamiento. Observa qué ocurre cerca de la línea vertical fᶜ."
+            )
             st.dataframe(
                 pd.DataFrame({
                     "Frecuencia (Hz)":sample_frequencies.astype(int),
@@ -5657,8 +5852,16 @@ def lab2_stage3():
                     "TL campo (dB)":"{:.1f}",
                 }),
                 use_container_width=True,hide_index=True)
+            st.caption(
+                "La tabla presenta el mismo fenómeno de dos formas: menor energía "
+                "transmitida equivale a un TL mayor."
+            )
 
     st.markdown("### 3 · Comparación conjunta")
+    st.markdown(
+        "Aquí se superponen las tres alternativas. En cada frecuencia, la curva que "
+        "queda más arriba entrega el mayor aislamiento según este modelo."
+    )
     visible=st.multiselect(
         "Curvas visibles",
         list(presets.keys()),
@@ -5685,6 +5888,11 @@ def lab2_stage3():
         legend=dict(orientation="h",y=1.16))
     st.plotly_chart(
         comparison,use_container_width=True,key="lab2_s3_comparison")
+    st.info(
+        "**No compares solo el espesor.** También importan la densidad, la masa "
+        "superficial y la rigidez. Por eso el orden de las curvas puede cambiar "
+        "según la frecuencia."
+    )
 
     comparison_rows=[]
     for material,result in material_results.items():
@@ -5703,6 +5911,10 @@ def lab2_stage3():
             **{f"TL {int(f)} Hz":"{:.1f}" for f in sample_frequencies},
         }),
         use_container_width=True,hide_index=True)
+    st.caption(
+        "Para justificar tu decisión, compara una misma columna de frecuencia entre "
+        "los tres materiales y cita sus valores."
+    )
     st.caption(
         "Predicción teórica de placas infinitas y homogéneas. No equivale a un ensayo "
         "normalizado y no incorpora juntas, apoyos, dimensiones finitas, fugas ni flancos."
