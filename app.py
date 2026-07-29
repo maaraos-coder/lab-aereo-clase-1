@@ -4027,6 +4027,10 @@ LAB2_IMAGES = {
     "hormigon": "material_hormigon.svg",
     "comparador_hormigon": "comparador_panel_hormigon.svg",
     "comparador_tabique": "comparador_tabique_doble.svg",
+    "s2_punto1": "punto1_placa_masa_superficial.svg",
+    "s2_punto2": "punto2_tipos_incidencia.svg",
+    "s2_punto3": "punto3_rigidez_flexion.svg",
+    "s2_punto4": "punto4_promedio_campo.svg",
 }
 
 def _lab2_image(image_key, caption=None):
@@ -4428,6 +4432,7 @@ def lab2_stage2():
     No existe una segunda hoja independiente ni una cámara que actúe como resorte.
     """)
     st.markdown("### 1. ¿Qué define a una placa simple?")
+    _lab2_image("s2_punto1")
     st.markdown("""
     Se considera **placa simple** al elemento que, frente a la excitación sonora, se
     desplaza y flexiona esencialmente como una sola hoja. Puede estar constituido por
@@ -4451,6 +4456,7 @@ def lab2_stage2():
     dimensiones, los apoyos, el amortiguamiento y la frecuencia.
     """)
     st.markdown("### 2. Incidencia normal, oblicua, aleatoria y de campo")
+    _lab2_image("s2_punto2")
     st.markdown("""
     El ángulo **θ se mide respecto de la línea normal a la placa**, no respecto de su
     superficie:
@@ -4481,6 +4487,7 @@ def lab2_stage2():
     coeficientes de transmisión τ y después se transforma el resultado a decibeles.
     """)
     st.markdown("### 3. Rigidez de flexión: la placa también se deforma")
+    _lab2_image("s2_punto3")
     st.markdown("""
     Una placa simple no se desplaza únicamente como una masa rígida: también se curva.
     La resistencia que opone a esa deformación se denomina **rigidez de flexión**:
@@ -4505,6 +4512,7 @@ def lab2_stage2():
     y obtenerse la ley de masa.
     """)
     st.markdown("### 4. De la impedancia de masa a la ley de masa aproximada")
+    _lab2_image("s2_punto4")
     st.markdown("""
     En la región donde domina la **inercia**, una hoja ideal puede representarse mediante
     su impedancia mecánica por unidad de superficie. Para una excitación armónica:
@@ -4543,6 +4551,8 @@ def lab2_stage2():
     tl_angle=-10*math.log10(tau_angle)
     tau_normal=_mass_sheet_tau(angular_mass,angular_frequency,0)
     tl_normal=-10*math.log10(tau_normal)
+    tau_78=_mass_sheet_tau(angular_mass,angular_frequency,78)
+    tl_78=-10*math.log10(tau_78)
     chart_a,chart_b=st.columns(2)
     with chart_a:
         st.plotly_chart(
@@ -4582,6 +4592,31 @@ def lab2_stage2():
         'a incidencia rasante disminuye la componente normal que excita la hoja. '
         'El resultado de campo no es el TL de un único ángulo: integra muchos ángulos.</div>',
         unsafe_allow_html=True)
+    st.markdown("#### ¿Por qué el TL a 0° y a 78° no es igual?")
+    c0,c78,cd=st.columns(3)
+    c0.metric("Incidencia normal · 0°",f"{tl_normal:.1f} dB")
+    c78.metric("Incidencia oblicua · 78°",f"{tl_78:.1f} dB")
+    cd.metric("Diferencia 78° − 0°",f"{tl_78-tl_normal:+.1f} dB")
+    st.markdown(
+        f"""
+        En el modelo de hoja controlada por masa aparece el término **cos θ**:
+        """)
+    st.latex(r"\tau(\theta)=\left[1+\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)^2\right]^{-1}")
+    st.markdown(
+        f"""
+        A **0°**, cos θ = 1 y la componente normal de la excitación es máxima: la
+        oposición inercial de la hoja se aprovecha completamente y el modelo entrega
+        **TL = {tl_normal:.1f} dB**. A **78°**, cos θ ≈ {math.cos(math.radians(78)):.3f};
+        el término inercial efectivo disminuye, **τ aumenta** y el aislamiento calculado
+        baja a **{tl_78:.1f} dB**. La diferencia es **{tl_78-tl_normal:+.1f} dB** para
+        {angular_frequency} Hz y m′ = 10 kg/m².
+
+        **Importante:** el resultado de “campo a 78°” no es el TL de una sola onda a
+        78°. El valor de 78° es el límite superior de una integración que combina todas
+        las incidencias entre 0° y 78°, ponderadas energéticamente. Se trunca antes de
+        90° porque la hipótesis ideal cerca de incidencia rasante no representa bien
+        paneles finitos ni campos reverberantes reales.
+        """)
     with st.expander("Ver nuevamente el desarrollo del promedio angular"):
         st.latex(r"\overline{\tau}=\frac{\int_0^{78^\circ}\tau(\theta)\sin\theta\cos\theta\,d\theta}{\int_0^{78^\circ}\sin\theta\cos\theta\,d\theta}")
         st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}(\overline{\tau})")
