@@ -4041,8 +4041,8 @@ def _lab2_image(image_key, caption=None):
     st.caption("Súbela a GitHub con ese nombre exacto; no es necesario modificar el código.")
     return False
 
-def _lab2_incidence_plot(theta):
-    """Interactive geometry stays as a chart because it must react to the slider."""
+def _lab2_incidence_figure(theta, tau=1.0):
+    """Return incidence geometry; transmitted-ray weight follows calculated tau."""
     rad = math.radians(theta)
     origin = np.array([0.0, 0.0])
     incident = np.array([-math.cos(rad), -math.sin(rad)])
@@ -4055,7 +4055,8 @@ def _lab2_incidence_plot(theta):
     for name, start, end, color, width in [
         ("Onda incidente", incident, origin, "#0967d2", 6),
         ("Onda reflejada", origin, reflected, "#ef8b2c", 4),
-        ("Onda transmitida", origin, np.array([1.05, 0]), "#17a779", 4),
+        ("Onda transmitida", origin, np.array([1.05, 0]), "#17a779",
+         max(1.5, 7*math.sqrt(max(tau, 0)))),
     ]:
         fig.add_trace(go.Scatter(
             x=[start[0], end[0]], y=[start[1], end[1]],
@@ -4068,7 +4069,28 @@ def _lab2_incidence_plot(theta):
         yaxis=dict(range=[-1.05, 1.05], visible=False),
         legend=dict(orientation="h", y=1.08), hovermode=False,
         title="Incidencia, reflexión y transmisión")
-    st.plotly_chart(fig, use_container_width=True, key=f"lab2_incidence_{theta}")
+    return fig
+
+def _lab2_incidence_plot(theta, tau=1.0):
+    """Backward-compatible incidence renderer."""
+    st.plotly_chart(
+        _lab2_incidence_figure(theta, tau),
+        use_container_width=True,
+        key=f"lab2_incidence_{theta}",
+    )
+
+def _mass_sheet_tau(mass, frequency, theta, rho_air=1.21, sound_speed=343.0):
+    """Mass-controlled limp sheet at one incidence angle."""
+    omega = 2*math.pi*frequency
+    ratio = omega*mass*max(math.cos(math.radians(theta)), .001)/(2*rho_air*sound_speed)
+    return 1.0/(1.0+ratio**2)
+
+def _critical_frequency(rho, h_mm, young_gpa, poisson, sound_speed=343.0):
+    h = h_mm/1000
+    surface_mass = rho*h
+    stiffness = young_gpa*1e9*h**3/(12*(1-poisson**2))
+    fc = sound_speed**2/(2*math.pi)*math.sqrt(surface_mass/stiffness)
+    return surface_mass, stiffness, fc
 
 def _mass_law_curve(mass):
     return 20*np.log10(np.maximum(mass*LAB2_FREQS, 1))-47
@@ -4405,44 +4427,194 @@ def lab2_stage2():
     una sola masa: vidrio monolítico, placa de yeso, tablero de madera, chapa o muro macizo.
     No existe una segunda hoja independiente ni una cámara que actúe como resorte.
     """)
-    st.markdown("### Laboratorio angular")
-    angle=st.slider("Ángulo de incidencia respecto de la normal",0,78,30,key="lab2_angle")
-    _lab2_incidence_plot(angle)
+    st.markdown("### 1. De la impedancia de masa a la ley de masa aproximada")
+    st.markdown("""
+    En la región donde domina la **inercia**, una hoja ideal puede representarse mediante
+    su impedancia mecánica por unidad de superficie. Para una excitación armónica:
+    """)
+    st.latex(r"z_m=j\omega m'")
+    st.markdown("Al sustituirla en la expresión de transmisión de una hoja entre dos medios de aire:")
+    st.latex(r"\tau(\theta)=\left[1+\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)^2\right]^{-1}")
+    st.markdown("y aplicar la definición desarrollada en la Etapa 1:")
+    st.latex(r"TL(\theta)=-10\log_{10}\left[\tau(\theta)\right]")
+    st.markdown(r"""
+    Para incidencia normal, \(\theta=0^\circ\). Si el término de masa es mucho mayor que
+    1, se desprecia el 1 de la expresión y, usando \(\omega=2\pi f\), resulta:
+    """)
+    st.latex(r"TL_n\approx20\log_{10}(m'f)+20\log_{10}\left(\frac{\pi}{\rho_0c}\right)")
+    st.latex(r"TL_n\approx20\log_{10}(m'f)-42\quad\text{dB}")
+    st.info("""
+    La forma **TL ≈ 20 log₁₀(m′f) − 47 dB** incorpora una corrección aproximada para
+    incidencia de campo/difusa. Por eso −47 no es una constante universal ni una nueva
+    ley física: depende del modelo de incidencia y solo representa la tendencia de la
+    zona controlada por masa, lejos de resonancias y coincidencia.
+    """)
+
+    st.markdown("### 2. Laboratorio angular con resultado acústico")
+    control_a,control_b=st.columns(2)
+    angle=control_a.slider("Ángulo respecto de la normal",0,78,30,key="lab2_angle")
+    angular_frequency=control_b.select_slider(
+        "Frecuencia de cálculo (Hz)", options=LAB2_FREQS.tolist(),
+        value=500, key="lab2_angle_frequency")
+    angular_mass=10.0
+    tau_angle=_mass_sheet_tau(angular_mass,angular_frequency,angle)
+    tl_angle=-10*math.log10(tau_angle)
+    tau_normal=_mass_sheet_tau(angular_mass,angular_frequency,0)
+    tl_normal=-10*math.log10(tau_normal)
+    chart_a,chart_b=st.columns(2)
+    with chart_a:
+        st.plotly_chart(
+            _lab2_incidence_figure(angle,tau_angle),
+            use_container_width=True,key="lab2_incidence_calculated")
+    angle_curve=np.array([
+        -10*math.log10(_mass_sheet_tau(angular_mass,float(f),angle))
+        for f in LAB2_FREQS
+    ])
+    normal_curve=np.array([
+        -10*math.log10(_mass_sheet_tau(angular_mass,float(f),0))
+        for f in LAB2_FREQS
+    ])
+    with chart_b:
+        fig_angle=go.Figure()
+        fig_angle.add_trace(go.Scatter(x=LAB2_FREQS,y=normal_curve,
+            mode="lines",name="0° · normal",line=dict(width=3,dash="dash")))
+        fig_angle.add_trace(go.Scatter(x=LAB2_FREQS,y=angle_curve,
+            mode="lines+markers",name=f"{angle}° · seleccionado",line=dict(width=3)))
+        fig_angle.add_vline(x=angular_frequency,line_dash="dot")
+        fig_angle.update_layout(title="TL calculado según frecuencia y ángulo",
+            xaxis_title="Frecuencia (Hz)",yaxis_title="TL (dB)",
+            xaxis_type="log",height=390,hovermode="x unified",
+            margin=dict(l=35,r=15,t=55,b=40),
+            legend=dict(orientation="h",y=1.13))
+        st.plotly_chart(fig_angle,use_container_width=True,key="lab2_angle_tl_chart")
+    m1,m2,m3,m4=st.columns(4)
+    m1.metric("TL seleccionado",f"{tl_angle:.1f} dB")
+    m2.metric("τ seleccionado",f"{tau_angle:.3g}")
+    m3.metric("TL a 0°",f"{tl_normal:.1f} dB")
+    m4.metric("Diferencia angular",f"{tl_angle-tl_normal:+.1f} dB")
     angular_factor=max(math.cos(math.radians(angle)),.01)
     st.markdown(
-        f'<div class="lesson"><b>Lectura instantánea:</b> cos θ = {angular_factor:.3f}. '
-        'La incidencia normal corresponde a 0°. En campo difuso llegan ondas desde muchos '
-        'ángulos; se promedian coeficientes de transmisión en energía antes de volver a dB.</div>',
+        f'<div class="lesson"><b>Lectura calculada:</b> para una hoja ideal de '
+        f'10 kg/m², {angular_frequency} Hz y θ={angle}°, cos θ={angular_factor:.3f}; '
+        f'τ={tau_angle:.4g} y TL={tl_angle:.1f} dB. En este modelo de masa, al acercarse '
+        'a incidencia rasante disminuye la componente normal que excita la hoja. '
+        'El resultado de campo no es el TL de un único ángulo: integra muchos ángulos.</div>',
         unsafe_allow_html=True)
     with st.expander("Desarrollo del promedio angular"):
         st.latex(r"\overline{\tau}=\frac{\int_0^{78^\circ}\tau(\theta)\sin\theta\cos\theta\,d\theta}{\int_0^{78^\circ}\sin\theta\cos\theta\,d\theta}")
         st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}(\overline{\tau})")
         st.warning("Error frecuente: promediar valores de TL directamente en dB. Primero se promedia τ y luego se transforma.")
-    st.markdown("### Explorador de las cuatro zonas")
+    st.markdown("### 3. Explorador de las cuatro zonas")
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
     props={
-        "Yeso-cartón":(800,12.5,2500,10),
-        "Vidrio":(2500,6.0,3200,12),
-        "Madera contrachapada":(600,18.0,1800,8),
-        "Hormigón":(2400,100.0,180,5),
+        # densidad, espesor, E [GPa], nu, eta aproximada
+        "Yeso-cartón":(800,12.5,2.5,.30,.030),
+        "Vidrio":(2500,6.0,70.0,.23,.010),
+        "Madera contrachapada":(600,18.0,8.0,.30,.025),
+        "Hormigón":(2400,100.0,30.0,.20,.020),
     }
-    rho,default_h,default_fc,default_loss=props[material]
+    rho,default_h,young,poisson,eta=props[material]
     h=st.slider("Espesor (mm)",4.0,200.0,float(default_h),0.5,key="lab2_panel_h")
-    mass=rho*h/1000
-    curve=_simple_real_curve(mass,default_fc,default_loss)
+    selected_zone=st.radio("Zona que deseas analizar",
+        ["1 · Rigidez","2 · Resonancias","3 · Ley de masa","4 · Coincidencia"],
+        horizontal=True,key="lab2_selected_zone")
+    mass,stiffness,calculated_fc=_critical_frequency(rho,h,young,poisson)
+    default_loss=max(5,min(16,5-10*math.log10(eta)))
+    curve=_simple_real_curve(mass,calculated_fc,default_loss)
     _plot_curves([
         ("Respuesta aproximada",curve,"solid"),
         ("Ley de masa ideal",_mass_law_curve(mass),"dash"),
-    ],f"{material} · m′ = {mass:.1f} kg/m²",[(default_fc,"fᶜ")])
-    zones=pd.DataFrame([
-        ["1 · Rigidez","Muy bajas frecuencias","La placa se comporta como un resorte; dimensiones y apoyos son decisivos."],
-        ["2 · Resonancias","Bajas frecuencias","Los modos propios amplifican el movimiento y producen irregularidades."],
-        ["3 · Ley de masa","Zona media","Al duplicar masa o frecuencia, la tendencia ideal aumenta cerca de 6 dB."],
-        ["4 · Coincidencia",f"Alrededor de {default_fc} Hz","La onda aérea acopla eficientemente con ondas de flexión y aparece una caída."],
-    ],columns=["Zona","Ubicación","Interpretación"])
-    st.dataframe(zones,hide_index=True,use_container_width=True)
-    st.latex(r"R\approx20\log_{10}(m'f)-47")
-    st.caption("La recta de ley de masa es una referencia en su zona válida; no reproduce por sí sola resonancias ni coincidencia.")
+    ],f"{material} · m′ = {mass:.1f} kg/m²",[(calculated_fc,"fᶜ")])
+    z1,z2,z3=st.columns(3)
+    z1.metric("Masa superficial m′",f"{mass:.1f} kg/m²")
+    z2.metric("Rigidez D",f"{stiffness:.1f} N·m")
+    z3.metric("Frecuencia crítica fᶜ",f"{calculated_fc:.0f} Hz")
+    zone_explanations={
+        "1 · Rigidez":(
+            "A muy baja frecuencia dominan la rigidez, el tamaño, los apoyos y las "
+            "fijaciones. Al variar el material o el espesor cambia D = Eh³/[12(1−ν²)]; "
+            "por eso esta zona no puede predecirse solo con m′."
+        ),
+        "2 · Resonancias":(
+            "Los modos propios dependen de D/m′, de las dimensiones y de los bordes. "
+            "Una placa más rígida desplaza sus modos; una placa mayor o más pesada tiende "
+            "a llevarlos hacia frecuencias menores. Los valles no son una recta de masa."
+        ),
+        "3 · Ley de masa":(
+            "Entre resonancias y coincidencia domina la inercia. Aquí sí es útil "
+            "TL ≈ 20 log₁₀(m′f) − 47: duplicar m′ o f aporta aproximadamente 6 dB. "
+            "La línea discontinua es una tendencia, no toda la respuesta real."
+        ),
+        "4 · Coincidencia":(
+            f"Para la selección actual, fᶜ ≈ {calculated_fc:.0f} Hz. En torno a esa "
+            "frecuencia la onda aérea se acopla con una onda de flexión y aumenta la "
+            "radiación transmitida. Cambiar E, ρ o h desplaza fᶜ; el amortiguamiento η "
+            "modifica la profundidad y anchura del valle."
+        ),
+    }
+    st.markdown(
+        f'<div class="lesson"><b>{selected_zone} · por qué cambia:</b> '
+        f'{zone_explanations[selected_zone]}</div>',unsafe_allow_html=True)
+    with st.expander("Desarrollo de la frecuencia crítica"):
+        st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
+        st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
+        st.markdown(r"""
+        Como \(m'=\rho h\) y \(D\propto Eh^3\), para una placa homogénea:
+        """)
+        st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
+        st.markdown(r"""
+        Por eso aumentar el espesor reduce aproximadamente la frecuencia crítica:
+        la rigidez crece con \(h^3\), mucho más rápido que la masa superficial, que
+        crece solo con \(h\). Materiales con mayor relación rigidez/masa presentan una
+        frecuencia crítica más baja.
+        """)
+    st.caption("Modelo didáctico: muestra mecanismos y tendencias; no sustituye una curva de ensayo del producto.")
+    st.markdown("### 4. Preguntas de comprensión")
+    check("lab2_s2_q1",
+        "¿De dónde proviene el término aproximado −47 dB de la ley de masa?",
+        [
+            "De una corrección de incidencia de campo/difusa aplicada a la tendencia controlada por masa",
+            "De la frecuencia crítica de cualquier material",
+            "De convertir watt directamente en presión sonora",
+            "Es una constante universal exacta para todas las placas",
+        ],
+        "De una corrección de incidencia de campo/difusa aplicada a la tendencia controlada por masa",
+        "La aproximación normal conduce a una constante cercana a −42 dB; −47 dB representa una aproximación de campo y no reproduce resonancia ni coincidencia.")
+    check("lab2_s2_q2",
+        "En el laboratorio angular, ¿qué significa θ = 0°?",
+        ["Incidencia normal","Incidencia rasante","Campo difuso","Ausencia de transmisión"],
+        "Incidencia normal",
+        "El ángulo se mide respecto de la normal a la placa; por ello 0° corresponde a llegada perpendicular.")
+    check("lab2_s2_q3",
+        "¿Cómo se obtiene correctamente el TL de un campo con múltiples ángulos?",
+        [
+            "Se promedian energéticamente los τ(θ) y luego se convierten a TL",
+            "Se promedian directamente los TL en dB",
+            "Se toma solamente el TL a 78°",
+            "Se usa siempre el TL a 0°",
+        ],
+        "Se promedian energéticamente los τ(θ) y luego se convierten a TL",
+        "Los decibeles no se promedian aritméticamente para esta operación; primero se combinan coeficientes de transmisión.")
+    check("lab2_s2_q4",
+        "¿En qué zona es válida la tendencia TL ≈ 20 log₁₀(m′f) − 47?",
+        [
+            "En la zona controlada por masa, lejos de resonancias y coincidencia",
+            "En todas las frecuencias sin excepción",
+            "Únicamente en la zona de rigidez",
+            "Solo exactamente en la frecuencia crítica",
+        ],
+        "En la zona controlada por masa, lejos de resonancias y coincidencia",
+        "La ley de masa aproximada describe una región, no la curva completa de una placa real.")
+    check("lab2_s2_q5",
+        "Para una misma placa homogénea, ¿qué tendencia presenta fᶜ al aumentar el espesor?",
+        [
+            "Disminuye aproximadamente en proporción inversa al espesor",
+            "Aumenta en proporción al cubo del espesor",
+            "Permanece siempre constante",
+            "Se vuelve igual a la primera resonancia modal",
+        ],
+        "Disminuye aproximadamente en proporción inversa al espesor",
+        "Como m′ crece con h y D con h³, fᶜ es aproximadamente proporcional a 1/h para un mismo material.")
 
 def lab2_stage3():
     _lab2_heading(3, "Del modelo al caso real: paneles simples",
