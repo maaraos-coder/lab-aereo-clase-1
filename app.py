@@ -4022,10 +4022,10 @@ LAB2_IMAGES = {
     "panel_simple": "panel_simple_transmision_profesional.png",
     "panel_doble": "panel_doble_masa_aire_masa.svg",
     "metalcon": "metalcon_simple_vs_doble.svg",
-    "yeso_carton": "material_yeso_carton.svg",
-    "madera": "material_madera.svg",
+    "yeso_carton": "placa_simple_yeso_carton.svg",
+    "madera": "placa_simple_madera.svg",
     "vidrio": "material_vidrio_monolitico.svg",
-    "hormigon": "material_hormigon.svg",
+    "hormigon": "muro_simple_hormigon.svg",
     "comparador_hormigon": "comparador_panel_hormigon.svg",
     "comparador_tabique": "comparador_tabique_doble.svg",
 }
@@ -4589,10 +4589,6 @@ def lab2_stage2():
         'a incidencia rasante disminuye la componente normal que excita la hoja. '
         'El resultado de campo no es el TL de un único ángulo: integra muchos ángulos.</div>',
         unsafe_allow_html=True)
-    with st.expander("Ver nuevamente el desarrollo del promedio angular"):
-        st.latex(r"\overline{\tau}=\frac{\int_0^{78^\circ}\tau(\theta)\sin\theta\cos\theta\,d\theta}{\int_0^{78^\circ}\sin\theta\cos\theta\,d\theta}")
-        st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}(\overline{\tau})")
-        st.warning("Error frecuente: promediar valores de TL directamente en dB. Primero se promedia τ y luego se transforma.")
     st.markdown("### 6. Explorador de las cuatro zonas")
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
     props={
@@ -4727,8 +4723,8 @@ def _panel_simple_tau(frequency, angles_rad, surface_mass, stiffness,
 
 def _panel_simple_field_tl(frequencies, surface_mass, stiffness,
                            loss_factor):
-    """Cálculo de campo de SONARA para una placa simple (0 a 80 grados)."""
-    angles = np.linspace(0.0, (4.0 / 9.0) * np.pi, 720)
+    """Cálculo de campo para una placa simple entre 0 y 78 grados."""
+    angles = np.linspace(0.0, np.deg2rad(78.0), 720)
     tau_angular = _panel_simple_tau(
         frequencies, angles, surface_mass, stiffness, loss_factor
     )
@@ -5177,33 +5173,43 @@ def lab2_stage3():
     st.info(
         "**Método común para las tres alternativas:** primero se calcula "
         "τ(θ,f), después se integran energéticamente todas las incidencias entre "
-        "0° y 80° y, finalmente, el resultado se transforma en TL de campo."
+        "0° y 78° y, finalmente, el resultado se transforma en TL de campo."
     )
 
     st.markdown("### 1 · Modelo físico utilizado")
-    e1,e2,e3=st.columns(3)
-    with e1:
-        st.latex(r"m'=\rho h")
-        st.caption("Masa superficial de la placa.")
-    with e2:
-        st.latex(r"B=\frac{Eh^3}{12}")
-        st.caption("Rigidez de flexión por unidad de ancho.")
-    with e3:
-        st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{B}}")
-        st.caption("Frecuencia crítica del modelo.")
+    st.markdown("#### Masa superficial")
+    st.latex(r"m'=\rho h")
+    st.caption("Masa por unidad de superficie de la placa, expresada en kg/m².")
+
+    st.markdown("#### Rigidez a flexión")
+    st.latex(r"B=\frac{E h^3}{12}")
+    st.caption("Rigidez a flexión por unidad de ancho, expresada en N·m.")
+
+    st.markdown("#### Frecuencia crítica")
+    st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{B}}")
+    st.caption("Frecuencia a partir de la cual puede producirse el fenómeno de coincidencia.")
+
     st.markdown("#### Coeficiente de transmisión para cada frecuencia y ángulo")
+    st.write(
+        "Para evitar una expresión excesivamente larga, se definen primero dos "
+        "términos auxiliares. Esta forma es algebraicamente equivalente a la "
+        "ecuación completa utilizada en el cálculo."
+    )
     st.latex(
-        r"\tau(\theta,f)=\left\{\left[1+\eta"
-        r"\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)"
-        r"\left(\frac{\omega^2B\sin^4\theta}{c^4m'}\right)\right]^2+"
-        r"\left[\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)"
-        r"\left(1-\frac{\omega^2B\sin^4\theta}{c^4m'}\right)\right]^2"
-        r"\right\}^{-1}"
+        r"A(\theta,f)=\frac{\omega m'\cos\theta}{2\rho_0c}"
+    )
+    st.latex(
+        r"C(\theta,f)=\frac{\omega^2 B\sin^4\theta}{c^4m'}"
+    )
+    st.latex(
+        r"\tau(\theta,f)="
+        r"\frac{1}{\left[1+\eta A(\theta,f)C(\theta,f)\right]^2"
+        r"+\left[A(\theta,f)\left(1-C(\theta,f)\right)\right]^2}"
     )
     st.markdown("#### Coeficiente de transmisión de campo")
     st.latex(
         r"\overline{\tau}_{campo}(f)=2{,}0904"
-        r"\int_0^{80^\circ}\tau(\theta,f)\cos\theta\sin\theta\,d\theta"
+        r"\int_0^{78^\circ}\tau(\theta,f)\cos\theta\sin\theta\,d\theta"
     )
     st.markdown("#### Pérdida por transmisión de campo")
     st.latex(
@@ -5213,16 +5219,24 @@ def lab2_stage3():
     )
     st.caption(
         "ω = 2πf; ρ₀ = 1,18 kg/m³; c = 343 m/s. "
-        "80° es el límite superior de integración, no un único rayo."
+        "78° es el límite superior de integración, no un único rayo."
     )
-    st.markdown(r"""
-    **Variables utilizadas:** \(\rho\) es la densidad del material (kg/m³);
-    \(h\), el espesor (m); \(m'\), la masa superficial (kg/m²); \(E\), el
-    módulo de Young (Pa); \(B\), la rigidez a flexión (N·m); \(\eta\), el
-    factor de pérdidas; \(f\), la frecuencia (Hz); \(\omega=2\pi f\), la
-    frecuencia angular; y \(\theta\), el ángulo de incidencia medido respecto
-    de la normal a la placa.
-    """)
+    st.markdown("#### Variables y unidades")
+    st.dataframe(
+        pd.DataFrame([
+            ["ρ", "Densidad del material", "kg/m³"],
+            ["h", "Espesor de la placa", "m"],
+            ["m′", "Masa superficial", "kg/m²"],
+            ["E", "Módulo de Young", "Pa"],
+            ["B", "Rigidez a flexión", "N·m"],
+            ["η", "Factor de pérdidas", "Adimensional"],
+            ["f", "Frecuencia", "Hz"],
+            ["ω = 2πf", "Frecuencia angular", "rad/s"],
+            ["θ", "Ángulo respecto de la normal", "grados o radianes"],
+        ], columns=["Símbolo", "Significado", "Unidad"]),
+        use_container_width=True,
+        hide_index=True,
+    )
 
     presets={
         "Yeso-cartón":{
@@ -5260,7 +5274,24 @@ def lab2_stage3():
             _lab2_image(
                 {"Yeso-cartón":"yeso_carton","Madera":"madera",
                  "Hormigón":"hormigon"}[material],
-                f"{material}: elemento homogéneo de una sola capa.",
+                {
+                    "Yeso-cartón":(
+                        "Placa simple homogénea de yeso-cartón: una sola hoja, sin "
+                        "montantes, cámara ni segunda placa."
+                    ),
+                    "Madera":(
+                        "Panel simple homogéneo de madera: una sola hoja maciza, sin "
+                        "entramado, cámara ni revestimientos adicionales."
+                    ),
+                    "Hormigón":(
+                        "Muro simple homogéneo de hormigón: una sola hoja maciza."
+                    ),
+                }[material],
+            )
+            st.info(
+                "La imagen y el cálculo representan el mismo modelo idealizado: "
+                "**una única placa simple, homogénea e infinita**. No se incorporan "
+                "montantes, uniones, cavidades, segundas hojas ni transmisiones laterales."
             )
             c1,c2,c3=st.columns(3)
             rho=c1.number_input(
@@ -5355,7 +5386,7 @@ def lab2_stage3():
                 x=result["fc"],line_dash="dot",line_color=result["color"],
                 annotation_text=f"fᶜ {material}",annotation_position="top")
     comparison.update_layout(
-        title="Comparación de TL de campo · mismas ecuaciones y campo hasta 80°",
+        title="Comparación de TL de campo · mismas ecuaciones y campo hasta 78°",
         xaxis_title="Frecuencia (Hz) · escala lineal",
         yaxis_title="TL de campo (dB)",
         xaxis=dict(type="linear",range=[50,5000],dtick=500),
@@ -5426,7 +5457,7 @@ def lab2_stage3():
         [
             "Porque primero debe combinarse la energía transmitida y después convertirse a decibeles",
             "Porque los valores de TL no dependen del ángulo",
-            "Porque 80° representa una única incidencia real",
+            "Porque 78° representa una única incidencia real",
             "Porque así se elimina la frecuencia crítica",
         ],
         "Porque primero debe combinarse la energía transmitida y después convertirse a decibeles",
@@ -5443,6 +5474,42 @@ def lab2_stage3():
         ],
         "El desempeño depende de masa superficial, rigidez, amortiguamiento y frecuencia",
         "La curva surge del mismo modelo físico para las tres placas; no basta comparar solamente espesores.",
+    )
+    check(
+        "lab2_s3_compare_q3",
+        "Si aumenta el espesor de una placa manteniendo su densidad, ¿qué ocurre directamente con su masa superficial?",
+        [
+            "Aumenta, porque m′ = ρh",
+            "Disminuye, porque la placa se vuelve más rígida",
+            "Permanece constante, porque solo depende del material",
+            "Se hace igual a la densidad del aire",
+        ],
+        "Aumenta, porque m′ = ρh",
+        "La masa superficial es proporcional tanto a la densidad como al espesor de la placa.",
+    )
+    check(
+        "lab2_s3_compare_q4",
+        "¿Qué representa una disminución del TL alrededor de la frecuencia crítica?",
+        [
+            "Una mayor transmisión asociada al fenómeno de coincidencia",
+            "La desaparición completa de la vibración de la placa",
+            "Un aumento automático de la masa superficial",
+            "Un error producido por usar frecuencia lineal",
+        ],
+        "Una mayor transmisión asociada al fenómeno de coincidencia",
+        "Cerca de la frecuencia crítica se favorece el acoplamiento entre el campo sonoro y las ondas de flexión de la placa.",
+    )
+    check(
+        "lab2_s3_compare_q5",
+        "¿Por qué la imagen del sistema constructivo real no debe interpretarse como una predicción completa del tabique?",
+        [
+            "Porque el ejercicio modela una placa homogénea e infinita y no incorpora juntas, apoyos ni flancos",
+            "Porque las imágenes no tienen dimensiones escritas",
+            "Porque el hormigón no puede analizarse mediante masa superficial",
+            "Porque el modelo solo funciona para incidencia normal",
+        ],
+        "Porque el ejercicio modela una placa homogénea e infinita y no incorpora juntas, apoyos ni flancos",
+        "El modelo permite estudiar el material aislado, pero no reemplaza la evaluación del elemento instalado en obra.",
     )
 
 LAB1_STAGE_TITLES = [
