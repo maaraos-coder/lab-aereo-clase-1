@@ -4239,12 +4239,22 @@ def lab2_stage1():
         ))
         tau=10**(-tl/10)
     else:
-        exponent=st.slider(
-            "Exponente de τ en escala logarítmica (τ = 10ˣ)",
-            -6.0,0.0,-3.0,0.1,key="lab2_tau_exponent",
+        tau_options=[10**(-i/10) for i in range(60,-1,-1)]
+        tau=st.select_slider(
+            "Coeficiente de transmisión τ",
+            options=tau_options,
+            value=1e-3,
+            format_func=lambda value: (
+                f"{value:.6f}".rstrip("0").rstrip(".")
+                if value >= 1e-4 else f"{value:.1e}"
+            ),
+            key="lab2_tau_value",
         )
-        tau=10**exponent
         tl=-10*math.log10(tau)
+        st.caption(
+            f"τ siempre es positivo. Equivalencia logarítmica: "
+            f"τ = 10^({math.log10(tau):.1f})"
+        )
 
     transmitted_pct=100*tau
     not_transmitted_pct=100*(1-tau)
