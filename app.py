@@ -4885,6 +4885,20 @@ def lab2_stage2():
         "presenta resonancias, coincidencia, amortiguamiento, apoyos y dimensiones finitas."
     )
     st.markdown("### 9. Explorador de las cuatro zonas")
+    st.markdown("""
+    La curva de una placa simple **no está gobernada por el mismo fenómeno en todas
+    las frecuencias**. Selecciona una zona para identificar en el gráfico el tramo
+    que se está estudiando y leer debajo qué mecanismo físico domina allí.
+
+    1. **Rigidez:** a frecuencias muy bajas importa cuánto se opone la placa a deformarse.
+    2. **Resonancias:** aparecen modos propios que producen subidas y bajadas locales.
+    3. **Ley de masa:** domina la inercia; una placa con mayor masa superficial tiende a aislar más.
+    4. **Coincidencia:** cerca de la frecuencia crítica aumenta el acoplamiento con las ondas de flexión y el aislamiento cae.
+
+    **Cómo usarlo:** cambia el material o el espesor, elige una zona y observa el
+    área coloreada. La franja activa se desplaza cuando cambian las propiedades
+    de la placa, especialmente en la región de coincidencia.
+    """)
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
     props={
         # densidad, espesor, E [GPa], nu, eta aproximada
@@ -4901,10 +4915,63 @@ def lab2_stage2():
     mass,stiffness,calculated_fc=_critical_frequency(rho,h,young,poisson)
     default_loss=max(5,min(16,5-10*math.log10(eta)))
     curve=_simple_real_curve(mass,calculated_fc,default_loss)
-    _plot_curves([
-        ("Respuesta aproximada",curve,"solid"),
-        ("Ley de masa ideal",_mass_law_curve(mass),"dash"),
-    ],f"{material} · m′ = {mass:.1f} kg/m²",[(calculated_fc,"fᶜ")])
+    zone_limits={
+        "1 · Rigidez":(63,100,"Zona 1 · Rigidez"),
+        "2 · Resonancias":(100,200,"Zona 2 · Resonancias"),
+        "3 · Ley de masa":(
+            200,max(250,min(5000,0.70*calculated_fc)),"Zona 3 · Ley de masa"
+        ),
+        "4 · Coincidencia":(
+            max(63,0.70*calculated_fc),
+            min(5000,max(80,1.40*calculated_fc)),
+            "Zona 4 · Coincidencia",
+        ),
+    }
+    zone_x0,zone_x1,zone_label=zone_limits[selected_zone]
+    zone_x0,zone_x1=sorted((zone_x0,zone_x1))
+    if math.isclose(zone_x0,zone_x1):
+        zone_x1=min(5000,zone_x0*1.25)
+
+    zone_fig=go.Figure()
+    zone_fig.add_vrect(
+        x0=zone_x0,x1=zone_x1,
+        fillcolor="#ffd166",opacity=.28,
+        line_width=2,line_color="#ef8b2c",
+        annotation_text=zone_label,annotation_position="top left",
+    )
+    zone_fig.add_trace(go.Scatter(
+        x=LAB2_FREQS,y=curve,mode="lines+markers",name="Respuesta aproximada",
+        line=dict(width=3,color="#0b69d1"),marker=dict(size=6,color="#0b69d1"),
+    ))
+    zone_fig.add_trace(go.Scatter(
+        x=LAB2_FREQS,y=_mass_law_curve(mass),mode="lines",name="Ley de masa ideal",
+        line=dict(width=3,dash="dash",color="#69b7ff"),
+    ))
+    zone_fig.add_vline(
+        x=calculated_fc,line_dash="dot",line_color="#ef8b2c",line_width=2,
+    )
+    zone_fig.add_annotation(
+        x=calculated_fc,y=1,yref="paper",text=f"fᶜ = {calculated_fc:.0f} Hz",
+        showarrow=False,yanchor="bottom",font=dict(color="#9b5415"),
+    )
+    zone_fig.update_layout(
+        title=f"{material} · m′ = {mass:.1f} kg/m² · {zone_label} resaltada",
+        xaxis_title="Frecuencia central (Hz)",yaxis_title="TL / R (dB)",
+        xaxis_type="log",hovermode="x unified",height=430,
+        margin=dict(l=35,r=20,t=75,b=40),
+        legend=dict(orientation="h",y=1.12),
+    )
+    zone_fig.update_xaxes(
+        range=[math.log10(55),math.log10(5600)],
+        tickvals=[63,125,250,500,1000,2000,4000],
+        ticktext=["63","125","250","500","1k","2k","4k"],
+    )
+    st.plotly_chart(zone_fig,use_container_width=True)
+    st.caption(
+        f"El área amarilla corresponde a «{selected_zone}». Los límites de rigidez y "
+        "resonancias son esquemáticos, porque sus valores exactos también dependen de "
+        "las dimensiones, los apoyos y el montaje de la placa."
+    )
     z1,z2,z3=st.columns(3)
     z1.metric("Masa superficial m′",f"{mass:.1f} kg/m²")
     z2.metric("Rigidez D",f"{stiffness:.1f} N·m")
@@ -4935,19 +5002,6 @@ def lab2_stage2():
     st.markdown(
         f'<div class="lesson"><b>{selected_zone} · por qué cambia:</b> '
         f'{zone_explanations[selected_zone]}</div>',unsafe_allow_html=True)
-    with st.expander("Desarrollo de la frecuencia crítica"):
-        st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
-        st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
-        st.markdown("Para una placa homogénea se combinan las siguientes relaciones:")
-        st.latex(r"m'=\rho h")
-        st.latex(r"D\propto Eh^3")
-        st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
-        st.markdown("""
-        Por eso aumentar el espesor reduce aproximadamente la frecuencia crítica: la
-        rigidez crece con el cubo del espesor, mucho más rápido que la masa superficial,
-        que crece linealmente. Materiales con mayor relación rigidez/masa presentan una
-        frecuencia crítica más baja.
-        """)
     st.caption("Modelo didáctico: muestra mecanismos y tendencias; no sustituye una curva de ensayo del producto.")
     st.markdown("### 10. Preguntas de comprensión")
     check("lab2_s2_q1",
