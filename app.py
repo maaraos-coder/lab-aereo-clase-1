@@ -4028,6 +4028,13 @@ LAB2_IMAGES = {
     "hormigon": "muro_simple_hormigon.png",
     "comparador_hormigon": "comparador_panel_hormigon.svg",
     "comparador_tabique": "comparador_tabique_doble.svg",
+    "s2_punto1": "punto1_placa_masa_superficial_profesional.webp",
+    "s2_punto2": "punto2_tipos_incidencia_profesional.webp",
+    "s2_punto3": "punto3_rigidez_flexion_profesional.webp",
+    "s2_punto4": "punto4_promedio_campo_profesional.webp",
+    "s2_tau_angulo": "punto3_tau_angulo_profesional.png",
+    "s2_ley_masa": "punto6_impedancia_ley_masa_profesional.png",
+    "s2_frecuencia_critica": "punto7_frecuencia_critica_profesional.png",
 }
 
 def _lab2_image(image_key, caption=None):
@@ -4041,6 +4048,29 @@ def _lab2_image(image_key, caption=None):
     st.warning(f"No se encontró la imagen: {expected}")
     st.caption("Súbela a GitHub con ese nombre exacto; no es necesario modificar el código.")
     return False
+
+def _lab2_plain_language_cards(simple, observe, mistake):
+    """Three visible conceptual bridges for students without an engineering background."""
+    st.markdown(
+        f"""
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:.8rem;margin:.85rem 0 1.15rem">
+          <div style="background:#eef8ff;border:1px solid #b9def5;border-radius:14px;padding:1rem">
+            <div style="font-size:.76rem;font-weight:800;color:#0877c5">💡 EN PALABRAS SIMPLES</div>
+            <div style="margin-top:.45rem;color:#17324d;line-height:1.5">{simple}</div>
+          </div>
+          <div style="background:#f1fbf7;border:1px solid #bfe8d5;border-radius:14px;padding:1rem">
+            <div style="font-size:.76rem;font-weight:800;color:#13845f">👀 QUÉ DEBES OBSERVAR</div>
+            <div style="margin-top:.45rem;color:#17324d;line-height:1.5">{observe}</div>
+          </div>
+          <div style="background:#fff8ec;border:1px solid #f1d39b;border-radius:14px;padding:1rem">
+            <div style="font-size:.76rem;font-weight:800;color:#a56108">⚠️ ERROR FRECUENTE</div>
+            <div style="margin-top:.45rem;color:#17324d;line-height:1.5">{mistake}</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 def _lab2_incidence_figure(theta, tau=1.0):
     """Return incidence geometry; transmitted-ray weight follows calculated tau."""
@@ -4433,6 +4463,12 @@ def lab2_stage2():
     No existe una segunda hoja independiente ni una cámara que actúe como resorte.
     """)
     st.markdown("### 1. ¿Qué define a una placa simple?")
+    _lab2_image("s2_punto1")
+    _lab2_plain_language_cards(
+        "La masa superficial indica cuánto pesa un metro cuadrado de placa.",
+        "Compara placas del mismo tamaño: la más densa o gruesa tendrá mayor m′.",
+        "Usar la masa total de la pared. La ley de masa utiliza kg/m², no kg.",
+    )
     st.markdown("""
     Se considera **placa simple** al elemento que, frente a la excitación sonora, se
     desplaza y flexiona esencialmente como una sola hoja. Puede estar constituido por
@@ -4455,7 +4491,13 @@ def lab2_stage2():
     movimiento, pero la respuesta real también depende de la rigidez de flexión, las
     dimensiones, los apoyos, el amortiguamiento y la frecuencia.
     """)
-    st.markdown("### 2. Incidencia normal, oblicua, aleatoria y de campo")
+    st.markdown("### 2. Incidencia normal y oblicua")
+    _lab2_image("s2_punto2")
+    _lab2_plain_language_cards(
+        "El sonido puede llegar de frente o inclinado; el ángulo cambia cómo empuja la placa.",
+        "El ángulo se mide desde la línea perpendicular a la placa: 0° es incidencia normal.",
+        "Medir θ desde la superficie o creer que 78° representa por sí solo todo el campo.",
+    )
     st.markdown("""
     El ángulo **θ se mide respecto de la línea normal a la placa**, no respecto de su
     superficie:
@@ -4468,6 +4510,10 @@ def lab2_stage2():
     en un recinto reverberante existe energía que alcanza la placa desde muchas direcciones:
     eso se representa mediante un promedio energético angular.
     """)
+    st.markdown("### 3. Coeficiente de transmisión sonora según el ángulo")
+    st.latex(r"\tau(\theta)=\left[1+\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)^2\right]^{-1}")
+    st.latex(r"TL(\theta)=-10\log_{10}\left[\tau(\theta)\right]")
+    st.markdown("### 4. Incidencia aleatoria y promedio de campo")
     st.latex(
         r"\overline{\tau}="
         r"\frac{\displaystyle\int_{0}^{\theta_{\mathrm{lim}}}"
@@ -4476,6 +4522,18 @@ def lab2_stage2():
         r"\sin\theta\cos\theta\,d\theta}"
     )
     st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}\left(\overline{\tau}\right)")
+    _lab2_image("s2_tau_angulo")
+    _lab2_plain_language_cards(
+        "Cada dirección deja pasar una fracción distinta de energía, representada por τ(θ).",
+        "Observa cómo varía la energía transmitida al cambiar únicamente el ángulo.",
+        "Promediar directamente los TL en decibeles. Primero se combinan los valores de τ.",
+    )
+    _lab2_image("s2_punto4")
+    _lab2_plain_language_cards(
+        "Un recinto real envía sonido hacia la placa desde muchas direcciones a la vez.",
+        "El resultado de campo integra desde 0° hasta 78° con ponderación energética.",
+        "Tomar el TL calculado a 78° como si fuera el promedio de campo.",
+    )
     st.markdown("""
     - **Incidencia aleatoria o campo difuso ideal:** supone direcciones distribuidas
       estadísticamente hasta 90°.
@@ -4485,7 +4543,13 @@ def lab2_stage2():
     No se promedian directamente valores de TL en decibeles. Primero se promedian los
     coeficientes de transmisión τ y después se transforma el resultado a decibeles.
     """)
-    st.markdown("### 3. Rigidez de flexión: la placa también se deforma")
+    st.markdown("### 5. Rigidez de flexión: la placa también se deforma")
+    _lab2_image("s2_punto3")
+    _lab2_plain_language_cards(
+        "La placa no solo se desplaza: también se curva. D mide cuánto cuesta doblarla.",
+        "El espesor aparece elevado al cubo; pequeños cambios de h modifican mucho la rigidez.",
+        "Suponer que una placa más pesada siempre tiene proporcionalmente mayor rigidez.",
+    )
     st.markdown("""
     Una placa simple no se desplaza únicamente como una masa rígida: también se curva.
     La resistencia que opone a esa deformación se denomina **rigidez de flexión**:
@@ -4532,32 +4596,6 @@ def lab2_stage2():
                     unsafe_allow_html=True,
                 )
 
-    st.markdown("#### Frecuencia crítica y coincidencia")
-    coincidence_visual, coincidence_text = st.columns([1.05, 1])
-    with coincidence_visual:
-        st.image(
-            str(ROOT / "assets/course_visuals/stage6_coincidence.webp"),
-            caption="Coincidencia entre la onda sonora y la onda de flexión de una placa.",
-            use_container_width=True,
-        )
-    with coincidence_text:
-        st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
-        st.markdown("""
-        La **frecuencia crítica** es la zona en que la onda sonora puede acoplarse con
-        una onda de flexión de la placa. Ese acoplamiento facilita la transmisión y
-        puede producir un valle en la curva de aislamiento.
-
-        **En sencillo:** existe una zona donde la placa vibra de una forma especialmente
-        favorable para que el sonido pase. Se calcula usando la masa superficial y la
-        rigidez explicadas antes; no es un parámetro independiente.
-        """)
-        st.latex(r"m'=\rho h")
-        st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
-        st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
-        st.caption(
-            "η no determina por sí solo fᶜ; influye principalmente en la profundidad "
-            "y anchura del valle de coincidencia."
-        )
     st.markdown("#### Ecuación de movimiento de una placa simple sometida a presión sonora")
     st.markdown("""
     Para describir cómo responde la placa cuando el sonido la excita, se plantea su
@@ -4571,14 +4609,11 @@ def lab2_stage2():
     sonora entre ambas caras que hace vibrar la placa. En la región donde domina la
     inercia puede simplificarse este equilibrio y obtenerse la ley de masa.
     """)
-    st.markdown("### 4. De la impedancia de masa a la ley de masa aproximada")
+    st.markdown("### 6. De la impedancia de masa a la ley de masa aproximada")
     mass_visual, mass_explanation = st.columns([1.05, 1])
     with mass_visual:
-        st.image(
-            str(ROOT / "assets/course_visuals/stage6_mass_law.webp"),
-            caption="Zona controlada por masa: una placa más pesada opone mayor inercia.",
-            use_container_width=True,
-        )
+        _lab2_image("s2_ley_masa",
+                    "Zona controlada por masa: una placa más pesada opone mayor inercia.")
     with mass_explanation:
         st.markdown(
             '<div class="lesson"><b>Lectura para no ingenieros</b>'
@@ -4589,6 +4624,11 @@ def lab2_stage2():
             'pueden producir pérdidas locales de aislamiento.</p></div>',
             unsafe_allow_html=True,
         )
+    _lab2_plain_language_cards(
+        "Una placa pesada se parece a un carro difícil de empujar: se mueve menos ante el sonido.",
+        "En la zona de masa, duplicar m′ o la frecuencia aumenta el TL aproximadamente 6 dB.",
+        "Extender la recta de ley de masa a resonancias y coincidencia, donde deja de ser válida.",
+    )
     st.markdown("""
     En la región donde domina la **inercia**, una hoja ideal puede representarse mediante
     su impedancia mecánica por unidad de superficie. Para una excitación armónica:
@@ -4616,7 +4656,36 @@ def lab2_stage2():
     resonancias, la coincidencia, las fugas y las transmisiones laterales.
     """)
 
-    st.markdown("### 5. Laboratorio angular con resultado acústico")
+    st.markdown("### 7. Frecuencia crítica y coincidencia")
+    coincidence_visual, coincidence_text = st.columns([1.05, 1])
+    with coincidence_visual:
+        _lab2_image("s2_frecuencia_critica",
+                    "Coincidencia entre la onda sonora y la onda de flexión de una placa.")
+    with coincidence_text:
+        st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
+        st.markdown("""
+        La **frecuencia crítica** es la zona en que la onda sonora puede acoplarse con
+        una onda de flexión de la placa. Ese acoplamiento facilita la transmisión y
+        puede producir un valle en la curva de aislamiento.
+
+        **En sencillo:** existe una zona donde la placa vibra de una forma especialmente
+        favorable para que el sonido pase. Se calcula usando la masa superficial y la
+        rigidez explicadas antes; no es un parámetro independiente.
+        """)
+        st.latex(r"m'=\rho h")
+        st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
+        st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
+        st.caption(
+            "η no determina por sí solo fᶜ; influye principalmente en la profundidad "
+            "y anchura del valle de coincidencia."
+        )
+    _lab2_plain_language_cards(
+        "Es una zona donde la onda aérea logra hacer vibrar la placa con especial eficiencia.",
+        "La curva real forma un valle respecto de la tendencia ideal de ley de masa.",
+        "Confundir la frecuencia crítica con una resonancia propia global de la placa.",
+    )
+
+    st.markdown("### 8. Laboratorio angular con resultado acústico")
     control_a,control_b=st.columns(2)
     angle=control_a.slider("Ángulo respecto de la normal",0,78,30,key="lab2_angle")
     angular_frequency=control_b.select_slider(
@@ -4666,7 +4735,7 @@ def lab2_stage2():
         'a incidencia rasante disminuye la componente normal que excita la hoja. '
         'El resultado de campo no es el TL de un único ángulo: integra muchos ángulos.</div>',
         unsafe_allow_html=True)
-    st.markdown("### 6. Explorador de las cuatro zonas")
+    st.markdown("### 9. Explorador de las cuatro zonas")
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
     props={
         # densidad, espesor, E [GPa], nu, eta aproximada
@@ -4733,7 +4802,7 @@ def lab2_stage2():
         f'<div class="lesson"><b>{selected_zone} · por qué cambia:</b> '
         f'{zone_explanations[selected_zone]}</div>',unsafe_allow_html=True)
     st.caption("Modelo didáctico: muestra mecanismos y tendencias; no sustituye una curva de ensayo del producto.")
-    st.markdown("### 7. Preguntas de comprensión")
+    st.markdown("### 10. Preguntas de comprensión")
     check("lab2_s2_q1",
         "¿De dónde proviene el término aproximado −47 dB de la ley de masa?",
         [
