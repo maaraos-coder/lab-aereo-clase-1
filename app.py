@@ -4197,15 +4197,15 @@ def lab2_stage1():
         st.markdown("#### Nivel de presión sonora")
         st.latex(r"L_p=20\log_{10}\left(\frac{p}{p_0}\right)")
         st.markdown(
-            r"Compara una presión acústica \(p\) con la referencia "
-            r"\(p_0=20\ \mu\mathrm{Pa}\). Ejemplo: \(85\ \mathrm{dB\ SPL}\)."
+            "Compara la presión acústica **p** con la presión de referencia "
+            "**p₀ = 20 µPa**. Ejemplo: **85 dB SPL**."
         )
     with c2:
         st.markdown("#### Pérdida de transmisión")
         st.latex(r"TL=10\log_{10}\left(\frac{W_i}{W_t}\right)")
         st.markdown(
-            r"Compara potencia incidente \(W_i\) y transmitida \(W_t\). "
-            r"Un \(TL=30\ \mathrm{dB}\) **no** es un sonido de 30 dB."
+            "Compara la potencia incidente **Wᵢ** y la transmitida **Wₜ**. "
+            "Un **TL = 30 dB** no es un sonido de 30 dB."
         )
     st.info(
         "Decir solamente «40 dB» está incompleto: siempre debe indicarse la magnitud, "
@@ -4213,14 +4213,14 @@ def lab2_stage1():
     )
 
     st.markdown("### 2. Del coeficiente τ a la pérdida de transmisión TL")
-    st.markdown(r"""
-    El coeficiente de transmisión \(\tau\) es la fracción adimensional de la potencia
+    st.markdown("""
+    El coeficiente de transmisión **τ** es la fracción adimensional de la potencia
     incidente que atraviesa la separación:
     """)
     st.latex(r"\tau=\frac{W_t}{W_i}\qquad 0\leq\tau\leq1")
     st.markdown("La definición de pérdida de transmisión es:")
     st.latex(r"TL=10\log_{10}\left(\frac{W_i}{W_t}\right)")
-    st.markdown(r"Como \(W_i/W_t=1/\tau\), la sustitución entrega:")
+    st.markdown("Como **Wᵢ/Wₜ = 1/τ**, la sustitución entrega:")
     st.latex(r"TL=10\log_{10}\left(\frac{1}{\tau}\right)")
     st.latex(r"\boxed{TL=-10\log_{10}(\tau)}")
     st.markdown("Y para realizar la conversión inversa:")
@@ -4273,8 +4273,6 @@ def lab2_stage1():
         showlegend=False,
         margin=dict(l=35,r=20,t=65,b=40),
     )
-    st.plotly_chart(energy_fig,use_container_width=True)
-
     tau_curve=np.logspace(0,-6,241)
     tl_curve=-10*np.log10(tau_curve)
     relation_fig=go.Figure()
@@ -4295,7 +4293,7 @@ def lab2_stage1():
         xaxis_type="log",
         xaxis_autorange="reversed",
         yaxis_range=[0,64],
-        height=390,
+        height=360,
         hovermode="closest",
         margin=dict(l=35,r=20,t=65,b=40),
     )
@@ -4303,7 +4301,19 @@ def lab2_stage1():
         tickvals=[1,1e-1,1e-2,1e-3,1e-4,1e-5,1e-6],
         ticktext=["1","0,1","0,01","0,001","10⁻⁴","10⁻⁵","10⁻⁶"],
     )
-    st.plotly_chart(relation_fig,use_container_width=True)
+    graph_left,graph_right=st.columns(2,gap="medium")
+    with graph_left:
+        st.plotly_chart(
+            energy_fig,
+            use_container_width=True,
+            key="lab2_tau_tl_energy_chart",
+        )
+    with graph_right:
+        st.plotly_chart(
+            relation_fig,
+            use_container_width=True,
+            key="lab2_tau_tl_relation_chart",
+        )
     st.markdown(
         f'<div class="lesson"><b>Lectura técnica:</b> de 1.000.000 unidades incidentes, '
         f'atraviesan {transmitted_units:,.3g}. Esto corresponde a τ = {tau:.6g}, '
@@ -4314,14 +4324,14 @@ def lab2_stage1():
     )
 
     st.markdown("### 4. ¿Por qué aquí se usa TL y después aparecerá R?")
-    st.markdown(r"""
+    st.markdown("""
     En esta etapa usamos **TL** (*Transmission Loss*) porque partimos de la relación física
     entre potencia incidente y transmitida y trabajamos con modelos predictivos. En ensayos
     normalizados de elementos constructivos se usa habitualmente el **índice de reducción
-    acústica \(R\)**, obtenido a partir de los niveles de las cámaras y de las condiciones
+    acústica R**, obtenido a partir de los niveles de las cámaras y de las condiciones
     del ensayo. Ambos describen el aislamiento por bandas y pueden coincidir bajo
     condiciones ideales, pero el símbolo debe corresponder al contexto y al método de
-    obtención. Más adelante, la curva \(R(f)\) permitirá calcular \(R_w\).
+    obtención. Más adelante, la curva **R(f)** permitirá calcular **Rᵥ**.
     """)
 
     st.markdown("### 5. Preguntas de comprensión")
