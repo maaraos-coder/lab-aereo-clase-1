@@ -4427,7 +4427,84 @@ def lab2_stage2():
     una sola masa: vidrio monolítico, placa de yeso, tablero de madera, chapa o muro macizo.
     No existe una segunda hoja independiente ni una cámara que actúe como resorte.
     """)
-    st.markdown("### 1. De la impedancia de masa a la ley de masa aproximada")
+    st.markdown("### 1. ¿Qué define a una placa simple?")
+    st.markdown("""
+    Se considera **placa simple** al elemento que, frente a la excitación sonora, se
+    desplaza y flexiona esencialmente como una sola hoja. Puede estar constituido por
+    un único material o por capas adheridas rígidamente; lo importante es que no existan
+    dos hojas independientes separadas por una cámara de aire.
+
+    Su primera propiedad acústica es la **masa superficial**: la masa contenida en cada
+    metro cuadrado de placa. Para una placa homogénea se obtiene multiplicando la densidad
+    del material por su espesor:
+    """)
+    st.latex(r"m'=\rho h")
+    st.markdown("""
+    - **m′**: masa superficial, en kg/m².
+    - **ρ**: densidad del material, en kg/m³.
+    - **h**: espesor, en m.
+
+    La masa superficial —y no la masa total de toda la placa— es la que interviene en la
+    ley de masa. Dos placas del mismo material y espesor tienen la misma m′ aunque sus
+    superficies totales sean distintas. Al aumentar m′ crece la oposición inercial al
+    movimiento, pero la respuesta real también depende de la rigidez de flexión, las
+    dimensiones, los apoyos, el amortiguamiento y la frecuencia.
+    """)
+    st.markdown("### 2. Incidencia normal, oblicua, aleatoria y de campo")
+    st.markdown("""
+    El ángulo **θ se mide respecto de la línea normal a la placa**, no respecto de su
+    superficie:
+
+    - **Incidencia normal (θ = 0°):** la onda llega perpendicularmente a la placa.
+    - **Incidencia oblicua (0° < θ < 90°):** la onda llega inclinada.
+    - **Incidencia rasante (θ próxima a 90°):** la propagación es casi paralela a la placa.
+
+    La incidencia normal y la oblicua describen una sola dirección de llegada. En cambio,
+    en un recinto reverberante existe energía que alcanza la placa desde muchas direcciones:
+    eso se representa mediante un promedio energético angular.
+    """)
+    st.latex(
+        r"\overline{\tau}="
+        r"\frac{\displaystyle\int_{0}^{\theta_{\mathrm{lim}}}"
+        r"\tau(\theta)\sin\theta\cos\theta\,d\theta}"
+        r"{\displaystyle\int_{0}^{\theta_{\mathrm{lim}}}"
+        r"\sin\theta\cos\theta\,d\theta}"
+    )
+    st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}\left(\overline{\tau}\right)")
+    st.markdown("""
+    - **Incidencia aleatoria o campo difuso ideal:** supone direcciones distribuidas
+      estadísticamente hasta 90°.
+    - **Incidencia de campo:** aproximación práctica del promedio angular; frecuentemente
+      se limita la integración cerca de 78° para representar mejor resultados experimentales.
+
+    No se promedian directamente valores de TL en decibeles. Primero se promedian los
+    coeficientes de transmisión τ y después se transforma el resultado a decibeles.
+    """)
+    st.markdown("### 3. Rigidez de flexión: la placa también se deforma")
+    st.markdown("""
+    Una placa simple no se desplaza únicamente como una masa rígida: también se curva.
+    La resistencia que opone a esa deformación se denomina **rigidez de flexión**:
+    """)
+    st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
+    st.markdown("""
+    - **D**: rigidez de flexión por unidad de ancho, en N·m.
+    - **E**: módulo de Young, en Pa.
+    - **h**: espesor, en m.
+    - **ν**: coeficiente de Poisson, adimensional.
+
+    La relación D ∝ h³ muestra que el espesor afecta mucho más a la rigidez que a la masa
+    superficial: si se duplica h, m′ se duplica, pero D aumenta idealmente ocho veces.
+    Esta rigidez determina los modos propios y, junto con m′, la propagación de las ondas
+    de flexión y la frecuencia crítica.
+    """)
+    st.latex(r"D\nabla^4\xi+m'\frac{\partial^2\xi}{\partial t^2}=\Delta p")
+    st.markdown("""
+    En esta ecuación dinámica, el primer término representa la resistencia a la flexión,
+    el segundo la inercia de la masa superficial y Δp la diferencia de presión que excita
+    la placa. En la región donde domina la inercia puede simplificarse el comportamiento
+    y obtenerse la ley de masa.
+    """)
+    st.markdown("### 4. De la impedancia de masa a la ley de masa aproximada")
     st.markdown("""
     En la región donde domina la **inercia**, una hoja ideal puede representarse mediante
     su impedancia mecánica por unidad de superficie. Para una excitación armónica:
@@ -4437,20 +4514,25 @@ def lab2_stage2():
     st.latex(r"\tau(\theta)=\left[1+\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)^2\right]^{-1}")
     st.markdown("y aplicar la definición desarrollada en la Etapa 1:")
     st.latex(r"TL(\theta)=-10\log_{10}\left[\tau(\theta)\right]")
-    st.markdown(r"""
-    Para incidencia normal, \(\theta=0^\circ\). Si el término de masa es mucho mayor que
-    1, se desprecia el 1 de la expresión y, usando \(\omega=2\pi f\), resulta:
+    st.markdown("""
+    Para incidencia normal, **θ = 0°** y, por tanto, **cos θ = 1**. Si el término de masa
+    es mucho mayor que 1, se desprecia el 1 de la expresión. Luego se sustituye la
+    frecuencia angular por su relación con la frecuencia ordinaria:
     """)
+    st.latex(r"\omega=2\pi f")
     st.latex(r"TL_n\approx20\log_{10}(m'f)+20\log_{10}\left(\frac{\pi}{\rho_0c}\right)")
     st.latex(r"TL_n\approx20\log_{10}(m'f)-42\quad\text{dB}")
-    st.info("""
-    La forma **TL ≈ 20 log₁₀(m′f) − 47 dB** incorpora una corrección aproximada para
-    incidencia de campo/difusa. Por eso −47 no es una constante universal ni una nueva
-    ley física: depende del modelo de incidencia y solo representa la tendencia de la
-    zona controlada por masa, lejos de resonancias y coincidencia.
+    st.info("La expresión anterior corresponde a incidencia normal y conduce, para aire "
+            "en condiciones habituales, a una constante cercana a −42 dB.")
+    st.latex(r"TL_{\mathrm{campo}}\approx20\log_{10}(m'f)-47\quad\mathrm{dB}")
+    st.markdown("""
+    La forma con **−47 dB** incorpora una corrección aproximada de incidencia de campo.
+    No es una constante universal ni una ley física diferente: depende del modelo angular
+    adoptado y solo describe la tendencia de la zona controlada por masa, lejos de las
+    resonancias, la coincidencia, las fugas y las transmisiones laterales.
     """)
 
-    st.markdown("### 2. Laboratorio angular con resultado acústico")
+    st.markdown("### 5. Laboratorio angular con resultado acústico")
     control_a,control_b=st.columns(2)
     angle=control_a.slider("Ángulo respecto de la normal",0,78,30,key="lab2_angle")
     angular_frequency=control_b.select_slider(
@@ -4500,11 +4582,11 @@ def lab2_stage2():
         'a incidencia rasante disminuye la componente normal que excita la hoja. '
         'El resultado de campo no es el TL de un único ángulo: integra muchos ángulos.</div>',
         unsafe_allow_html=True)
-    with st.expander("Desarrollo del promedio angular"):
+    with st.expander("Ver nuevamente el desarrollo del promedio angular"):
         st.latex(r"\overline{\tau}=\frac{\int_0^{78^\circ}\tau(\theta)\sin\theta\cos\theta\,d\theta}{\int_0^{78^\circ}\sin\theta\cos\theta\,d\theta}")
         st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}(\overline{\tau})")
         st.warning("Error frecuente: promediar valores de TL directamente en dB. Primero se promedia τ y luego se transforma.")
-    st.markdown("### 3. Explorador de las cuatro zonas")
+    st.markdown("### 6. Explorador de las cuatro zonas")
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
     props={
         # densidad, espesor, E [GPa], nu, eta aproximada
@@ -4558,18 +4640,18 @@ def lab2_stage2():
     with st.expander("Desarrollo de la frecuencia crítica"):
         st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
         st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
-        st.markdown(r"""
-        Como \(m'=\rho h\) y \(D\propto Eh^3\), para una placa homogénea:
-        """)
+        st.markdown("Para una placa homogénea se combinan las siguientes relaciones:")
+        st.latex(r"m'=\rho h")
+        st.latex(r"D\propto Eh^3")
         st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
-        st.markdown(r"""
-        Por eso aumentar el espesor reduce aproximadamente la frecuencia crítica:
-        la rigidez crece con \(h^3\), mucho más rápido que la masa superficial, que
-        crece solo con \(h\). Materiales con mayor relación rigidez/masa presentan una
+        st.markdown("""
+        Por eso aumentar el espesor reduce aproximadamente la frecuencia crítica: la
+        rigidez crece con el cubo del espesor, mucho más rápido que la masa superficial,
+        que crece linealmente. Materiales con mayor relación rigidez/masa presentan una
         frecuencia crítica más baja.
         """)
     st.caption("Modelo didáctico: muestra mecanismos y tendencias; no sustituye una curva de ensayo del producto.")
-    st.markdown("### 4. Preguntas de comprensión")
+    st.markdown("### 7. Preguntas de comprensión")
     check("lab2_s2_q1",
         "¿De dónde proviene el término aproximado −47 dB de la ley de masa?",
         [
