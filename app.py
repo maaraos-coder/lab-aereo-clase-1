@@ -4038,6 +4038,11 @@ LAB2_IMAGES = {
     "s4_propiedades_placas": "etapa4_propiedades_placas_profesional.webp",
     "s4_resonancia": "etapa4_resonancia_profesional.webp",
     "s4_regiones": "etapa4_tres_regiones_profesional.webp",
+    "s5_tabique_real": "etapa5_tabique_real_profesional.webp",
+    "s5_ideal_vs_conectado": "etapa5_ideal_vs_conectado_profesional.webp",
+    "s5_conexion_lineal_metal": "etapa5_conexion_lineal_metal_profesional.png",
+    "s5_conexion_lineal_madera": "etapa5_conexion_lineal_madera_profesional.png",
+    "s5_conexion_puntual": "etapa5_conexion_puntual_profesional.png",
 }
 
 def _lab2_image(image_key, caption=None):
@@ -5810,53 +5815,338 @@ def lab2_stage4():
     )
 
 def lab2_stage5():
-    _lab2_heading(5, "Modelo de Sharp: TL por tramos",
-                  "Seguir la ecuación activa, ubicar f₀ y fₗ e interpretar los cambios de pendiente.")
+    _lab2_heading(
+        5,
+        "Del panel doble ideal al tabique real",
+        "Distinguir conexiones lineales metálicas y de madera, y reconocer el principio de una conexión puntual.",
+    )
+
     st.markdown("""
-    Sharp representa el sistema doble mediante regiones. La ecuación cambia porque el
-    mecanismo dominante no es el mismo a ambos lados de **f₀** y **fₗ**:
+    En la Etapa 4 estudiamos dos hojas y una cámara como un sistema ideal. Un tabique
+    construido necesita perfiles, fijaciones y encuentros para sostenerse. Cuando un
+    mismo montante une mecánicamente ambas caras aparece un **puente estructural**:
+    parte de la vibración evita el camino puramente aéreo de la cámara y se transmite
+    por una conexión continua.
     """)
+    _lab2_image(
+        "s5_tabique_real",
+        "Tabique real: placas, cámara absorbente, perfiles y fijaciones forman un solo sistema constructivo.",
+    )
+    _lab2_plain_language_cards(
+        "La cámara no trabaja sola. Los tornillos y montantes pueden funcionar como un camino rígido entre una cara y la otra.",
+        "Sigue la energía ámbar que llega a la primera placa y el camino cian que atraviesa los perfiles.",
+        "Suponer que agregar lana mineral elimina el puente rígido. El absorbente ayuda a la cámara, pero no desacopla las placas.",
+    )
+
+    st.markdown("### 1 · Sistema ideal y sistema conectado")
+    st.markdown("""
+    En un sistema independiente cada hoja pertenece a una estructura diferente y la
+    transmisión está dominada por las dos masas, la cámara y su amortiguamiento. En
+    una conexión lineal, un montante o pie derecho continuo acopla ambas caras a lo
+    largo de una línea. Esa unión cambia el mecanismo y limita el beneficio del
+    desacoplamiento.
+    """)
+    _lab2_image(
+        "s5_ideal_vs_conectado",
+        "Comparación conceptual: doble estructura independiente y estructura conectada mediante montantes continuos.",
+    )
+    _lab2_plain_language_cards(
+        "Dos hojas separadas pueden vibrar con mayor independencia. Si las amarramos con el mismo perfil, la vibración encuentra un atajo.",
+        "Compara la intensidad de la onda transmitida y la concentración de energía en las uniones.",
+        "Comparar ambos sistemas solo por su masa total. La forma en que las hojas están conectadas también controla el resultado.",
+    )
+
+    st.markdown("### 2 · Conexión lineal con perfilería metálica")
+    st.markdown("""
+    En un tabique de yeso-cartón, los tornillos fijan ambas caras a montantes metálicos
+    compartidos. Cada montante forma una **línea vertical continua de conexión
+    estructural**. La vibración de la primera hoja puede entrar al perfil y volver a
+    radiarse desde la segunda hoja a lo largo de esa línea.
+    """)
+    _lab2_image(
+        "s5_conexion_lineal_metal",
+        "Conexión lineal metálica: las dos caras quedan vinculadas por montantes continuos de acero galvanizado.",
+    )
+    _lab2_plain_language_cards(
+        "El perfil metálico funciona como un puente largo y continuo entre las dos caras del tabique.",
+        "Sigue el recorrido placa → tornillos → montante metálico → tornillos → placa opuesta.",
+        "Creer que cada tornillo constituye por sí solo una conexión puntual. Aquí los tornillos descargan sobre un mismo perfil continuo: el conjunto se modela como conexión lineal.",
+    )
+
+    st.markdown("### 3 · Conexión lineal con pies derechos de madera")
+    st.markdown("""
+    El principio es el mismo cuando ambas caras se fijan a un **pie derecho continuo
+    de madera**. Cambia el material y su rigidez, pero la geometría de la unión sigue
+    siendo lineal: el elemento estructural se prolonga verticalmente y conecta las
+    hojas a lo largo de toda su altura.
+    """)
+    _lab2_image(
+        "s5_conexion_lineal_madera",
+        "Conexión lineal de madera: ambas caras se fijan a pies derechos continuos compartidos.",
+    )
+    _lab2_plain_language_cards(
+        "Aunque sea madera, el pie derecho también crea un camino estructural continuo entre ambas caras.",
+        "Observa que la energía se distribuye a lo largo de cada elemento vertical y no solo en un punto aislado.",
+        "Clasificar la unión por el material. Lo que define que sea lineal es la continuidad geométrica del contacto, no que el montante sea metálico o de madera.",
+    )
+
+    st.markdown("### 4 · Conexión puntual")
+    st.markdown("""
+    Una materialización constructiva real del apoyo puntual es el sistema de
+    **clips acústicos resilientes**. Cada clip se fija al montante en una posición
+    discreta y sostiene un canal metálico horizontal. Las dos placas de esa cara se
+    atornillan al canal, no directamente al montante.
+
+    El contacto con la estructura primaria queda concentrado en los clips separados.
+    El canal es continuo porque debe sostener las placas, pero su vínculo con los
+    montantes ocurre solo en esos puntos resilientes. El resultado depende del tipo,
+    rigidez, separación y carga admisible de los clips, además de la configuración
+    completa del tabique.
+    """)
+    _lab2_image(
+        "s5_conexion_puntual",
+        "Apoyo puntual real: clips resilientes separados fijan canales horizontales que reciben las dos placas de una cara.",
+    )
+    _lab2_plain_language_cards(
+        "Las placas descansan sobre canales; los canales se conectan a los montantes mediante clips separados que reducen el puente rígido directo.",
+        "Sigue el montaje real: montante → clip resiliente → canal horizontal → dos placas de yeso-cartón.",
+        "Confundir el canal horizontal con una conexión lineal rígida al montante. El canal es continuo, pero se apoya en clips discretos y resilientes.",
+    )
+
+    st.markdown("### 5 · Comparación constructiva")
+    st.markdown("""
+    | Tipo de conexión | Cómo se reconoce | Camino estructural |
+    |---|---|---|
+    | Lineal metálica | Ambas caras fijadas a un perfil metálico continuo compartido | A lo largo del montante |
+    | Lineal de madera | Ambas caras fijadas a un pie derecho continuo compartido | A lo largo del pie derecho |
+    | Puntual resiliente | Clips separados fijados a montantes sostienen canales horizontales | Concentrado en cada clip antes de distribuirse por el canal |
+
+    **Idea clave:** metal y madera corresponden a dos materializaciones de una
+    conexión lineal rígida. El sistema de clips introduce apoyos puntuales
+    resilientes reales; no debe calcularse con la ecuación de conexión lineal sin
+    disponer del modelo o de datos de ensayo del sistema específico.
+    """)
+
+    st.markdown("### 6 · Modelo simplificado para conexión lineal")
+    st.latex(r"TL_{\mathrm{línea}}(f)=TL_{m'_1+m'_2}(f)+\Delta TL_{m'}")
     st.latex(
-        r"TL(f)=\begin{cases}"
-        r"TL_{(m'_1+m'_2)}, & f<f_0\\"
-        r"TL_{m'_1}+TL_{m'_2}+20\log_{10}(fd)-29, & f_0\leq f<f_l\\"
-        r"TL_{m'_1}+TL_{m'_2}+6, & f\geq f_l"
-        r"\end{cases}"
+        r"\Delta TL_{m'}="
+        r"10\log_{10}(b\,f_c)+"
+        r"20\log_{10}\left(\frac{m'_1}{m'_1+m'_2}\right)-18"
+    )
+    st.markdown(r"""
+    - \(b\): separación entre líneas de conexión o montantes, en metros.
+    - \(f_c\): frecuencia crítica más alta de las dos hojas, en Hz.
+    - \(m'_1\) y \(m'_2\): masas superficiales de las hojas, en kg/m².
+    - \(TL_{m'_1+m'_2}\): pérdida por transmisión de una hoja equivalente con la masa total.
+    - \(\Delta TL_{m'}\): corrección del modelo para la conexión lineal.
+    """)
+    st.warning("""
+    **Alcance del cálculo:** es un modelo pedagógico simplificado para estudiar el
+    efecto de conexiones lineales. No reemplaza un ensayo de laboratorio ni incorpora
+    automáticamente fugas, cajas eléctricas, encuentros, transmisiones laterales o
+    errores de montaje.
+    """)
+
+    st.markdown("### 7 · Laboratorio interactivo: construye el tabique")
+    st.info(
+        "Modifica las hojas y la separación de los montantes. La aplicación compara "
+        "el panel doble ideal de Sharp, el tabique con conexión lineal y una hoja "
+        "equivalente con la misma masa total."
+    )
+    support_type=st.radio(
+        "Tipo de conexión lineal que deseas representar",
+        ["Perfilería metálica", "Pies derechos de madera"],
+        horizontal=True,
+        key="s5_real_support_type",
+    )
+    st.caption(
+        "Ambas alternativas se calculan con el modelo lineal entregado. La selección "
+        "cambia la lectura constructiva, no introduce propiedades mecánicas específicas "
+        "del acero o de la madera."
     )
     c1,c2,c3,c4=st.columns(4)
-    m1=c1.number_input("m′₁ (kg/m²)",5.0,80.0,10.0,1.0,key="sharp_m1")
-    m2=c2.number_input("m′₂ (kg/m²)",5.0,80.0,10.0,1.0,key="sharp_m2")
-    depth=c3.number_input("d (mm)",30,300,70,10,key="sharp_d")
-    selected_f=c4.selectbox("Frecuencia (Hz)",LAB2_FREQS.tolist(),index=9,key="sharp_f")
-    curve,f0,fl=_sharp_curve(m1,m2,depth,"Independiente")
+    m1=c1.number_input("Masa hoja 1 · m′₁ (kg/m²)",5.0,80.0,10.0,1.0,key="s5_real_m1")
+    m2=c2.number_input("Masa hoja 2 · m′₂ (kg/m²)",5.0,80.0,10.0,1.0,key="s5_real_m2")
+    depth=c3.number_input("Profundidad de cámara · d (mm)",30,300,70,10,key="s5_real_d")
+    spacing=c4.select_slider(
+        "Separación de montantes · b (m)",
+        options=[0.30,0.40,0.45,0.60,0.80,1.00],
+        value=0.60,
+        key="s5_real_b",
+    )
+    c5,c6,c7=st.columns(3)
+    fc1=c5.number_input("Frecuencia crítica hoja 1 (Hz)",100,5000,2500,50,key="s5_real_fc1")
+    fc2=c6.number_input("Frecuencia crítica hoja 2 (Hz)",100,5000,2500,50,key="s5_real_fc2")
+    selected_f=c7.selectbox(
+        "Banda que deseas inspeccionar (Hz)",
+        LAB2_FREQS.tolist(),
+        index=9,
+        key="s5_real_f",
+    )
+
+    fc_high=max(float(fc1),float(fc2))
+    correction=(
+        10*math.log10(max(spacing*fc_high,1e-9))
+        +20*math.log10(m1/(m1+m2))
+        -18
+    )
+    equivalent=_mass_law_curve(m1+m2)
+    connected=equivalent+correction
+    ideal,f0,fl=_sharp_curve(m1,m2,depth,"Independiente")
     idx=int(np.where(LAB2_FREQS==selected_f)[0][0])
-    if selected_f < f0:
-        tramo="Tramo 1 · masa total"
-        explanation="Las dos hojas todavía no entregan el beneficio completo del desacoplamiento."
-    elif selected_f < fl:
-        tramo="Tramo 2 · crecimiento masa–aire–masa"
-        explanation="Intervienen ambas hojas y la profundidad de la cámara."
+    bridge_loss=float(ideal[idx]-connected[idx])
+
+    a,b,c,d=st.columns(4)
+    a.metric("f₀ del sistema ideal",f"{f0:.0f} Hz")
+    b.metric("Corrección ΔTL",f"{correction:+.1f} dB")
+    c.metric(f"TL ideal · {selected_f} Hz",f"{ideal[idx]:.1f} dB")
+    d.metric(f"TL conectado · {selected_f} Hz",f"{connected[idx]:.1f} dB",
+             delta=f"{connected[idx]-ideal[idx]:+.1f} dB")
+
+    if bridge_loss > 3:
+        st.error(
+            f"**El puente estructural domina en esta banda:** el modelo conectado "
+            f"entrega {bridge_loss:.1f} dB menos que el sistema ideal."
+        )
+    elif bridge_loss > 0:
+        st.warning(
+            f"**La conexión reduce el beneficio ideal:** la diferencia calculada es "
+            f"de {bridge_loss:.1f} dB a {selected_f} Hz."
+        )
     else:
-        tramo="Tramo 3 · suma de hojas + 6 dB"
-        explanation="El modelo entra en la región superior definida por la transición."
-    a,b,c=st.columns(3)
-    a.metric("f₀",f"{f0:.0f} Hz")
-    b.metric("fₗ",f"{fl:.0f} Hz")
-    c.metric(f"TL a {selected_f} Hz",f"{curve[idx]:.1f} dB")
-    st.info(f"**{tramo}.** {explanation}")
-    _plot_curves([
-        ("Sharp · doble independiente",curve,"solid"),
-        ("Masa total como una hoja",_mass_law_curve(m1+m2),"dash"),
-    ],"TL de Sharp y frecuencias de transición",[(f0,"f₀"),(fl,"fₗ")])
-    st.markdown("""
-    ### Ejemplo guiado
-    Para dos hojas de 10 kg/m² y una cámara de 70 mm, el simulador calcula primero
-    **f₀** y **fₗ**. Luego ubica cada banda en su tramo. Esta secuencia evita aplicar
-    una única expresión a todo el espectro.
-    """)
-    check("lab2_sharp_q","¿Qué cambio desplaza normalmente f₀ hacia frecuencias más bajas?",
-          ["Reducir la cámara","Aumentar la cámara","Unir rígidamente las hojas"],
-          "Aumentar la cámara","Una cámara más profunda reduce la rigidez del resorte de aire y disminuye f₀.")
+        st.info(
+            "**En esta banda el modelo ideal no supera al conectado.** Revisa la "
+            "posición respecto de f₀ y recuerda que cada aproximación describe un "
+            "mecanismo diferente."
+        )
+
+    fig=go.Figure()
+    fig.add_trace(go.Scatter(
+        x=LAB2_FREQS,y=ideal,mode="lines+markers",
+        name="Panel doble ideal · Sharp",
+        line=dict(color="#08a9d8",width=4),marker=dict(size=6),
+    ))
+    fig.add_trace(go.Scatter(
+        x=LAB2_FREQS,y=connected,mode="lines+markers",
+        name=f"Tabique real · {support_type.lower()}",
+        line=dict(color="#ef8b2c",width=4,dash="dash"),marker=dict(size=7,symbol="diamond"),
+    ))
+    fig.add_trace(go.Scatter(
+        x=LAB2_FREQS,y=equivalent,mode="lines",
+        name="Hoja equivalente · masa total",
+        line=dict(color="#74839a",width=2,dash="dot"),
+    ))
+    fig.add_vline(x=selected_f,line_color="#1d3557",line_dash="dot",line_width=2)
+    fig.add_annotation(
+        x=selected_f,y=max(float(ideal[idx]),float(connected[idx])),
+        text=f"{selected_f} Hz",showarrow=True,arrowhead=2,ay=-42,
+        font=dict(color="#17324d"),
+    )
+    fig.update_layout(
+        title="Comparación espectral: sistema ideal y tabique con montantes",
+        xaxis_title="Frecuencia central (Hz)",yaxis_title="Pérdida por transmisión TL (dB)",
+        xaxis_type="log",hovermode="x unified",height=520,
+        margin=dict(l=45,r=25,t=75,b=115),
+        legend=dict(
+            orientation="h",yanchor="top",y=-0.23,xanchor="center",x=.5,
+            bgcolor="rgba(255,255,255,.92)",
+        ),
+    )
+    fig.update_xaxes(
+        tickvals=[63,125,250,500,1000,2000,4000],
+        ticktext=["63","125","250","500","1k","2k","4k"],
+        range=[math.log10(50),math.log10(5000)],autorange=False,
+    )
+    st.plotly_chart(fig,use_container_width=True,key="lab2_s5_real_wall_curve")
+
+    st.markdown("### 8 · Interpretación automática del diseño")
+    if spacing <= .40:
+        spacing_reading="La modulación es cerrada: existen muchas líneas de conexión por metro de tabique."
+    elif spacing <= .60:
+        spacing_reading="La modulación es habitual: el efecto de los montantes sigue siendo parte central del sistema."
+    else:
+        spacing_reading="La modulación es más abierta: hay menos líneas de conexión, pero debe verificarse la estabilidad constructiva."
+    symmetry=abs(m1-m2)/(m1+m2)
+    if symmetry < .10:
+        mass_reading="Las hojas son casi simétricas; sus respuestas críticas pueden concentrarse en zonas similares."
+    else:
+        mass_reading="Las hojas son asimétricas; esto puede separar parcialmente sus respuestas críticas."
+    st.success(
+        f"**Lectura docente:** La configuración representa una conexión lineal mediante "
+        f"{support_type.lower()}. {spacing_reading} {mass_reading} La frecuencia crítica "
+        f"dominante utilizada es {fc_high:.0f} Hz y la corrección calculada es "
+        f"{correction:+.1f} dB. La curva naranja representa el modelo conectado; "
+        f"no debe interpretarse como un resultado certificado de obra."
+    )
+
+    with st.expander("Ver procedimiento matemático paso a paso"):
+        st.markdown(
+            rf"""
+            1. Masa total: \(m'_1+m'_2={m1:.1f}+{m2:.1f}={m1+m2:.1f}\ \mathrm{{kg/m^2}}\).
+            2. Frecuencia crítica dominante: \(f_c=\max({fc1},{fc2})={fc_high:.0f}\ \mathrm{{Hz}}\).
+            3. Separación entre conexiones: \(b={spacing:.2f}\ \mathrm{{m}}\).
+            4. Corrección: \(\Delta TL_{{m'}}={correction:+.2f}\ \mathrm{{dB}}\).
+            5. En cada banda se calcula \(TL_{{\mathrm{{línea}}}}=TL_{{m'_1+m'_2}}+\Delta TL_{{m'}}\).
+            """
+        )
+
+    st.markdown("### 9 · Comprobación conceptual")
+    check(
+        "lab2_s5_q1",
+        "¿Por qué un montante compartido puede reducir el beneficio de una cámara?",
+        [
+            "Porque crea un camino estructural entre ambas hojas",
+            "Porque elimina la masa de las placas",
+            "Porque convierte la lana mineral en una fuente sonora",
+            "Porque abre necesariamente una fuga de aire",
+        ],
+        "Porque crea un camino estructural entre ambas hojas",
+        "La vibración puede viajar por placas, tornillos y perfil continuo sin depender solo del campo aéreo de la cámara.",
+    )
+    check(
+        "lab2_s5_q2",
+        "¿Qué representa b en el modelo de conexión lineal?",
+        [
+            "La separación entre líneas de conexión o montantes",
+            "El espesor de la lana mineral",
+            "La profundidad total de ambas placas",
+            "La velocidad del sonido",
+        ],
+        "La separación entre líneas de conexión o montantes",
+        "b describe la modulación de las conexiones continuas y se expresa en metros.",
+    )
+    check(
+        "lab2_s5_q3",
+        "¿Agregar absorbente dentro de la cámara elimina por sí solo el puente rígido?",
+        ["No","Sí","Solo sobre 500 Hz","Solo si ambas hojas pesan lo mismo"],
+        "No",
+        "El absorbente amortigua el campo de la cámara, pero no separa mecánicamente las fijaciones y perfiles.",
+    )
+    check(
+        "lab2_s5_q4",
+        "¿La curva calculada garantiza el desempeño final del tabique en obra?",
+        [
+            "No, deben considerarse ensayo, montaje, fugas, encuentros y flancos",
+            "Sí, porque incorpora todos los detalles constructivos",
+            "Sí, pero únicamente si b=0,60 m",
+            "No, porque el aislamiento nunca puede calcularse",
+        ],
+        "No, deben considerarse ensayo, montaje, fugas, encuentros y flancos",
+        "El modelo sirve para comprender tendencias; el desempeño real depende de más caminos de transmisión y de la ejecución.",
+    )
+    check(
+        "lab2_s5_q5",
+        "¿Qué diferencia geométrica principal existe entre una conexión lineal y una puntual?",
+        [
+            "La lineal se prolonga continuamente; la puntual actúa en posiciones discretas",
+            "La lineal siempre es metálica y la puntual siempre es de madera",
+            "La puntual no transmite vibración",
+            "No existe ninguna diferencia",
+        ],
+        "La lineal se prolonga continuamente; la puntual actúa en posiciones discretas",
+        "La clasificación depende de cómo se distribuye el acoplamiento: a lo largo de una línea o en puntos separados.",
+    )
 
 def lab2_stage6():
     _lab2_heading(6, "Comparación aplicada y cierre parcial",
