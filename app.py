@@ -5636,21 +5636,6 @@ def lab2_stage4():
         fig.add_vrect(
             x0=max(50,f1),x1=5000,fillcolor="#dcf5e8",opacity=.42,
             line_width=0)
-    # Los nombres de las regiones ocupan una franja propia sobre el gráfico.
-    # Se posicionan en el centro de cada intervalo para que no se monten sobre
-    # las líneas ni sobre las etiquetas f₀ y f₁.
-    region_limits=[
-        (50,min(f0,5000),"1 · Panel equivalente"),
-        (max(50,f0),min(f1,5000),"2 · Masa–aire–masa"),
-        (max(50,f1),5000,"3 · Región superior"),
-    ]
-    for x_start,x_end,label in region_limits:
-        if x_end > x_start:
-            fig.add_annotation(
-                x=(x_start+x_end)/2,y=1.115,xref="x",yref="paper",
-                text=f"<b>{label}</b>",showarrow=False,
-                xanchor="center",yanchor="bottom",
-                font=dict(size=12,color="#173f63"))
     # El panel doble se dibuja primero para que las curvas de cada placa
     # permanezcan visibles por encima, incluso cuando siguen valores cercanos.
     fig.add_trace(go.Scatter(
@@ -5685,12 +5670,18 @@ def lab2_stage4():
         fig.add_vline(x=f1,line_dash="dash",line_color="#16845b",
                       annotation_text="f₁",annotation_position="top right")
     fig.update_layout(
+        title=dict(
+            text="Pérdida por transmisión del sistema de panel doble",
+            x=.5,
+            xanchor="center",
+            font=dict(size=20,color="#173f63"),
+        ),
         xaxis_title="Frecuencia (Hz) · escala lineal",
         yaxis_title="TL de campo (dB)",
         xaxis=dict(type="linear",range=[50,5000],dtick=500,showgrid=True),
         yaxis=dict(showgrid=True,gridcolor="rgba(23,63,99,.10)"),
         height=650,hovermode="x unified",
-        margin=dict(l=65,r=30,t=135,b=145),
+        margin=dict(l=65,r=30,t=90,b=145),
         legend=dict(
             orientation="h",
             yanchor="top",
