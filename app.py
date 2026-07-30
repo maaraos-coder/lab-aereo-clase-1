@@ -4020,7 +4020,7 @@ LAB2_ASSET_DIR = ROOT / "assets" / "lab2"
 LAB2_IMAGES = {
     # Cambia cualquiera de estos archivos manteniendo el mismo nombre.
     "panel_simple": "panel_simple_transmision_profesional.png",
-    "panel_doble": "panel_doble_masa_aire_masa.svg",
+    "panel_doble": "etapa4_sistema_doble_profesional.webp",
     "metalcon": "metalcon_simple_vs_doble.svg",
     "yeso_carton": "panel_simple_yeso_carton.png",
     "madera": "panel_simple_madera.png",
@@ -4035,9 +4035,9 @@ LAB2_IMAGES = {
     "s2_tau_angulo": "punto3_tau_angulo_profesional.png",
     "s2_ley_masa": "punto6_impedancia_ley_masa_profesional.png",
     "s2_frecuencia_critica": "punto7_frecuencia_critica_profesional.png",
-    "s4_propiedades_placas": "etapa4_propiedades_placas.svg",
-    "s4_resonancia": "etapa4_resonancia_masa_aire_masa.svg",
-    "s4_regiones": "etapa4_ecuacion_tres_regiones.svg",
+    "s4_propiedades_placas": "etapa4_propiedades_placas_profesional.webp",
+    "s4_resonancia": "etapa4_resonancia_profesional.webp",
+    "s4_regiones": "etapa4_tres_regiones_profesional.webp",
 }
 
 def _lab2_image(image_key, caption=None):
