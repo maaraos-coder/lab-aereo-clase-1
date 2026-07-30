@@ -2292,7 +2292,7 @@ def quirt_window_curve(m1,m2,gap,height,width,alpha,freqs=FREQS):
 
 def stage6():
     header("ETAPA 6 · MATERIA + SIMULADORES","Fundamentos físicos del aislamiento acústico",
-           "Modelos de tu tesis AKUZOFT: placas simples, Sharp, resonancia y ventanas dobles mediante Quirt.")
+           "Modelos físicos de placas simples, Sharp, resonancia y ventanas dobles mediante Quirt.")
     full_matter(6)
     tabs=st.tabs(["Transmisión y R","Ley de masa","Coincidencia","Sharp · panel doble","Quirt · ventanas","Elementos compuestos"])
     with tabs[0]:
@@ -3883,7 +3883,7 @@ def lab2_stage4():
 def lab2_stage5():
     _lab2_heading(5, "ISO 12354 como puente de diseño",
                   "Pasar del dato del elemento al comportamiento esperado del edificio.")
-    st.markdown("""
+    st.markdown(r"""
     ### Secuencia didáctica simplificada
 
     **1. Entrada:** curva o índice del elemento ensayado.  
@@ -3902,7 +3902,7 @@ def lab2_stage6():
     _lab2_heading(6, "Ejercicio guiado · Sala de Reuniones Dirección",
                   "Resolver el caso junto al docente y documentar cada decisión.")
     st.image(str(ROOT/"assets/course_visuals/stage6_double_wall.webp"),use_container_width=True)
-    st.markdown("""
+    st.markdown(r"""
     ### Ficha de trabajo
 
     - Delimita emisor, receptor y separación.
@@ -4022,11 +4022,19 @@ LAB2_IMAGES = {
     "panel_simple": "panel_simple_transmision_profesional.png",
     "panel_doble": "panel_doble_masa_aire_masa.svg",
     "metalcon": "metalcon_simple_vs_doble.svg",
-    "yeso_carton": "material_yeso_carton.svg",
+    "yeso_carton": "panel_simple_yeso_carton.png",
+    "madera": "panel_simple_madera.png",
     "vidrio": "material_vidrio_monolitico.svg",
-    "hormigon": "material_hormigon.svg",
+    "hormigon": "muro_simple_hormigon.png",
     "comparador_hormigon": "comparador_panel_hormigon.svg",
     "comparador_tabique": "comparador_tabique_doble.svg",
+    "s2_punto1": "punto1_placa_masa_superficial_profesional.webp",
+    "s2_punto2": "punto2_tipos_incidencia_profesional.webp",
+    "s2_punto3": "punto3_rigidez_flexion_profesional.webp",
+    "s2_punto4": "punto4_promedio_campo_profesional.webp",
+    "s2_tau_angulo": "punto3_tau_angulo_profesional.png",
+    "s2_ley_masa": "punto6_impedancia_ley_masa_profesional.png",
+    "s2_frecuencia_critica": "punto7_frecuencia_critica_profesional.png",
 }
 
 def _lab2_image(image_key, caption=None):
@@ -4040,6 +4048,29 @@ def _lab2_image(image_key, caption=None):
     st.warning(f"No se encontró la imagen: {expected}")
     st.caption("Súbela a GitHub con ese nombre exacto; no es necesario modificar el código.")
     return False
+
+def _lab2_plain_language_cards(simple, observe, mistake):
+    """Three visible conceptual bridges for students without an engineering background."""
+    st.markdown(
+        f"""
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:.8rem;margin:.85rem 0 1.15rem">
+          <div style="background:#eef8ff;border:1px solid #b9def5;border-radius:14px;padding:1rem">
+            <div style="font-size:.76rem;font-weight:800;color:#0877c5">💡 EN PALABRAS SIMPLES</div>
+            <div style="margin-top:.45rem;color:#17324d;line-height:1.5">{simple}</div>
+          </div>
+          <div style="background:#f1fbf7;border:1px solid #bfe8d5;border-radius:14px;padding:1rem">
+            <div style="font-size:.76rem;font-weight:800;color:#13845f">👀 QUÉ DEBES OBSERVAR</div>
+            <div style="margin-top:.45rem;color:#17324d;line-height:1.5">{observe}</div>
+          </div>
+          <div style="background:#fff8ec;border:1px solid #f1d39b;border-radius:14px;padding:1rem">
+            <div style="font-size:.76rem;font-weight:800;color:#a56108">⚠️ ERROR FRECUENTE</div>
+            <div style="margin-top:.45rem;color:#17324d;line-height:1.5">{mistake}</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 def _lab2_incidence_figure(theta, tau=1.0):
     """Return incidence geometry; transmitted-ray weight follows calculated tau."""
@@ -4125,8 +4156,24 @@ def _sharp_curve(m1, m2, depth, connection="Independiente"):
         total.append(value)
     return np.array(total), f0, fl
 
-def _plot_curves(series, title, markers=None):
+def _plot_curves(series, title, markers=None, highlight=None):
     fig = go.Figure()
+    if highlight:
+        x0, x1, label, color = highlight
+        x0 = max(float(LAB2_FREQS[0]), float(x0))
+        x1 = min(float(LAB2_FREQS[-1]), float(x1))
+        if x1 > x0:
+            fig.add_vrect(
+                x0=x0,
+                x1=x1,
+                fillcolor=color,
+                opacity=.22,
+                line_width=0,
+                layer="below",
+                annotation_text=label,
+                annotation_position="top left",
+                annotation_font=dict(color="#17324d", size=12),
+            )
     for name, values, style in series:
         fig.add_trace(go.Scatter(
             x=LAB2_FREQS, y=values, mode="lines+markers", name=name,
@@ -4141,7 +4188,9 @@ def _plot_curves(series, title, markers=None):
         xaxis_type="log", hovermode="x unified", height=430,
         margin=dict(l=35,r=20,t=65,b=40), legend=dict(orientation="h",y=1.12))
     fig.update_xaxes(tickvals=[63,125,250,500,1000,2000,4000],
-                     ticktext=["63","125","250","500","1k","2k","4k"])
+                     ticktext=["63","125","250","500","1k","2k","4k"],
+                     range=[math.log10(50),math.log10(5000)],
+                     autorange=False)
     st.plotly_chart(fig, use_container_width=True)
 
 def _lab2_heading(stage, title, purpose):
@@ -4422,6 +4471,10 @@ def lab2_stage2():
     _lab2_heading(2, "Panel simple: incidencia y cuatro zonas físicas",
                   "Relacionar masa, frecuencia, rigidez, resonancia y coincidencia con la forma de la curva.")
     _lab2_image("panel_simple")
+    st.caption(
+        "Placa simple sometida a una onda sonora: una parte de la energía se refleja, "
+        "otra hace vibrar la placa y una fracción se transmite al recinto receptor."
+    )
     st.markdown("""
     Un **panel simple** es una hoja o conjunto de capas unidas rígidamente que vibran como
     una sola masa: vidrio monolítico, placa de yeso, tablero de madera, chapa o muro macizo.
@@ -4450,7 +4503,13 @@ def lab2_stage2():
     movimiento, pero la respuesta real también depende de la rigidez de flexión, las
     dimensiones, los apoyos, el amortiguamiento y la frecuencia.
     """)
-    st.markdown("### 2. Incidencia normal, oblicua, aleatoria y de campo")
+    _lab2_image("s2_punto1")
+    _lab2_plain_language_cards(
+        "La masa superficial indica cuánto pesa un metro cuadrado de placa.",
+        "Compara placas del mismo tamaño: la más densa o gruesa tendrá mayor m′.",
+        "Usar la masa total de la pared. La ley de masa utiliza kg/m², no kg.",
+    )
+    st.markdown("### 2. Incidencia normal y oblicua")
     st.markdown("""
     El ángulo **θ se mide respecto de la línea normal a la placa**, no respecto de su
     superficie:
@@ -4463,6 +4522,39 @@ def lab2_stage2():
     en un recinto reverberante existe energía que alcanza la placa desde muchas direcciones:
     eso se representa mediante un promedio energético angular.
     """)
+    _lab2_image("s2_punto2")
+    _lab2_plain_language_cards(
+        "El sonido puede llegar de frente o inclinado; el ángulo cambia cómo empuja la placa.",
+        "El ángulo se mide desde la línea perpendicular a la placa: 0° es incidencia normal.",
+        "Medir θ desde la superficie o creer que 78° representa por sí solo todo el campo.",
+    )
+    st.markdown("### 3. Coeficiente de transmisión sonora según el ángulo")
+    st.latex(r"\tau(\theta)=\left[1+\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)^2\right]^{-1}")
+    st.latex(r"TL(\theta)=-10\log_{10}\left[\tau(\theta)\right]")
+    st.markdown("""
+    El coeficiente **τ(θ)** representa la fracción de potencia sonora incidente que
+    atraviesa la placa para una dirección específica. Es un valor adimensional entre
+    0 y 1: cuanto menor es τ, menor energía se transmite y mayor es la pérdida de
+    transmisión **TL**.
+
+    En esta expresión, **ω = 2πf** es la frecuencia angular, **m′** es la masa
+    superficial de la placa, **ρ₀** es la densidad del aire, **c** es la velocidad del
+    sonido y **θ** es el ángulo medido desde la normal. El término **cos θ** hace que
+    la impedancia efectiva que presenta la placa cambie con la dirección de llegada.
+    Por eso una misma placa y una misma frecuencia no entregan un único resultado para
+    todas las incidencias.
+
+    El cálculo se realiza primero en escala energética mediante τ(θ). Después se
+    convierte a decibeles con **TL(θ) = −10 log₁₀[τ(θ)]**. Por ejemplo, τ = 0,01
+    significa que atraviesa el 1 % de la potencia incidente y equivale a TL = 20 dB.
+    """)
+    _lab2_image("s2_tau_angulo")
+    _lab2_plain_language_cards(
+        "Cada dirección deja pasar una fracción distinta de energía, representada por τ(θ).",
+        "Observa cómo varía la energía transmitida al cambiar únicamente el ángulo.",
+        "Interpretar τ como decibeles: τ es una proporción energética y TL es su expresión logarítmica.",
+    )
+    st.markdown("### 4. Incidencia aleatoria y promedio de campo")
     st.latex(
         r"\overline{\tau}="
         r"\frac{\displaystyle\int_{0}^{\theta_{\mathrm{lim}}}"
@@ -4472,6 +4564,28 @@ def lab2_stage2():
     )
     st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}\left(\overline{\tau}\right)")
     st.markdown("""
+    En un campo sonoro reverberante la placa recibe simultáneamente energía desde muchas
+    direcciones. El resultado de campo no corresponde al TL de un ángulo particular:
+    se obtiene integrando los coeficientes **τ(θ)** de todas las direcciones consideradas.
+
+    La ponderación **sin θ cos θ** tiene un significado físico. **sin θ** representa la
+    cantidad de direcciones disponibles dentro de cada anillo angular, mientras que
+    **cos θ** representa la componente de intensidad sonora normal a la superficie.
+    El denominador normaliza esa ponderación para que el resultado sea un promedio
+    energético y no una suma dependiente del intervalo elegido.
+
+    En este laboratorio se adopta **θ_lim = 78°** como aproximación práctica de campo.
+    Se integran todas las incidencias entre 0° y 78°; no se calcula únicamente la
+    transmisión a 78°. Una vez obtenido el coeficiente medio **τ̄**, recién entonces
+    se transforma a decibeles para obtener **TL_campo**.
+    """)
+    _lab2_image("s2_punto4")
+    _lab2_plain_language_cards(
+        "Un recinto real envía sonido hacia la placa desde muchas direcciones a la vez.",
+        "El resultado de campo integra desde 0° hasta 78° con ponderación energética.",
+        "Promediar directamente los TL o tomar el valor a 78° como si fuera el promedio de campo.",
+    )
+    st.markdown("""
     - **Incidencia aleatoria o campo difuso ideal:** supone direcciones distribuidas
       estadísticamente hasta 90°.
     - **Incidencia de campo:** aproximación práctica del promedio angular; frecuentemente
@@ -4480,7 +4594,7 @@ def lab2_stage2():
     No se promedian directamente valores de TL en decibeles. Primero se promedian los
     coeficientes de transmisión τ y después se transforma el resultado a decibeles.
     """)
-    st.markdown("### 3. Rigidez de flexión: la placa también se deforma")
+    st.markdown("### 5. Rigidez de flexión: la placa también se deforma")
     st.markdown("""
     Una placa simple no se desplaza únicamente como una masa rígida: también se curva.
     La resistencia que opone a esa deformación se denomina **rigidez de flexión**:
@@ -4510,7 +4624,13 @@ def lab2_stage2():
     sonora entre ambas caras que hace vibrar la placa. En la región donde domina la
     inercia puede simplificarse este equilibrio y obtenerse la ley de masa.
     """)
-    st.markdown("### 4. De la impedancia de masa a la ley de masa aproximada")
+    _lab2_image("s2_punto3")
+    _lab2_plain_language_cards(
+        "La placa no solo se desplaza: también se curva. D mide cuánto cuesta doblarla.",
+        "El espesor aparece elevado al cubo; pequeños cambios de h modifican mucho la rigidez.",
+        "Suponer que una placa más pesada siempre tiene proporcionalmente mayor rigidez.",
+    )
+    st.markdown("### 6. De la impedancia de masa a la ley de masa aproximada")
     st.markdown("""
     En la región donde domina la **inercia**, una hoja ideal puede representarse mediante
     su impedancia mecánica por unidad de superficie. Para una excitación armónica:
@@ -4537,62 +4657,261 @@ def lab2_stage2():
     adoptado y solo describe la tendencia de la zona controlada por masa, lejos de las
     resonancias, la coincidencia, las fugas y las transmisiones laterales.
     """)
+    _lab2_image("s2_ley_masa",
+                "Zona controlada por masa: una placa más pesada opone mayor inercia.")
+    _lab2_plain_language_cards(
+        "Una placa pesada se parece a un carro difícil de empujar: se mueve menos ante el sonido.",
+        "En la zona de masa, duplicar m′ o la frecuencia aumenta el TL aproximadamente 6 dB.",
+        "Extender la recta de ley de masa a resonancias y coincidencia, donde deja de ser válida.",
+    )
 
-    st.markdown("### 5. Laboratorio angular con resultado acústico")
-    control_a,control_b=st.columns(2)
-    angle=control_a.slider("Ángulo respecto de la normal",0,78,30,key="lab2_angle")
-    angular_frequency=control_b.select_slider(
-        "Frecuencia de cálculo (Hz)", options=LAB2_FREQS.tolist(),
-        value=500, key="lab2_angle_frequency")
-    angular_mass=10.0
-    tau_angle=_mass_sheet_tau(angular_mass,angular_frequency,angle)
-    tl_angle=-10*math.log10(tau_angle)
-    tau_normal=_mass_sheet_tau(angular_mass,angular_frequency,0)
-    tl_normal=-10*math.log10(tau_normal)
-    chart_a,chart_b=st.columns(2)
+    st.markdown("### 7. Frecuencia crítica y coincidencia")
+    st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
+    st.markdown("""
+    La **frecuencia crítica** es la zona en que la onda sonora puede acoplarse con
+    una onda de flexión de la placa. Ese acoplamiento facilita la transmisión y
+    puede producir un valle en la curva de aislamiento.
+
+    **En sencillo:** existe una zona donde la placa vibra de una forma especialmente
+    favorable para que el sonido pase. Se calcula usando la masa superficial y la
+    rigidez explicadas antes; no es un parámetro independiente.
+    """)
+    st.latex(r"m'=\rho h")
+    st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
+    st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
+    st.caption(
+        "η no determina por sí solo fᶜ; influye principalmente en la profundidad "
+        "y anchura del valle de coincidencia."
+    )
+    _lab2_image("s2_frecuencia_critica",
+                "Coincidencia entre la onda sonora y la onda de flexión de una placa.")
+    _lab2_plain_language_cards(
+        "Es una zona donde la onda aérea logra hacer vibrar la placa con especial eficiencia.",
+        "La curva real forma un valle respecto de la tendencia ideal de ley de masa.",
+        "Confundir la frecuencia crítica con una resonancia propia global de la placa.",
+    )
+
+    st.markdown("### 8. Laboratorio de incidencia de campo y aislamiento")
+    st.markdown("""
+    Esta aplicación reúne lo desarrollado en los puntos 2, 3 y 4. Primero calcula
+    la transmisión de cada **rayo individual** y después combina energéticamente
+    todas las direcciones incluidas en el campo seleccionado.
+
+    El procedimiento técnico se realiza en cuatro pasos:
+    """)
+    st.markdown("1. Se calcula el coeficiente de transmisión de cada dirección:")
+    st.latex(r"\tau(\theta)")
+    st.markdown("2. Cada dirección se pondera según su aporte al campo:")
+    st.latex(r"w(\theta)=\sin(\theta)\cos(\theta)")
+    st.markdown("3. Se obtiene el promedio energético de los coeficientes:")
+    st.latex(
+        r"\overline{\tau}="
+        r"\frac{\int_{0}^{\theta_{\max}}\tau(\theta)"
+        r"\sin(\theta)\cos(\theta)\,d\theta}"
+        r"{\int_{0}^{\theta_{\max}}\sin(\theta)\cos(\theta)\,d\theta}"
+    )
+    st.markdown("4. El promedio energético se convierte a pérdida de transmisión:")
+    st.latex(r"TL=-10\log_{10}\left(\overline{\tau}\right)")
+    st.caption(
+        "Símbolos: τ = coeficiente de transmisión; θ = ángulo de incidencia; "
+        "w(θ) = ponderación angular; τ̄ = coeficiente de transmisión promedio; "
+        "θmáx = ángulo máximo incluido; TL = pérdida de transmisión, en dB."
+    )
+    lab_mode_options = [
+        "Incidencia normal · 0°",
+        "Campo de laboratorio · 0° a 78°",
+        "Campo difuso ideal · 0° a 90°",
+    ]
+    control_a, control_b, control_c = st.columns([1.35, 1, 1])
+    field_mode = control_a.selectbox(
+        "Campo que deseas analizar",
+        lab_mode_options,
+        index=1,
+        key="lab2_field_mode",
+    )
+    ray_angle = control_b.slider(
+        "Rayo individual θ",
+        0,
+        89,
+        30,
+        key="lab2_field_ray_angle",
+        help="Este rayo sirve para explorar una dirección; no representa por sí solo el campo.",
+    )
+    angular_frequency = control_c.select_slider(
+        "Frecuencia (Hz)",
+        options=LAB2_FREQS.tolist(),
+        value=500,
+        key="lab2_field_frequency",
+    )
+
+    angular_mass = 10.0
+    calculation_angles = np.linspace(0.0, 89.9, 900)
+    calculation_angles_rad = np.deg2rad(calculation_angles)
+    tau_by_angle = np.array([
+        _mass_sheet_tau(angular_mass, angular_frequency, float(theta))
+        for theta in calculation_angles
+    ])
+    weights_by_angle = (
+        np.sin(calculation_angles_rad) * np.cos(calculation_angles_rad)
+    )
+
+    def _field_average_tau(limit_degrees):
+        field_angles = np.linspace(0.0, float(limit_degrees), 900)
+        field_angles_rad = np.deg2rad(field_angles)
+        field_tau = np.array([
+            _mass_sheet_tau(
+                angular_mass, angular_frequency, float(theta)
+            )
+            for theta in field_angles
+        ])
+        field_weights = np.sin(field_angles_rad) * np.cos(field_angles_rad)
+        if hasattr(np, "trapezoid"):
+            numerator = np.trapezoid(
+                field_tau * field_weights, field_angles_rad
+            )
+            denominator = np.trapezoid(field_weights, field_angles_rad)
+        else:
+            numerator = np.trapz(
+                field_tau * field_weights, field_angles_rad
+            )
+            denominator = np.trapz(field_weights, field_angles_rad)
+        return max(float(numerator / max(denominator, 1e-15)), 1e-15)
+
+    tau_ray = _mass_sheet_tau(
+        angular_mass, angular_frequency, ray_angle
+    )
+    tau_normal = _mass_sheet_tau(
+        angular_mass, angular_frequency, 0
+    )
+    tau_field_78 = _field_average_tau(78.0)
+    tau_field_90 = _field_average_tau(89.9)
+    tl_ray = -10 * math.log10(tau_ray)
+    tl_normal = -10 * math.log10(tau_normal)
+    tl_field_78 = -10 * math.log10(tau_field_78)
+    tl_field_90 = -10 * math.log10(tau_field_90)
+
+    selected_limit = {
+        "Incidencia normal · 0°": 0.0,
+        "Campo de laboratorio · 0° a 78°": 78.0,
+        "Campo difuso ideal · 0° a 90°": 89.9,
+    }[field_mode]
+    selected_tau = {
+        "Incidencia normal · 0°": tau_normal,
+        "Campo de laboratorio · 0° a 78°": tau_field_78,
+        "Campo difuso ideal · 0° a 90°": tau_field_90,
+    }[field_mode]
+    selected_tl = -10 * math.log10(selected_tau)
+
+    chart_a, chart_b = st.columns(2)
     with chart_a:
         st.plotly_chart(
-            _lab2_incidence_figure(angle,tau_angle),
-            use_container_width=True,key="lab2_incidence_calculated")
-    angle_curve=np.array([
-        -10*math.log10(_mass_sheet_tau(angular_mass,float(f),angle))
-        for f in LAB2_FREQS
-    ])
-    normal_curve=np.array([
-        -10*math.log10(_mass_sheet_tau(angular_mass,float(f),0))
-        for f in LAB2_FREQS
-    ])
+            _lab2_incidence_figure(ray_angle, tau_ray),
+            use_container_width=True,
+            key="lab2_field_incidence_ray",
+        )
     with chart_b:
-        fig_angle=go.Figure()
-        fig_angle.add_trace(go.Scatter(x=LAB2_FREQS,y=normal_curve,
-            mode="lines",name="0° · normal",line=dict(width=3,dash="dash")))
-        fig_angle.add_trace(go.Scatter(x=LAB2_FREQS,y=angle_curve,
-            mode="lines+markers",name=f"{angle}° · seleccionado",line=dict(width=3)))
-        fig_angle.add_vline(x=angular_frequency,line_dash="dot")
-        fig_angle.update_layout(title="TL calculado según frecuencia y ángulo",
-            xaxis_title="Frecuencia (Hz)",yaxis_title="TL (dB)",
-            xaxis_type="log",height=390,hovermode="x unified",
-            margin=dict(l=35,r=15,t=55,b=40),
-            legend=dict(orientation="h",y=1.13))
-        st.plotly_chart(fig_angle,use_container_width=True,key="lab2_angle_tl_chart")
-    m1,m2,m3,m4=st.columns(4)
-    m1.metric("TL seleccionado",f"{tl_angle:.1f} dB")
-    m2.metric("τ seleccionado",f"{tau_angle:.3g}")
-    m3.metric("TL a 0°",f"{tl_normal:.1f} dB")
-    m4.metric("Diferencia angular",f"{tl_angle-tl_normal:+.1f} dB")
-    angular_factor=max(math.cos(math.radians(angle)),.01)
+        fig_field = go.Figure()
+        if selected_limit > 0:
+            fig_field.add_vrect(
+                x0=0,
+                x1=selected_limit,
+                fillcolor="#dbeafe",
+                opacity=0.38,
+                line_width=0,
+                annotation_text="Ángulos incluidos",
+                annotation_position="top left",
+            )
+        fig_field.add_trace(go.Scatter(
+            x=calculation_angles,
+            y=tau_by_angle,
+            mode="lines",
+            name="τ(θ)",
+            line=dict(color="#1565c0", width=3),
+            customdata=weights_by_angle,
+            hovertemplate=(
+                "θ=%{x:.1f}°<br>τ=%{y:.4g}"
+                "<br>ponderación=%{customdata:.3f}<extra></extra>"
+            ),
+        ))
+        fig_field.add_trace(go.Scatter(
+            x=[ray_angle],
+            y=[tau_ray],
+            mode="markers",
+            name=f"Rayo {ray_angle}°",
+            marker=dict(size=12, color="#c62828"),
+        ))
+        if selected_limit > 0:
+            fig_field.add_vline(
+                x=selected_limit,
+                line_dash="dash",
+                line_color="#ef6c00",
+            )
+        fig_field.update_layout(
+            title="Transmisión y ángulos incluidos en el promedio",
+            xaxis_title="Ángulo respecto de la normal (°)",
+            yaxis_title="Coeficiente de transmisión τ",
+            height=390,
+            margin=dict(l=35, r=15, t=55, b=40),
+            legend=dict(orientation="h", y=1.13),
+        )
+        st.plotly_chart(
+            fig_field,
+            use_container_width=True,
+            key="lab2_field_tau_by_angle",
+        )
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("TL del rayo", f"{tl_ray:.1f} dB", f"θ = {ray_angle}°")
+    m2.metric("TL normal", f"{tl_normal:.1f} dB", "0°")
+    m3.metric("TL de campo", f"{tl_field_78:.1f} dB", "0°–78°")
+    m4.metric("TL difuso ideal", f"{tl_field_90:.1f} dB", "0°–90°")
+
+    comparison_names = [
+        f"Rayo {ray_angle}°",
+        "Normal 0°",
+        "Campo 0°–78°",
+        "Difuso 0°–90°",
+    ]
+    comparison_values = [tl_ray, tl_normal, tl_field_78, tl_field_90]
+    fig_comparison = go.Figure(go.Bar(
+        x=comparison_names,
+        y=comparison_values,
+        marker_color=["#c62828", "#455a64", "#1565c0", "#7b1fa2"],
+        text=[f"{value:.1f} dB" for value in comparison_values],
+        textposition="outside",
+    ))
+    fig_comparison.update_layout(
+        title=(
+            f"Comparación a {angular_frequency} Hz · "
+            f"selección: {field_mode}"
+        ),
+        xaxis_title="Condición de incidencia",
+        yaxis_title="TL (dB)",
+        height=365,
+        margin=dict(l=35, r=15, t=60, b=45),
+        showlegend=False,
+    )
+    st.plotly_chart(
+        fig_comparison,
+        use_container_width=True,
+        key="lab2_field_tl_comparison",
+    )
+    transmitted_percent = 100.0 * selected_tau
     st.markdown(
-        f'<div class="lesson"><b>Lectura calculada:</b> para una hoja ideal de '
-        f'10 kg/m², {angular_frequency} Hz y θ={angle}°, cos θ={angular_factor:.3f}; '
-        f'τ={tau_angle:.4g} y TL={tl_angle:.1f} dB. En este modelo de masa, al acercarse '
-        'a incidencia rasante disminuye la componente normal que excita la hoja. '
-        'El resultado de campo no es el TL de un único ángulo: integra muchos ángulos.</div>',
-        unsafe_allow_html=True)
-    with st.expander("Ver nuevamente el desarrollo del promedio angular"):
-        st.latex(r"\overline{\tau}=\frac{\int_0^{78^\circ}\tau(\theta)\sin\theta\cos\theta\,d\theta}{\int_0^{78^\circ}\sin\theta\cos\theta\,d\theta}")
-        st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}(\overline{\tau})")
-        st.warning("Error frecuente: promediar valores de TL directamente en dB. Primero se promedia τ y luego se transforma.")
-    st.markdown("### 6. Explorador de las cuatro zonas")
+        f'<div class="lesson"><b>Lectura de la selección:</b> '
+        f'<b>{field_mode}</b> entrega un TL de <b>{selected_tl:.1f} dB</b> '
+        f'y transmite aproximadamente <b>{transmitted_percent:.3g} %</b> de la '
+        f'energía incidente en este modelo ideal de masa. El rayo rojo de '
+        f'{ray_angle}° permite estudiar una dirección, pero no sustituye al promedio '
+        'energético del campo.</div>',
+        unsafe_allow_html=True,
+    )
+    st.info(
+        "Idea clave: el TL de campo entre 0° y 78° no es el TL de una onda que "
+        "llega a 78°. Es el resultado de combinar energéticamente todas las "
+        "incidencias comprendidas entre 0° y 78°."
+    )
+    st.markdown("### 9. Explorador de las cuatro zonas")
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
     props={
         # densidad, espesor, E [GPa], nu, eta aproximada
@@ -4609,55 +4928,65 @@ def lab2_stage2():
     mass,stiffness,calculated_fc=_critical_frequency(rho,h,young,poisson)
     default_loss=max(5,min(16,5-10*math.log10(eta)))
     curve=_simple_real_curve(mass,calculated_fc,default_loss)
+    zone_explanations={
+        "1 · Rigidez":(
+            "A muy baja frecuencia dominan la rigidez, el tamaño, los apoyos y las "
+            "fijaciones. Al variar el material o el espesor cambia la rigidez a "
+            "flexión D; por eso esta zona no puede predecirse solo con la masa "
+            "superficial m′."
+        ),
+        "2 · Resonancias":(
+            "Los modos propios dependen de la relación D/m′, de las dimensiones y "
+            "de los bordes. Una placa más rígida desplaza sus modos; una placa mayor "
+            "o más pesada tiende a llevarlos hacia frecuencias menores."
+        ),
+        "3 · Ley de masa":(
+            "Entre las resonancias y la coincidencia domina la inercia. En esta "
+            "región resulta útil la ley de masa: al duplicar m′ o la frecuencia, "
+            "el aislamiento aumenta aproximadamente 6 dB."
+        ),
+        "4 · Coincidencia":(
+            f"Para la selección actual, la frecuencia crítica es aproximadamente "
+            f"{calculated_fc:.0f} Hz. En torno a ella, la onda aérea se acopla con "
+            "una onda de flexión de la placa y aumenta la energía transmitida."
+        ),
+    }
+    st.markdown("#### Cómo interpretar la zona seleccionada")
+    st.markdown(
+        f"**{selected_zone}.** {zone_explanations[selected_zone]} "
+        "En el gráfico, el fondo coloreado identifica el intervalo donde domina "
+        "este mecanismo."
+    )
+    if selected_zone=="1 · Rigidez":
+        st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
+    elif selected_zone=="3 · Ley de masa":
+        st.latex(r"TL\approx20\log_{10}(m'f)-47")
+    elif selected_zone=="4 · Coincidencia":
+        st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
+    # Rangos didácticos para mostrar dónde domina cada mecanismo. La zona de
+    # coincidencia sigue a fᶜ, por lo que cambia al modificar material o espesor.
+    zone_highlights={
+        "1 · Rigidez":(50,125,"Zona de rigidez","#9ec5fe"),
+        "2 · Resonancias":(63,250,"Zona de resonancias","#ffd8a8"),
+        "3 · Ley de masa":(
+            250,max(315,.80*calculated_fc),"Zona de ley de masa","#b7e4c7"
+        ),
+        "4 · Coincidencia":(
+            .80*calculated_fc,1.25*calculated_fc,
+            "Zona de coincidencia","#f3b4c2"
+        ),
+    }
     _plot_curves([
         ("Respuesta aproximada",curve,"solid"),
         ("Ley de masa ideal",_mass_law_curve(mass),"dash"),
-    ],f"{material} · m′ = {mass:.1f} kg/m²",[(calculated_fc,"fᶜ")])
+    ],f"{material} · m′ = {mass:.1f} kg/m²",
+       [(calculated_fc,"fᶜ")],zone_highlights[selected_zone])
     z1,z2,z3=st.columns(3)
     z1.metric("Masa superficial m′",f"{mass:.1f} kg/m²")
     z2.metric("Rigidez D",f"{stiffness:.1f} N·m")
     z3.metric("Frecuencia crítica fᶜ",f"{calculated_fc:.0f} Hz")
-    zone_explanations={
-        "1 · Rigidez":(
-            "A muy baja frecuencia dominan la rigidez, el tamaño, los apoyos y las "
-            "fijaciones. Al variar el material o el espesor cambia D = Eh³/[12(1−ν²)]; "
-            "por eso esta zona no puede predecirse solo con m′."
-        ),
-        "2 · Resonancias":(
-            "Los modos propios dependen de D/m′, de las dimensiones y de los bordes. "
-            "Una placa más rígida desplaza sus modos; una placa mayor o más pesada tiende "
-            "a llevarlos hacia frecuencias menores. Los valles no son una recta de masa."
-        ),
-        "3 · Ley de masa":(
-            "Entre resonancias y coincidencia domina la inercia. Aquí sí es útil "
-            "TL ≈ 20 log₁₀(m′f) − 47: duplicar m′ o f aporta aproximadamente 6 dB. "
-            "La línea discontinua es una tendencia, no toda la respuesta real."
-        ),
-        "4 · Coincidencia":(
-            f"Para la selección actual, fᶜ ≈ {calculated_fc:.0f} Hz. En torno a esa "
-            "frecuencia la onda aérea se acopla con una onda de flexión y aumenta la "
-            "radiación transmitida. Cambiar E, ρ o h desplaza fᶜ; el amortiguamiento η "
-            "modifica la profundidad y anchura del valle."
-        ),
-    }
-    st.markdown(
-        f'<div class="lesson"><b>{selected_zone} · por qué cambia:</b> '
-        f'{zone_explanations[selected_zone]}</div>',unsafe_allow_html=True)
-    with st.expander("Desarrollo de la frecuencia crítica"):
-        st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
-        st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
-        st.markdown("Para una placa homogénea se combinan las siguientes relaciones:")
-        st.latex(r"m'=\rho h")
-        st.latex(r"D\propto Eh^3")
-        st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
-        st.markdown("""
-        Por eso aumentar el espesor reduce aproximadamente la frecuencia crítica: la
-        rigidez crece con el cubo del espesor, mucho más rápido que la masa superficial,
-        que crece linealmente. Materiales con mayor relación rigidez/masa presentan una
-        frecuencia crítica más baja.
-        """)
     st.caption("Modelo didáctico: muestra mecanismos y tendencias; no sustituye una curva de ensayo del producto.")
-    st.markdown("### 7. Preguntas de comprensión")
+    st.markdown("### 10. Preguntas de comprensión")
     check("lab2_s2_q1",
         "¿De dónde proviene el término aproximado −47 dB de la ley de masa?",
         [
@@ -4704,9 +5033,9 @@ def lab2_stage2():
         "Disminuye aproximadamente en proporción inversa al espesor",
         "Como m′ crece con h y D con h³, fᶜ es aproximadamente proporcional a 1/h para un mismo material.")
 
-def _panel_simple_tau_tesis(frequency, angles_rad, surface_mass, stiffness,
-                            loss_factor, rho_air=1.21, sound_speed=343.0):
-    """Coeficiente angular del modelo original de placa simple de AKUZOFT."""
+def _panel_simple_tau(frequency, angles_rad, surface_mass, stiffness,
+                      loss_factor, rho_air=1.18, sound_speed=343.0):
+    """Coeficiente de transmisión angular para una placa simple homogénea."""
     omega = 2*np.pi*np.asarray(frequency, dtype=float)
     theta = np.asarray(angles_rad, dtype=float)
     omega_grid = omega[..., np.newaxis]
@@ -4724,21 +5053,21 @@ def _panel_simple_tau_tesis(frequency, angles_rad, surface_mass, stiffness,
     return 1/np.maximum(real_part**2+imaginary_part**2, 1e-15)
 
 
-def _panel_simple_field_tl_tesis(frequencies, surface_mass, stiffness,
-                                 loss_factor, theta_limit_deg=78.0):
-    """Integra τ entre 0° y theta_limit con la ponderación de incidencia de campo."""
-    # Regla del punto medio: evita depender de np.trapz/np.trapezoid entre
-    # versiones de NumPy y no evalúa los extremos 0°/90°.
-    edges = np.linspace(0, math.radians(theta_limit_deg), 722)
-    angles = (edges[:-1]+edges[1:])/2
-    delta_theta = edges[1]-edges[0]
-    tau_angular = _panel_simple_tau_tesis(
+def _panel_simple_field_tl(frequencies, surface_mass, stiffness,
+                           loss_factor):
+    """Cálculo de campo para una placa simple entre 0 y 78 grados."""
+    angles = np.linspace(0.0, np.deg2rad(78.0), 720)
+    tau_angular = _panel_simple_tau(
         frequencies, angles, surface_mass, stiffness, loss_factor
     )
     weights = np.sin(angles)*np.cos(angles)
-    integral = np.sum(tau_angular*weights, axis=-1)*delta_theta
-    normalizer = 1/(0.5*math.sin(math.radians(theta_limit_deg))**2)
-    tau_field = np.clip(normalizer*integral, 1e-15, 1.0)
+    integrand = tau_angular*weights
+    if hasattr(np, "trapezoid"):
+        integral = np.trapezoid(integrand, angles, axis=-1)
+    else:
+        integral = np.trapz(integrand, angles, axis=-1)
+    normalizer = 2.0904
+    tau_field = np.maximum(normalizer*integral, 1e-12)
     tl_field = -10*np.log10(tau_field)
     return tau_field, tl_field, angles, tau_angular, normalizer
 
@@ -4757,7 +5086,7 @@ def lab2_stage3():
 
     En este primer ejercicio no se aplicará la ley de masa aproximada ni una corrección
     dibujada para la coincidencia. La curva se obtendrá directamente con la ecuación
-    angular de placa simple de la tesis **AKUZOFT** y su integración de campo hasta 78°.
+    angular de placa simple y su integración de campo.
     """)
     _lab2_image(
         "yeso_carton",
@@ -4861,8 +5190,8 @@ def lab2_stage3():
 
     selected_f=float(selected_frequency)
     tau_field_one,tl_field_one,angles,tau_angular,normalizer=(
-        _panel_simple_field_tl_tesis(
-            np.array([selected_f]),surface_mass,stiffness,eta,78.0
+        _panel_simple_field_tl(
+            np.array([selected_f]),surface_mass,stiffness,eta
         )
     )
     tau_selected=tau_angular[0]
@@ -4917,8 +5246,8 @@ def lab2_stage3():
 
     st.markdown("### Paso 5 · Curva continua de TL en frecuencia lineal")
     frequencies=np.arange(50.0,5000.0+1,10.0)
-    tau_field,tl_field,_,_,_= _panel_simple_field_tl_tesis(
-        frequencies,surface_mass,stiffness,eta,78.0)
+    tau_field,tl_field,_,_,_= _panel_simple_field_tl(
+        frequencies,surface_mass,stiffness,eta)
     selected_index=int(np.argmin(np.abs(frequencies-selected_f)))
     fig=go.Figure()
     fig.add_trace(go.Scatter(
@@ -4949,8 +5278,8 @@ def lab2_stage3():
 
     st.markdown("### Paso 6 · Lectura de resultados")
     sample_frequencies=np.array([125.,250.,500.,1000.,2000.,4000.])
-    sample_tau,sample_tl,_,_,_=_panel_simple_field_tl_tesis(
-        sample_frequencies,surface_mass,stiffness,eta,78.0)
+    sample_tau,sample_tl,_,_,_=_panel_simple_field_tl(
+        sample_frequencies,surface_mass,stiffness,eta)
     results=pd.DataFrame({
         "Frecuencia (Hz)":sample_frequencies.astype(int),
         "τ̄ campo":sample_tau,
@@ -5030,41 +5359,331 @@ def lab2_stage3():
     )
 
 def lab2_stage4():
-    _lab2_heading(4, "Panel doble y resonancia masa–aire–masa",
-                  "Comprender cuándo dos hojas forman un sistema desacoplado y cómo la cámara modifica la curva.")
-    _lab2_image("panel_doble")
-    st.markdown("""
-    Un **panel doble** posee dos hojas que pueden vibrar de manera diferente, separadas por
-    una cámara. Las hojas actúan como masas y el aire encerrado como resorte. Cerca de la
-    resonancia **f₀**, ambas hojas se acoplan y el aislamiento disminuye. Por encima de esa
-    zona, el desacoplamiento puede superar claramente a una sola hoja de masa equivalente.
+    """Explicación técnica de dos placas simples separadas por una cámara de aire."""
+    _lab2_heading(
+        4,
+        "Pérdida de transmisión en paneles dobles",
+        "Comprender el sistema masa–aire–masa, sus frecuencias características y las tres regiones del modelo.",
+    )
+    _lab2_image(
+        "panel_doble",
+        "Modelo idealizado: dos placas homogéneas simples separadas por una cámara de aire.",
+    )
+    st.markdown(r"""
+    ### Introducción
 
-    La lana mineral reduce la energía de los modos de la cámara, pero no reemplaza la
-    separación estructural ni corrige puentes rígidos.
+    Un panel doble está formado por **dos placas separadas por una cámara de
+    aire**. A diferencia de una placa simple, su comportamiento no depende
+    solamente de la masa y la rigidez de cada hoja: el aire encerrado actúa como
+    un resorte y acopla el movimiento de ambas placas.
+
+    El conjunto puede representarse como un sistema **masa–aire–masa**:
+
+    - La placa 1 constituye la primera masa.
+    - La cámara de aire aporta la elasticidad.
+    - La placa 2 constituye la segunda masa.
+
+    Este mecanismo produce una frecuencia de resonancia \(f_0\) y obliga a
+    estudiar la pérdida por transmisión mediante tres regiones. Por eso, agregar
+    una segunda placa no genera la misma mejora en todas las frecuencias.
     """)
-    c1,c2,c3=st.columns(3)
-    m1=c1.slider("Masa hoja 1 (kg/m²)",5,40,10,key="lab2_d_m1")
-    m2=c2.slider("Masa hoja 2 (kg/m²)",5,40,10,key="lab2_d_m2")
-    depth=c3.slider("Cámara d (mm)",30,200,70,key="lab2_d_depth")
-    connection=st.radio("Conexión constructiva",
-        ["Independiente","Montante compartido","Puente accidental"],horizontal=True,key="lab2_connection")
-    curve,f0,fl=_sharp_curve(m1,m2,depth,connection)
-    a,b,c=st.columns(3)
-    a.metric("Resonancia f₀",f"{f0:.0f} Hz")
-    b.metric("Transición fₗ",f"{fl:.0f} Hz")
-    c.metric("Masa total",f"{m1+m2} kg/m²")
-    _plot_curves([
-        (f"Sistema doble · {connection}",curve,"solid"),
-        ("Una hoja de igual masa",_mass_law_curve(m1+m2),"dash"),
-    ],"Simulador masa–aire–masa",[(f0,"f₀"),(fl,"fₗ")])
-    st.latex(r"f_0=60\sqrt{\frac{1/m'_1+1/m'_2}{d}}")
-    st.caption("d se expresa en metros. Aumentar la profundidad o las masas desplaza f₀ hacia frecuencias más bajas.")
-    _lab2_image("metalcon")
-    st.markdown("""
-    En Metalcon simple, ambas caras se fijan a los mismos montantes: los apoyos repetidos
-    forman una **conexión lineal rígida**. En doble estructura, cada hoja se fija a su propio
-    bastidor y no existe conexión directa si también se separan soleras, tornillos y refuerzos.
+    st.info(
+        "**Continuidad con la Etapa 3:** cada hoja se calcula primero como una placa "
+        "simple con integración de campo entre 0° y 78°. Después, ambas curvas se "
+        "combinan mediante la ecuación de panel doble."
+    )
+    st.caption(
+        "En esta explicación se utiliza el modelo teórico ideal. Las correcciones "
+        "por absorbente, montantes, fijaciones, fugas y transmisiones laterales no "
+        "forman parte de esta etapa."
+    )
+
+    st.markdown("### 1 · Propiedades de las dos placas")
+    st.markdown(r"""
+        Cada hoja conserva las propiedades del panel simple estudiado en la
+        Etapa 3. Para la placa \(i\):
     """)
+    st.latex(r"m'_i=\rho_i h_i")
+    st.latex(r"B_i=\frac{E_i h_i^3}{12}")
+    st.caption(
+        "Para cada hoja i, m′ es la masa superficial en kg/m² y B es la rigidez "
+        "a flexión en N·m."
+    )
+
+    st.markdown("### 2 · Resonancia masa–aire–masa")
+    st.markdown(r"""
+    En \(f_0\), las dos placas y el aire de la cámara interactúan con mayor
+    intensidad. Esta resonancia constituye una zona desfavorable porque puede
+    reducir el aislamiento del sistema. Su posición depende de las masas
+    superficiales y de la profundidad \(d\) de la cámara:
+    """)
+    st.latex(
+        r"f_0=\frac{1}{2\pi}"
+        r"\sqrt{\rho_0c^2}"
+        r"\sqrt{\frac{m'_1+m'_2}{m'_1m'_2d}}"
+    )
+    st.markdown(r"""
+    Al aumentar la masa de las hojas o la profundidad de la cámara, \(f_0\)
+    normalmente se desplaza hacia frecuencias más bajas.
+
+    La segunda frecuencia característica, \(f_1\), marca el cambio hacia la
+    región superior del modelo:
+    """)
+    st.latex(r"f_1=\frac{c}{2\pi d}")
+    st.caption(
+        "En ambas expresiones, d se ingresa en metros; ρ₀ = 1,18 kg/m³ y c = 343 m/s."
+    )
+
+    st.markdown("### 3 · Ecuación por regiones")
+    st.latex(
+        r"TL_D(f)=\begin{cases}"
+        r"TL_{eq}(f), & f<f_0\\[4pt]"
+        r"TL_1(f)+TL_2(f)+20\log_{10}(fd)-29, & f_0\leq f<f_1\\[4pt]"
+        r"TL_1(f)+TL_2(f)+6, & f\geq f_1"
+        r"\end{cases}"
+    )
+    st.markdown(r"""
+    **Región 1 · Bajo \(f_0\).** Las placas se comportan de manera acoplada y se
+    representan como un panel equivalente. Todavía no se obtiene el beneficio
+    completo de la cámara.
+    """)
+    st.latex(r"m'_{eq}=m'_1+m'_2")
+    st.latex(r"B_{eq}=B_1+B_2")
+    st.latex(r"\eta_{eq}=\eta_1+\eta_2")
+    st.markdown(r"""
+    **Región 2 · Entre \(f_0\) y \(f_1\).** Se desarrolla el comportamiento
+    masa–aire–masa. La pérdida por transmisión depende de las dos placas y
+    aparece explícitamente la profundidad \(d\) de la cámara.
+
+    **Región 3 · Sobre \(f_1\).** El modelo combina la pérdida por transmisión
+    de ambas hojas y agrega 6 dB.
+    """)
+    st.caption(
+        "TL₁, TL₂ y TLₑq se obtienen con el mismo cálculo angular y de campo "
+        "utilizado para las placas simples en la Etapa 3."
+    )
+
+    materials={
+        "Yeso-cartón":{"rho":800.0,"E":2.5,"eta":0.030,"h":12.5},
+        "Madera":{"rho":600.0,"E":10.0,"eta":0.020,"h":18.0},
+        "Hormigón":{"rho":2400.0,"E":30.0,"eta":0.010,"h":100.0},
+    }
+    st.markdown("### 4 · Explorador técnico del modelo")
+    st.markdown(
+        "Modifica los parámetros para observar cómo cambian las masas superficiales, "
+        "las frecuencias características y la curva. Esta sección ilustra la teoría; "
+        "el ejercicio de aplicación aparece al final."
+    )
+    col_left,col_right=st.columns(2)
+    with col_left:
+        st.markdown("#### Placa 1")
+        material_1=st.selectbox(
+            "Material de la placa 1",list(materials),index=0,
+            key="lab2_s4_material_1")
+        default_1=materials[material_1]
+        h1_mm=st.number_input(
+            "Espesor de la placa 1 (mm)",4.0,300.0,float(default_1["h"]),0.5,
+            key="lab2_s4_h1")
+    with col_right:
+        st.markdown("#### Placa 2")
+        material_2=st.selectbox(
+            "Material de la placa 2",list(materials),index=0,
+            key="lab2_s4_material_2")
+        default_2=materials[material_2]
+        h2_mm=st.number_input(
+            "Espesor de la placa 2 (mm)",4.0,300.0,float(default_2["h"]),0.5,
+            key="lab2_s4_h2")
+    depth_mm=st.slider(
+        "Profundidad de la cámara d (mm)",20,300,70,5,
+        key="lab2_s4_depth")
+
+    h1=h1_mm/1000
+    h2=h2_mm/1000
+    d=depth_mm/1000
+    m1=default_1["rho"]*h1
+    m2=default_2["rho"]*h2
+    b1=default_1["E"]*1e9*h1**3/12
+    b2=default_2["E"]*1e9*h2**3/12
+    eta1=default_1["eta"]
+    eta2=default_2["eta"]
+    rho_air=1.18
+    sound_speed=343.0
+    f0=(1/(2*math.pi))*math.sqrt(rho_air*sound_speed**2)*math.sqrt(
+        (m1+m2)/(m1*m2*d)
+    )
+    f1=sound_speed/(2*math.pi*d)
+
+    frequencies=np.arange(50.0,5000.0+1,10.0)
+    _,tl1,_,_,_=_panel_simple_field_tl(frequencies,m1,b1,eta1)
+    _,tl2,_,_,_=_panel_simple_field_tl(frequencies,m2,b2,eta2)
+    _,tl_equivalent,_,_,_=_panel_simple_field_tl(
+        frequencies,m1+m2,b1+b2,eta1+eta2
+    )
+    tl_double=np.empty_like(frequencies)
+    region_1=frequencies < f0
+    region_2=(frequencies >= f0) & (frequencies < f1)
+    region_3=frequencies >= f1
+    tl_double[region_1]=tl_equivalent[region_1]
+    tl_double[region_2]=(
+        tl1[region_2]+tl2[region_2]
+        +20*np.log10(frequencies[region_2]*d)-29
+    )
+    tl_double[region_3]=tl1[region_3]+tl2[region_3]+6
+
+    a,b,c,d_metric=st.columns(4)
+    a.metric("Masa placa 1",f"{m1:.2f} kg/m²")
+    b.metric("Masa placa 2",f"{m2:.2f} kg/m²")
+    c.metric("Resonancia f₀",f"{f0:.0f} Hz")
+    d_metric.metric("Transición f₁",f"{f1:.0f} Hz")
+
+    st.markdown("#### Curva y tres regiones del modelo")
+    fig=go.Figure()
+    fig.add_vrect(
+        x0=50,x1=min(f0,5000),fillcolor="#dcecff",opacity=.42,
+        line_width=0,annotation_text="1 · Panel equivalente",
+        annotation_position="top left")
+    if f0 < 5000:
+        fig.add_vrect(
+            x0=max(50,f0),x1=min(f1,5000),fillcolor="#fff0cf",opacity=.42,
+            line_width=0,annotation_text="2 · Masa–aire–masa",
+            annotation_position="top left")
+    if f1 < 5000:
+        fig.add_vrect(
+            x0=max(50,f1),x1=5000,fillcolor="#dcf5e8",opacity=.42,
+            line_width=0,annotation_text="3 · Región superior",
+            annotation_position="top left")
+    fig.add_trace(go.Scatter(
+        x=frequencies,y=tl1,mode="lines",name=f"Placa 1 · {material_1}",
+        line=dict(color="#5598d4",width=2,dash="dot")))
+    fig.add_trace(go.Scatter(
+        x=frequencies,y=tl2,mode="lines",name=f"Placa 2 · {material_2}",
+        line=dict(color="#d99734",width=2,dash="dot")))
+    fig.add_trace(go.Scatter(
+        x=frequencies,y=tl_double,mode="lines",name="Panel doble",
+        line=dict(color="#173f63",width=4)))
+    if 50 <= f0 <= 5000:
+        fig.add_vline(x=f0,line_dash="dash",line_color="#d64545",
+                      annotation_text="f₀",annotation_position="top")
+    if 50 <= f1 <= 5000:
+        fig.add_vline(x=f1,line_dash="dash",line_color="#16845b",
+                      annotation_text="f₁",annotation_position="top")
+    fig.update_layout(
+        title="Pérdida por transmisión · placas simples y sistema doble",
+        xaxis_title="Frecuencia (Hz) · escala lineal",
+        yaxis_title="TL de campo (dB)",
+        xaxis=dict(type="linear",range=[50,5000],dtick=500),
+        height=510,hovermode="x unified",
+        margin=dict(l=40,r=20,t=75,b=45),
+        legend=dict(orientation="h",y=1.16))
+    st.plotly_chart(fig,use_container_width=True,key="lab2_s4_double_curve")
+    st.caption(
+        "Las discontinuidades en f₀ y f₁ pertenecen a la formulación idealizada por "
+        "tramos. La predicción no incorpora fugas, uniones rígidas ni transmisiones laterales."
+    )
+
+    st.markdown("#### Resultados por frecuencia")
+    sample_frequencies=np.array([125.,250.,500.,1000.,2000.,4000.])
+    sample_indices=[int(np.argmin(np.abs(frequencies-f))) for f in sample_frequencies]
+    table=pd.DataFrame({
+        "Frecuencia (Hz)":sample_frequencies.astype(int),
+        "TL placa 1 (dB)":tl1[sample_indices],
+        "TL placa 2 (dB)":tl2[sample_indices],
+        "TL panel doble (dB)":tl_double[sample_indices],
+        "Región":[
+            "1 · Panel equivalente" if f < f0 else
+            "2 · Masa–aire–masa" if f < f1 else
+            "3 · Región superior"
+            for f in sample_frequencies
+        ],
+    })
+    st.dataframe(
+        table.style.format({
+            "TL placa 1 (dB)":"{:.1f}",
+            "TL placa 2 (dB)":"{:.1f}",
+            "TL panel doble (dB)":"{:.1f}",
+        }),
+        use_container_width=True,hide_index=True)
+
+    st.markdown("### 5 · Ejercicio breve de aplicación")
+    st.markdown(r"""
+    Una sala de máquinas debe separarse de una oficina mediante dos placas y una
+    cámara de aire. Utiliza el explorador con la configuración seleccionada y:
+
+    1. Informa \(m'_1\), \(m'_2\), \(f_0\) y \(f_1\).
+    2. Identifica qué región está activa a 125, 500, 1.000 y 4.000 Hz.
+    3. Compara el \(TL\) del panel doble con el de cada placa simple.
+    4. Modifica solamente la profundidad de la cámara y explica cómo cambian
+       \(f_0\), \(f_1\) y el comportamiento entre 500 y 2.000 Hz.
+    5. Recomienda una profundidad de cámara y justifica técnicamente tu decisión.
+    """)
+    analysis=st.text_area(
+        "Conclusión técnica",
+        key="lab2_s4_analysis",height=150,
+        placeholder=(
+            "Las masas superficiales son... La resonancia f₀ aparece en... "
+            "Entre 500 y 2.000 Hz el sistema... Aumentaría/disminuiría la cámara porque..."
+        ))
+    if st.button("Comprobar mi análisis",key="lab2_s4_check_analysis"):
+        if len(analysis.strip()) < 140:
+            st.warning(
+                "La conclusión aún es breve. Incluye m′₁, m′₂, f₀, f₁, al menos "
+                "dos valores de TL y una decisión sobre la cámara.")
+        else:
+            st.success(
+                "La extensión es suficiente. Verifica que tu decisión se apoye en "
+                "los valores calculados y en la región activa del modelo.")
+
+    st.markdown("### 6 · Comprobación conceptual")
+    check(
+        "lab2_s4_q1",
+        "¿Qué representa físicamente el aire contenido en la cámara?",
+        ["Un resorte acústico","Una tercera placa rígida","Una fuente sonora","Una fuga"],
+        "Un resorte acústico",
+        "Las dos placas actúan como masas y el aire encerrado aporta la elasticidad del sistema."
+    )
+    check(
+        "lab2_s4_q2",
+        "¿Qué sucede normalmente con f₀ al aumentar la profundidad de la cámara?",
+        ["Disminuye","Aumenta","No cambia","Se hace igual a f₁"],
+        "Disminuye",
+        "Al aumentar d disminuye la rigidez efectiva del resorte de aire y la resonancia se desplaza hacia abajo."
+    )
+    check(
+        "lab2_s4_q3",
+        "¿Qué modelo se aplica por debajo de f₀?",
+        [
+            "Un panel equivalente con masas, rigideces y pérdidas combinadas",
+            "La suma de ambas placas más 6 dB",
+            "Solo la placa más pesada",
+            "La ecuación de la cámara sin considerar las placas",
+        ],
+        "Un panel equivalente con masas, rigideces y pérdidas combinadas",
+        "Bajo f₀ el cálculo utiliza m′eq, Beq y ηeq para representar la respuesta conjunta."
+    )
+    check(
+        "lab2_s4_q4",
+        "¿Cuál expresión corresponde a la región entre f₀ y f₁?",
+        [
+            "TL₁ + TL₂ + 20 log₁₀(fd) − 29",
+            "TL₁ + TL₂ + 6",
+            "TL de la placa 1 solamente",
+            "20 log₁₀(m′₁ + m′₂)",
+        ],
+        "TL₁ + TL₂ + 20 log₁₀(fd) − 29",
+        "En la región intermedia intervienen ambas hojas y aparece explícitamente la profundidad de la cámara."
+    )
+    check(
+        "lab2_s4_q5",
+        "¿Por qué esta curva no predice por sí sola el desempeño completo de un tabique construido?",
+        [
+            "Porque no incorpora montantes, fijaciones, fugas, encuentros ni transmisiones laterales",
+            "Porque solo puede calcularse a 78 Hz",
+            "Porque las masas superficiales no afectan el aislamiento",
+            "Porque un panel doble siempre funciona como una placa simple",
+        ],
+        "Porque no incorpora montantes, fijaciones, fugas, encuentros ni transmisiones laterales",
+        "El ejercicio representa el mecanismo ideal de dos placas y una cámara; la obra agrega caminos estructurales y defectos posibles."
+    )
 
 def lab2_stage5():
     _lab2_heading(5, "Modelo de Sharp: TL por tramos",
@@ -5151,6 +5770,503 @@ def lab2_stage8(): _lab2_pending(8,"Bandas de octava y tercio de octava")
 def lab2_stage9(): _lab2_pending(9,"Números únicos Rw, C y Ctr")
 def lab2_stage10(): _lab2_pending(10,"Aplicación integradora")
 
+def lab2_stage3():
+    """Ejercicio comparativo de tres placas simples homogéneas."""
+    _lab2_heading(
+        3,
+        "Ejercicio aplicado: comparación de tres placas simples",
+        "Predecir el TL de campo de yeso-cartón, madera y hormigón, y justificar una decisión de diseño.",
+    )
+    st.markdown("""
+    ### Encargo profesional
+
+    Debes seleccionar una **placa homogénea simple** para separar un recinto ruidoso
+    de una sala de trabajo. Estudiarás tres alternativas —yeso-cartón, madera y
+    hormigón— entre **50 y 5.000 Hz**.
+
+    El propósito no es limitarse a decir que el hormigón aísla más. Debes explicar
+    cómo la densidad, el espesor, la rigidez y el amortiguamiento modifican la masa
+    superficial, la frecuencia crítica y la curva completa de aislamiento.
+    """)
+    st.success("""
+    **En palabras simples:** probaremos tres “paredes de una sola pieza”. La aplicación
+    enviará sonido contra cada una desde muchas direcciones y calculará cuánto logra
+    atravesarla. Una curva más alta significa que pasa menos sonido.
+    """)
+    _lab2_image(
+        "panel_simple",
+        "Modelo utilizado: una placa homogénea simple, sin cámara, montantes ni una segunda hoja.",
+    )
+    st.info(
+        "**Método común para las tres alternativas:** primero se calcula "
+        "τ(θ,f), después se integran energéticamente todas las incidencias entre "
+        "0° y 78° y, finalmente, el resultado se transforma en TL de campo."
+    )
+
+    st.markdown("### Las tres placas que se compararán")
+    image_col_1,image_col_2,image_col_3=st.columns(3)
+    with image_col_1:
+        st.markdown("#### Yeso-cartón")
+        _lab2_image(
+            "yeso_carton",
+            "Una placa simple de yeso-cartón, sin perfiles, cámara ni segunda hoja.",
+        )
+        st.markdown(
+            "**En palabras simples:** es una hoja liviana. Se mueve con mayor "
+            "facilidad cuando recibe sonido y, por eso, normalmente deja pasar más "
+            "energía que una placa pesada."
+        )
+    with image_col_2:
+        st.markdown("#### Madera")
+        _lab2_image(
+            "madera",
+            "Un panel simple y macizo de madera, sin entramado ni revestimientos.",
+        )
+        st.markdown(
+            "**En palabras simples:** combina un peso moderado con una rigidez "
+            "mayor que la del yeso-cartón. Su respuesta cambia con la frecuencia "
+            "y con la facilidad con que el panel puede flexionarse."
+        )
+    with image_col_3:
+        st.markdown("#### Hormigón")
+        _lab2_image(
+            "hormigon",
+            "Un muro simple y macizo de hormigón, sin cámaras ni capas adicionales.",
+        )
+        st.markdown(
+            "**En palabras simples:** concentra mucha masa en cada metro cuadrado. "
+            "Cuesta más hacerlo vibrar, por lo que generalmente transmite menos "
+            "sonido que las alternativas livianas."
+        )
+    st.caption(
+        "Las imágenes representan una sola hoja homogénea de cada material. "
+        "No corresponden a tabiques dobles ni a sistemas con cámara de aire."
+    )
+
+    st.markdown("### 1 · Modelo físico utilizado")
+    st.markdown("#### Masa superficial")
+    st.latex(r"m'=\rho h")
+    st.caption("Masa por unidad de superficie de la placa, expresada en kg/m².")
+    st.info(
+        "**Explicación para no ingenieros:** indica cuánto pesa un metro cuadrado "
+        "de la placa. No importa cuánto pesa el muro completo, sino cuánto material "
+        "hay en cada m². En general, una placa con mayor masa superficial es más "
+        "difícil de mover y puede aislar mejor."
+    )
+
+    st.markdown("#### Rigidez a flexión")
+    st.latex(r"B=\frac{E h^3}{12}")
+    st.caption("Rigidez a flexión por unidad de ancho, expresada en N·m.")
+    st.info(
+        "**Explicación para no ingenieros:** representa qué tan difícil es doblar "
+        "la placa. Una lámina flexible vibra con facilidad; una muy rígida se opone "
+        "a curvarse. El espesor influye mucho porque aparece elevado al cubo."
+    )
+
+    st.markdown("#### Frecuencia crítica")
+    st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{B}}")
+    st.caption("Frecuencia a partir de la cual puede producirse el fenómeno de coincidencia.")
+    st.info(
+        "**Explicación para no ingenieros:** es una frecuencia especialmente "
+        "desfavorable. Cerca de ella, el sonido del aire logra hacer vibrar la placa "
+        "de manera muy eficiente y el aislamiento puede presentar una caída, aunque "
+        "la placa sea pesada."
+    )
+
+    st.markdown("#### Coeficiente de transmisión para cada frecuencia y ángulo")
+    st.write(
+        "Para evitar una expresión excesivamente larga, se definen primero dos "
+        "términos auxiliares. Esta forma es algebraicamente equivalente a la "
+        "ecuación completa utilizada en el cálculo."
+    )
+    st.latex(
+        r"A(\theta,f)=\frac{\omega m'\cos\theta}{2\rho_0c}"
+    )
+    st.latex(
+        r"C(\theta,f)=\frac{\omega^2 B\sin^4\theta}{c^4m'}"
+    )
+    st.latex(
+        r"\tau(\theta,f)="
+        r"\frac{1}{\left[1+\eta A(\theta,f)C(\theta,f)\right]^2"
+        r"+\left[A(\theta,f)\left(1-C(\theta,f)\right)\right]^2}"
+    )
+    st.info(
+        "**Explicación para no ingenieros:** τ es la fracción de energía sonora que "
+        "consigue atravesar la placa. Si τ es grande, pasa más sonido; si τ es "
+        "pequeño, la placa aísla mejor. Se calcula para distintas frecuencias y "
+        "ángulos porque el sonido no siempre llega de frente."
+    )
+    st.markdown("#### Coeficiente de transmisión de campo")
+    st.latex(
+        r"\overline{\tau}_{campo}(f)=2{,}0904"
+        r"\int_0^{78^\circ}\tau(\theta,f)\cos\theta\sin\theta\,d\theta"
+    )
+    st.info(
+        "**Explicación para no ingenieros:** en un recinto real el sonido llega "
+        "desde muchas direcciones. Esta integración reúne todas esas incidencias "
+        "entre 0° y 78° en un único valor energético representativo del campo sonoro."
+    )
+    st.markdown("#### Pérdida por transmisión de campo")
+    st.latex(
+        r"TL_{campo}(f)=10\log_{10}\left(\frac{1}"
+        r"{\overline{\tau}_{campo}(f)}\right)"
+        r"=-10\log_{10}\left[\overline{\tau}_{campo}(f)\right]"
+    )
+    st.info(
+        "**Explicación para no ingenieros:** TL expresa el aislamiento en decibeles. "
+        "Un TL mayor significa que atraviesa menos energía sonora. Por ejemplo, una "
+        "subida de la curva indica una mejora; un valle señala una frecuencia donde "
+        "la placa está aislando menos."
+    )
+    st.caption(
+        "ω = 2πf; ρ₀ = 1,18 kg/m³; c = 343 m/s. "
+        "78° es el límite superior de integración, no un único rayo."
+    )
+    st.markdown("#### Variables y unidades")
+    st.dataframe(
+        pd.DataFrame([
+            ["ρ", "Densidad del material", "kg/m³"],
+            ["h", "Espesor de la placa", "m"],
+            ["m′", "Masa superficial", "kg/m²"],
+            ["E", "Módulo de Young", "Pa"],
+            ["B", "Rigidez a flexión", "N·m"],
+            ["η", "Factor de pérdidas", "Adimensional"],
+            ["f", "Frecuencia", "Hz"],
+            ["ω = 2πf", "Frecuencia angular", "rad/s"],
+            ["θ", "Ángulo respecto de la normal", "grados o radianes"],
+        ], columns=["Símbolo", "Significado", "Unidad"]),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    presets={
+        "Yeso-cartón":{
+            "rho":800.0,"h":12.5,"e":2.5,"eta":0.030,
+            "color":"#1677d2",
+            "note":"Placa liviana de referencia.",
+        },
+        "Madera":{
+            "rho":600.0,"h":18.0,"e":10.0,"eta":0.020,
+            "color":"#d58b16",
+            "note":"Modelo isotrópico simplificado; la madera real depende de la dirección de las fibras.",
+        },
+        "Hormigón":{
+            "rho":2400.0,"h":100.0,"e":30.0,"eta":0.010,
+            "color":"#d64545",
+            "note":"Elemento pesado homogéneo de referencia.",
+        },
+    }
+    frequencies=np.arange(50.0,5000.0+1,10.0)
+    sample_frequencies=np.array([125.,250.,500.,1000.,2000.,4000.])
+    material_results={}
+
+    st.markdown("### 2 · Analiza cada material")
+    st.markdown("""
+    Recorre las tres pestañas. Puedes modificar los valores de referencia. Para
+    comparar correctamente, la aplicación aplicará el mismo intervalo de frecuencia,
+    campo angular y ecuaciones a todas las alternativas.
+    """)
+    st.markdown("""
+    **Guía rápida de los controles**
+
+    - **Densidad:** qué tan concentrada está la materia; no es el peso total.
+    - **Espesor:** distancia entre las dos caras de esta única placa.
+    - **Módulo de Young:** resistencia del material a deformarse.
+    - **Factor de pérdidas:** capacidad del material para amortiguar su vibración.
+    """)
+    tabs=st.tabs(list(presets.keys()))
+    for tab,(material,preset) in zip(tabs,presets.items()):
+        slug={"Yeso-cartón":"yeso","Madera":"madera","Hormigón":"hormigon"}[material]
+        with tab:
+            st.markdown(f"#### Caso · {material}")
+            st.caption(preset["note"])
+            _lab2_image(
+                {"Yeso-cartón":"yeso_carton","Madera":"madera",
+                 "Hormigón":"hormigon"}[material],
+                {
+                    "Yeso-cartón":(
+                        "Placa simple homogénea de yeso-cartón: una sola hoja, sin "
+                        "montantes, cámara ni segunda placa."
+                    ),
+                    "Madera":(
+                        "Panel simple homogéneo de madera: una sola hoja maciza, sin "
+                        "entramado, cámara ni revestimientos adicionales."
+                    ),
+                    "Hormigón":(
+                        "Muro simple homogéneo de hormigón: una sola hoja maciza."
+                    ),
+                }[material],
+            )
+            st.info(
+                "La imagen y el cálculo representan el mismo modelo idealizado: "
+                "**una única placa simple, homogénea e infinita**. No se incorporan "
+                "montantes, uniones, cavidades, segundas hojas ni transmisiones laterales."
+            )
+            st.markdown({
+                "Yeso-cartón":(
+                    "**Cómo interpretar este caso:** al ser una placa liviana y "
+                    "delgada, tendrá una masa superficial baja. Observa dónde aparece "
+                    "su frecuencia crítica y si la curva presenta allí una pérdida "
+                    "de aislamiento."
+                ),
+                "Madera":(
+                    "**Cómo interpretar este caso:** el mayor espesor aumenta tanto "
+                    "la masa como, con mucha más fuerza, la rigidez. Comprueba si eso "
+                    "hace que su curva y su frecuencia crítica sean distintas de las "
+                    "del yeso-cartón."
+                ),
+                "Hormigón":(
+                    "**Cómo interpretar este caso:** su elevada densidad y espesor "
+                    "producen una masa superficial muy grande. Compara cuánto aumenta "
+                    "el TL y recuerda que aquí se modela solo el material, no sus "
+                    "encuentros ni posibles fugas en obra."
+                ),
+            }[material])
+            c1,c2,c3=st.columns(3)
+            rho=c1.number_input(
+                "Densidad ρ (kg/m³)",300.0,3000.0,preset["rho"],10.0,
+                key=f"lab2_s3_{slug}_rho")
+            h_mm=c2.number_input(
+                "Espesor h (mm)",4.0,300.0,preset["h"],0.5,
+                key=f"lab2_s3_{slug}_h")
+            young_gpa=c3.number_input(
+                "Módulo de Young E (GPa)",0.1,100.0,preset["e"],0.1,
+                key=f"lab2_s3_{slug}_e")
+            eta=st.number_input(
+                "Factor de pérdidas η",0.001,0.200,preset["eta"],0.001,
+                format="%.3f",key=f"lab2_s3_{slug}_eta")
+
+            h=h_mm/1000
+            surface_mass=rho*h
+            stiffness=young_gpa*1e9*h**3/12
+            critical_frequency=343.0**2/(2*math.pi)*math.sqrt(surface_mass/stiffness)
+            tau_field,tl_field,_,_,_=_panel_simple_field_tl(
+                frequencies,surface_mass,stiffness,eta)
+            sample_tau,sample_tl,_,_,_=_panel_simple_field_tl(
+                sample_frequencies,surface_mass,stiffness,eta)
+            material_results[material]={
+                "m":surface_mass,"B":stiffness,"fc":critical_frequency,
+                "tau":tau_field,"tl":tl_field,"sample_tau":sample_tau,
+                "sample_tl":sample_tl,"color":preset["color"],
+            }
+
+            m1,m2,m3=st.columns(3)
+            m1.metric("Masa superficial m′",f"{surface_mass:.2f} kg/m²")
+            m2.metric("Rigidez B",f"{stiffness:,.1f} N·m")
+            m3.metric("Frecuencia crítica fᶜ",f"{critical_frequency:,.0f} Hz")
+            st.caption(
+                "Estos resultados indican cuánto pesa la placa por metro cuadrado, "
+                "cuánto se resiste a curvarse y dónde puede aparecer la coincidencia."
+            )
+            if 50 <= critical_frequency <= 5000:
+                st.warning(
+                    f"fᶜ = {critical_frequency:,.0f} Hz está dentro del intervalo. "
+                    "Busca su efecto en la curva."
+                )
+            else:
+                st.success(
+                    f"fᶜ = {critical_frequency:,.0f} Hz queda fuera del intervalo mostrado."
+                )
+
+            fig_material=go.Figure()
+            fig_material.add_trace(go.Scatter(
+                x=frequencies,y=tl_field,mode="lines",name=material,
+                line=dict(color=preset["color"],width=4)))
+            if 50 <= critical_frequency <= 5000:
+                fig_material.add_vline(
+                    x=critical_frequency,line_dash="dash",
+                    line_color=preset["color"],annotation_text="fᶜ",
+                    annotation_position="top")
+            fig_material.update_layout(
+                title=f"TL de campo · {material}",
+                xaxis_title="Frecuencia (Hz) · escala lineal",
+                yaxis_title="TL de campo (dB)",
+                xaxis=dict(type="linear",range=[50,5000],dtick=500),
+                height=420,hovermode="x unified",
+                margin=dict(l=40,r=20,t=60,b=45),
+                showlegend=False)
+            st.plotly_chart(
+                fig_material,use_container_width=True,
+                key=f"lab2_s3_{slug}_curve")
+            st.info(
+                "**Cómo leer la curva:** de izquierda a derecha se pasa de sonidos "
+                "graves a agudos; cuanto más alta está la línea, mayor es el "
+                "aislamiento. Observa qué ocurre cerca de la línea vertical fᶜ."
+            )
+            st.dataframe(
+                pd.DataFrame({
+                    "Frecuencia (Hz)":sample_frequencies.astype(int),
+                    "τ̄ campo":sample_tau,
+                    "Energía transmitida (%)":100*sample_tau,
+                    "TL campo (dB)":sample_tl,
+                }).style.format({
+                    "τ̄ campo":"{:.6f}",
+                    "Energía transmitida (%)":"{:.4f}",
+                    "TL campo (dB)":"{:.1f}",
+                }),
+                use_container_width=True,hide_index=True)
+            st.caption(
+                "La tabla presenta el mismo fenómeno de dos formas: menor energía "
+                "transmitida equivale a un TL mayor."
+            )
+
+    st.markdown("### 3 · Comparación conjunta")
+    st.markdown(
+        "Aquí se superponen las tres alternativas. En cada frecuencia, la curva que "
+        "queda más arriba entrega el mayor aislamiento según este modelo."
+    )
+    visible=st.multiselect(
+        "Curvas visibles",
+        list(presets.keys()),
+        default=list(presets.keys()),
+        key="lab2_s3_visible_materials",
+    )
+    comparison=go.Figure()
+    for material in visible:
+        result=material_results[material]
+        comparison.add_trace(go.Scatter(
+            x=frequencies,y=result["tl"],mode="lines",name=material,
+            line=dict(color=result["color"],width=3)))
+        if 50 <= result["fc"] <= 5000:
+            comparison.add_vline(
+                x=result["fc"],line_dash="dot",line_color=result["color"],
+                annotation_text=f"fᶜ {material}",annotation_position="top")
+    comparison.update_layout(
+        title="Comparación de TL de campo · mismas ecuaciones y campo hasta 78°",
+        xaxis_title="Frecuencia (Hz) · escala lineal",
+        yaxis_title="TL de campo (dB)",
+        xaxis=dict(type="linear",range=[50,5000],dtick=500),
+        height=500,hovermode="x unified",
+        margin=dict(l=40,r=20,t=75,b=45),
+        legend=dict(orientation="h",y=1.16))
+    st.plotly_chart(
+        comparison,use_container_width=True,key="lab2_s3_comparison")
+    st.info(
+        "**No compares solo el espesor.** También importan la densidad, la masa "
+        "superficial y la rigidez. Por eso el orden de las curvas puede cambiar "
+        "según la frecuencia."
+    )
+
+    comparison_rows=[]
+    for material,result in material_results.items():
+        row={
+            "Material":material,
+            "m′ (kg/m²)":result["m"],
+            "B (N·m)":result["B"],
+            "fᶜ (Hz)":result["fc"],
+        }
+        for i,freq in enumerate(sample_frequencies):
+            row[f"TL {int(freq)} Hz"]=result["sample_tl"][i]
+        comparison_rows.append(row)
+    st.dataframe(
+        pd.DataFrame(comparison_rows).style.format({
+            "m′ (kg/m²)":"{:.2f}","B (N·m)":"{:,.1f}","fᶜ (Hz)":"{:,.0f}",
+            **{f"TL {int(f)} Hz":"{:.1f}" for f in sample_frequencies},
+        }),
+        use_container_width=True,hide_index=True)
+    st.caption(
+        "Para justificar tu decisión, compara una misma columna de frecuencia entre "
+        "los tres materiales y cita sus valores."
+    )
+    st.caption(
+        "Predicción teórica de placas infinitas y homogéneas. No equivale a un ensayo "
+        "normalizado y no incorpora juntas, apoyos, dimensiones finitas, fugas ni flancos."
+    )
+
+    st.markdown("### 4 · Decisión de diseño")
+    st.markdown("""
+    **Restricción del proyecto:** se busca el mayor aislamiento entre **500 y
+    2.000 Hz**, pero primero debes comparar el desempeño técnico de las tres
+    alternativas. Después, considera que el proyecto exige una solución liviana y
+    descarta el hormigón.
+
+    Tu respuesta debe:
+
+    1. Identificar la mayor masa superficial.
+    2. Comparar el TL en 500, 1.000 y 2.000 Hz.
+    3. Ubicar la frecuencia crítica de cada placa.
+    4. Explicar cualquier caída cercana a la coincidencia.
+    5. Elegir entre yeso-cartón y madera bajo la restricción de bajo peso.
+    """)
+    decision=st.text_area(
+        "Conclusión técnica y alternativa seleccionada",
+        key="lab2_s3_design_decision",height=160,
+        placeholder=(
+            "La alternativa con mayor m′ es... Entre 500 y 2.000 Hz se observa... "
+            "Las frecuencias críticas son... Al excluir el hormigón, seleccionaría... porque..."
+        ))
+    if st.button("Comprobar desarrollo",key="lab2_s3_check_decision"):
+        if len(decision.strip()) < 140:
+            st.warning(
+                "La justificación aún es breve. Incluye valores de m′, fᶜ y TL en al "
+                "menos dos frecuencias, y explica la selección liviana.")
+        else:
+            st.success(
+                "La extensión es suficiente. Verifica que tu elección se apoye en los "
+                "resultados calculados y no solamente en el nombre o espesor del material.")
+
+    st.markdown("### 5 · Comprobación conceptual")
+    check(
+        "lab2_s3_compare_q1",
+        "¿Por qué se integran los coeficientes τ antes de calcular el TL de campo?",
+        [
+            "Porque primero debe combinarse la energía transmitida y después convertirse a decibeles",
+            "Porque los valores de TL no dependen del ángulo",
+            "Porque 78° representa una única incidencia real",
+            "Porque así se elimina la frecuencia crítica",
+        ],
+        "Porque primero debe combinarse la energía transmitida y después convertirse a decibeles",
+        "El promedio se realiza en magnitudes energéticas; los TL angulares no se promedian directamente.",
+    )
+    check(
+        "lab2_s3_compare_q2",
+        "¿Qué afirmación interpreta correctamente la comparación?",
+        [
+            "El desempeño depende de masa superficial, rigidez, amortiguamiento y frecuencia",
+            "La placa más gruesa siempre posee la frecuencia crítica más alta",
+            "Todos los materiales de igual espesor producen la misma curva",
+            "La coincidencia se añade dibujando una corrección artificial",
+        ],
+        "El desempeño depende de masa superficial, rigidez, amortiguamiento y frecuencia",
+        "La curva surge del mismo modelo físico para las tres placas; no basta comparar solamente espesores.",
+    )
+    check(
+        "lab2_s3_compare_q3",
+        "Si aumenta el espesor de una placa manteniendo su densidad, ¿qué ocurre directamente con su masa superficial?",
+        [
+            "Aumenta, porque m′ = ρh",
+            "Disminuye, porque la placa se vuelve más rígida",
+            "Permanece constante, porque solo depende del material",
+            "Se hace igual a la densidad del aire",
+        ],
+        "Aumenta, porque m′ = ρh",
+        "La masa superficial es proporcional tanto a la densidad como al espesor de la placa.",
+    )
+    check(
+        "lab2_s3_compare_q4",
+        "¿Qué representa una disminución del TL alrededor de la frecuencia crítica?",
+        [
+            "Una mayor transmisión asociada al fenómeno de coincidencia",
+            "La desaparición completa de la vibración de la placa",
+            "Un aumento automático de la masa superficial",
+            "Un error producido por usar frecuencia lineal",
+        ],
+        "Una mayor transmisión asociada al fenómeno de coincidencia",
+        "Cerca de la frecuencia crítica se favorece el acoplamiento entre el campo sonoro y las ondas de flexión de la placa.",
+    )
+    check(
+        "lab2_s3_compare_q5",
+        "¿Por qué la imagen del sistema constructivo real no debe interpretarse como una predicción completa del tabique?",
+        [
+            "Porque el ejercicio modela una placa homogénea e infinita y no incorpora juntas, apoyos ni flancos",
+            "Porque las imágenes no tienen dimensiones escritas",
+            "Porque el hormigón no puede analizarse mediante masa superficial",
+            "Porque el modelo solo funciona para incidencia normal",
+        ],
+        "Porque el ejercicio modela una placa homogénea e infinita y no incorpora juntas, apoyos ni flancos",
+        "El modelo permite estudiar el material aislado, pero no reemplaza la evaluación del elemento instalado en obra.",
+    )
+
 LAB1_STAGE_TITLES = [
     ("Etapa 0","Introducción y ruta del curso"),
     ("Etapa 1","Control del ruido: fuente, trayectoria y receptor"),
@@ -5168,8 +6284,8 @@ LAB2_STAGE_TITLES = [
     ("Etapa 0","Ruta de las primeras dos horas"),
     ("Etapa 1","Pérdida de transmisión: energía, τ y TL"),
     ("Etapa 2","Panel simple: incidencia y cuatro zonas"),
-    ("Etapa 3","Casos reales de paneles simples"),
-    ("Etapa 4","Panel doble y masa–aire–masa"),
+    ("Etapa 3","Comparación aplicada de placas simples"),
+    ("Etapa 4","Pérdida de transmisión en paneles dobles"),
     ("Etapa 5","Modelo de Sharp: TL por tramos"),
     ("Etapa 6","Comparación aplicada y cierre parcial"),
     ("Etapa 7","Ventanas dobles · segunda mitad"),
