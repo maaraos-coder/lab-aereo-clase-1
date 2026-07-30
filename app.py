@@ -5927,13 +5927,16 @@ def lab2_stage5():
     disponer del modelo o de datos de ensayo del sistema específico.
     """)
 
-    st.markdown("### 6 · Cómo se obtiene cada pérdida por transmisión")
+    st.markdown("### 6 · Cómo se obtiene el TL total del tabique")
     st.markdown("""
-    Para interpretar un tabique real conviene separar el cálculo en tres resultados.
-    Cada uno incorpora un mecanismo adicional y responde una pregunta distinta.
+    El tabique transmite energía simultáneamente por dos caminos: el campo
+    acústico de la cámara y las conexiones rígidas. Por ello, sus pérdidas por
+    transmisión no se suman ni se restan directamente en decibeles. Primero se
+    calcula cada camino, luego se transforma cada TL en coeficiente de transmisión
+    y finalmente se suman las energías transmitidas.
     """)
 
-    st.markdown("#### 6.1 · TL base del panel doble")
+    st.markdown("#### 6.1 · Camino aéreo: TL base con cámara vacía")
     st.markdown("""
     Es la pérdida por transmisión de las dos hojas separadas por una **cámara de
     aire vacía**, antes de incorporar montantes o material absorbente. Se calcula
@@ -5951,9 +5954,8 @@ def lab2_stage5():
     st.latex(
         r"f_0=\frac{1}{2\pi}\sqrt{\rho_0c^2"
         r"\left(\frac{m'_1+m'_2}{m'_1m'_2d}\right)}"
-        r"\qquad ; \qquad"
-        r"f_l=\frac{c}{2\pi d}"
     )
+    st.latex(r"f_l=\frac{c}{2\pi d}")
     st.markdown(r"""
 - $TL_1(f)$ y $TL_2(f)$: pérdida por transmisión de cada hoja.
 - $TL_{m'_1+m'_2}(f)$: pérdida por transmisión de una hoja equivalente con la masa superficial total.
@@ -5962,7 +5964,7 @@ def lab2_stage5():
 - $f_l$: frecuencia límite utilizada para separar las regiones del modelo.
     """)
 
-    st.markdown("#### 6.2 · TL para la conexión lineal")
+    st.markdown("#### 6.2 · Camino estructural: TL de la conexión lineal")
     st.markdown("""
     Cuando ambas caras se vinculan mediante montantes continuos, el modelo
     simplificado representa el sistema conectado a partir de una hoja equivalente
@@ -5982,24 +5984,78 @@ def lab2_stage5():
 - $\Delta TL_{m'}$: corrección, en decibeles, asociada a la conexión lineal.
     """)
 
-    st.markdown("#### 6.3 · TL con conexión lineal y absorbente")
+    st.markdown("#### 6.3 · TL total con cámara vacía")
+    st.markdown("""
+    El camino aéreo y el camino estructural actúan **en paralelo**. Para
+    combinarlos, cada pérdida por transmisión se convierte primero en su
+    coeficiente de transmisión:
+    """)
+    st.latex(r"\tau_{\mathrm{base}}(f)=10^{-TL_{\mathrm{base}}(f)/10}")
+    st.latex(r"\tau_{\mathrm{línea}}(f)=10^{-TL_{\mathrm{línea}}(f)/10}")
+    st.latex(
+        r"\boxed{TL_{\mathrm{total}}(f)=-10\log_{10}\left["
+        r"10^{-TL_{\mathrm{base}}(f)/10}+"
+        r"10^{-TL_{\mathrm{línea}}(f)/10}\right]}"
+    )
+    st.markdown("""
+    El resultado queda siempre controlado por el camino que transmite más
+    energía, es decir, por el que posee el TL más bajo. Si ambos caminos tienen
+    exactamente el mismo TL, su combinación entrega 3 dB menos que cada camino
+    por separado.
+    """)
+
+    st.markdown("#### 6.4 · Camino aéreo con material absorbente")
     st.markdown("""
     El material poroso incorporado dentro de la cámara disipa energía mediante
     pérdidas viscosas y térmicas, reduce las reflexiones internas y amortigua el
-    acoplamiento acústico entre las hojas. Su aporte se aplica al sistema que ya
-    contiene la conexión lineal:
+    acoplamiento acústico entre las hojas. Su aporte modifica únicamente el
+    camino aéreo de la cámara:
     """)
     st.latex(
-        r"TL_{\mathrm{línea+abs}}(f)="
-        r"TL_{\mathrm{línea}}(f)+\Delta TL_{\mathrm{abs}}(f)"
+        r"TL_{\mathrm{abs}}(f)="
+        r"TL_{\mathrm{base}}(f)+\Delta TL_{\mathrm{abs}}(f)"
     )
     st.markdown(r"""
 - $\Delta TL_{\mathrm{abs}}(f)$: mejora por banda asociada al amortiguamiento de la cámara.
 - El absorbente **no elimina** el camino mecánico formado por montantes y fijaciones.
 - Su efecto real depende de la frecuencia, resistividad al flujo, espesor, profundidad de cámara y porcentaje de llenado; no solamente de la densidad nominal.
+    """)
 
-**Secuencia de lectura:** $TL_{\mathrm{base}} \rightarrow
-TL_{\mathrm{línea}} \rightarrow TL_{\mathrm{línea+abs}}$.
+    st.markdown("#### 6.5 · TL total con conexión lineal y absorbente")
+    st.markdown("""
+    El resultado final se obtiene combinando el camino aéreo ya amortiguado con
+    el camino estructural, que permanece activo:
+    """)
+    st.latex(r"\tau_{\mathrm{abs}}(f)=10^{-TL_{\mathrm{abs}}(f)/10}")
+    st.latex(r"\tau_{\mathrm{total,abs}}(f)=\tau_{\mathrm{abs}}(f)+\tau_{\mathrm{línea}}(f)")
+    st.latex(
+        r"\boxed{TL_{\mathrm{total,abs}}(f)=-10\log_{10}\left["
+        r"10^{-TL_{\mathrm{abs}}(f)/10}+"
+        r"10^{-TL_{\mathrm{línea}}(f)/10}\right]}"
+    )
+    st.markdown(r"""
+    **Lectura física:** el absorbente reduce la energía transmitida por la cámara,
+    pero no interrumpe la transmisión por perfiles y fijaciones. Cuando
+    $TL_{\mathrm{abs}}$ supera ampliamente a $TL_{\mathrm{línea}}$, el camino
+    estructural domina y el resultado final se aproxima a
+    $TL_{\mathrm{línea}}$. Por eso la mejora del TL total puede ser menor que
+    $\Delta TL_{\mathrm{abs}}$.
+    """)
+
+    st.markdown("#### 6.6 · Resultado completo por frecuencia")
+    st.markdown(r"""
+    En cada banda se deben informar los cinco valores siguientes:
+
+    | Resultado | Significado |
+    |---|---|
+    | $TL_{\mathrm{base}}(f)$ | Camino aéreo del panel doble con cámara vacía |
+    | $TL_{\mathrm{línea}}(f)$ | Camino mecánico asociado a la conexión lineal |
+    | $TL_{\mathrm{total}}(f)$ | Resultado de cámara vacía + conexión lineal |
+    | $TL_{\mathrm{abs}}(f)$ | Camino aéreo con material absorbente |
+    | $TL_{\mathrm{total,abs}}(f)$ | Resultado final de absorbente + conexión lineal |
+
+    **Secuencia correcta:** se calcula el TL de cada camino, se convierte a
+    $\tau$, se suman los coeficientes de transmisión y se vuelve a decibeles.
     """)
     st.warning("""
     **Alcance del cálculo:** la descomposición permite comprender por separado la
@@ -6128,24 +6184,53 @@ TL_{\mathrm{línea}} \rightarrow TL_{\mathrm{línea+abs}}$.
         +20.0*np.log10(float(m1)/(float(m1)+float(m2)))
         -18.0
     )
-    connected_empty=equivalent+line_correction
-    connected_abs=connected_empty+absorbent_gain_curve
+    line_path=equivalent+line_correction
+    air_abs=base+absorbent_gain_curve
+    tau_base=np.power(10.0,-base/10.0)
+    tau_line=np.power(10.0,-line_path/10.0)
+    tau_air_abs=np.power(10.0,-air_abs/10.0)
+    total_empty=-10.0*np.log10(np.maximum(tau_base+tau_line,1e-12))
+    total_abs=-10.0*np.log10(np.maximum(tau_air_abs+tau_line,1e-12))
+    total_abs_improvement=total_abs-total_empty
     idx=int(np.where(LAB2_FREQS==selected_f)[0][0])
 
-    a,b,c,d=st.columns(4)
+    a,b,c,d,e=st.columns(5)
     a.metric("f₀ del sistema ideal",f"{f0:.0f} Hz")
     b.metric(f"TL base · {selected_f} Hz",f"{base[idx]:.1f} dB")
-    c.metric(f"TL conexión lineal · {selected_f} Hz",f"{connected_empty[idx]:.1f} dB")
-    d.metric(f"TL conexión + absorbente · {selected_f} Hz",f"{connected_abs[idx]:.1f} dB",
-             delta=f"{absorbent_gain_curve[idx]:+.1f} dB por absorbente")
+    c.metric(f"TL línea · {selected_f} Hz",f"{line_path[idx]:.1f} dB")
+    d.metric(f"TL total · {selected_f} Hz",f"{total_empty[idx]:.1f} dB")
+    e.metric(f"TL total + absorbente · {selected_f} Hz",f"{total_abs[idx]:.1f} dB",
+             delta=f"{total_abs_improvement[idx]:+.1f} dB reales")
 
     st.info(
-        f"**Lectura de la banda de {selected_f} Hz:** el panel doble con cámara vacía "
-        f"entrega un TL base de {base[idx]:.1f} dB. El modelo simplificado de conexión "
-        f"lineal entrega {connected_empty[idx]:.1f} dB y el absorbente seleccionado "
-        f"aporta {absorbent_gain_curve[idx]:.1f} dB, obteniéndose "
-        f"{connected_abs[idx]:.1f} dB."
+        f"**Lectura de {selected_f} Hz:** el camino aéreo base entrega "
+        f"{base[idx]:.1f} dB y el camino por la conexión lineal "
+        f"{line_path[idx]:.1f} dB. Combinados energéticamente, el tabique con "
+        f"cámara vacía entrega {total_empty[idx]:.1f} dB. El absorbente eleva "
+        f"el camino aéreo a {air_abs[idx]:.1f} dB; al volver a combinarlo con "
+        f"la conexión, el resultado final es {total_abs[idx]:.1f} dB."
     )
+
+    with st.expander("Ver resultados numéricos en todas las bandas", expanded=True):
+        results_by_band=pd.DataFrame({
+            "Frecuencia (Hz)":LAB2_FREQS.astype(int),
+            "TL base (dB)":np.round(base,1),
+            "TL línea (dB)":np.round(line_path,1),
+            "TL total sin absorbente (dB)":np.round(total_empty,1),
+            "ΔTL absorbente camino aéreo (dB)":np.round(absorbent_gain_curve,1),
+            "TL aéreo con absorbente (dB)":np.round(air_abs,1),
+            "TL total con absorbente (dB)":np.round(total_abs,1),
+            "Mejora real del TL total (dB)":np.round(total_abs_improvement,1),
+        })
+        st.dataframe(
+            results_by_band,
+            use_container_width=True,
+            hide_index=True,
+        )
+        st.caption(
+            "Los TL totales se obtienen sumando los coeficientes de transmisión "
+            "del camino aéreo y de la conexión lineal; no mediante suma directa de dB."
+        )
 
     fig=go.Figure()
     fig.add_trace(go.Scatter(
@@ -6154,18 +6239,28 @@ TL_{\mathrm{línea}} \rightarrow TL_{\mathrm{línea+abs}}$.
         line=dict(color="#08a9d8",width=4),marker=dict(size=6),
     ))
     fig.add_trace(go.Scatter(
-        x=LAB2_FREQS,y=connected_empty,mode="lines+markers",
-        name=f"TL conexión lineal · {support_type.lower()}",
+        x=LAB2_FREQS,y=line_path,mode="lines+markers",
+        name=f"TL línea · {support_type.lower()}",
         line=dict(color="#ef8b2c",width=4,dash="dash"),marker=dict(size=7,symbol="diamond"),
     ))
     fig.add_trace(go.Scatter(
-        x=LAB2_FREQS,y=connected_abs,mode="lines+markers",
-        name=f"TL conexión + {absorbent_type.lower()}",
-        line=dict(color="#1b9e77",width=4),marker=dict(size=6,symbol="square"),
+        x=LAB2_FREQS,y=total_empty,mode="lines+markers",
+        name="TL total · cámara vacía + conexión",
+        line=dict(color="#9b59b6",width=4),marker=dict(size=6,symbol="triangle-up"),
+    ))
+    fig.add_trace(go.Scatter(
+        x=LAB2_FREQS,y=air_abs,mode="lines+markers",
+        name=f"TL aéreo · {absorbent_type.lower()}",
+        line=dict(color="#65a30d",width=3,dash="dot"),marker=dict(size=5),
+    ))
+    fig.add_trace(go.Scatter(
+        x=LAB2_FREQS,y=total_abs,mode="lines+markers",
+        name="TL total final · absorbente + conexión",
+        line=dict(color="#1b9e77",width=5),marker=dict(size=7,symbol="square"),
     ))
     fig.add_vline(x=selected_f,line_color="#1d3557",line_dash="dot",line_width=2)
     fig.add_annotation(
-        x=selected_f,y=max(float(base[idx]),float(connected_empty[idx]),float(connected_abs[idx])),
+        x=selected_f,y=max(float(base[idx]),float(line_path[idx]),float(air_abs[idx])),
         text=f"{selected_f} Hz",showarrow=True,arrowhead=2,ay=-42,
         font=dict(color="#17324d"),
     )
@@ -6202,8 +6297,9 @@ TL_{\mathrm{línea}} \rightarrow TL_{\mathrm{línea+abs}}$.
         f"**Lectura docente:** La configuración representa una conexión lineal mediante "
         f"{support_type.lower()}. {spacing_reading} {mass_reading} La frecuencia crítica "
         f"dominante es {fc_high:.0f} Hz y la corrección del modelo lineal es "
-        f"{line_correction:+.1f} dB. La curva naranja representa el resultado de "
-        f"la conexión lineal y la curva verde incorpora además el absorbente; "
+        f"{line_correction:+.1f} dB. La curva naranja representa el camino por "
+        f"la conexión lineal y la curva verde gruesa representa el TL total final, "
+        f"obtenido combinando energéticamente esa conexión con el camino aéreo absorbido; "
         f"no debe interpretarse como un resultado certificado de obra."
     )
 
@@ -6243,25 +6339,39 @@ TL_{\mathrm{línea}} \rightarrow TL_{\mathrm{línea+abs}}$.
             rf"TL_\mathrm{{línea}}({selected_f})="
             rf"TL_{{m'_1+m'_2}}({selected_f})+\Delta TL_{{m'}}="
             rf"{equivalent[idx]:.1f}+({line_correction:.2f})="
-            rf"{connected_empty[idx]:.1f}\ \mathrm{{dB}}"
+            rf"{line_path[idx]:.1f}\ \mathrm{{dB}}"
         )
 
-        st.markdown("**7. Aporte del absorbente en la banda seleccionada**")
+        st.markdown("**7. TL total con cámara vacía**")
+        st.latex(
+            rf"TL_\mathrm{{total}}({selected_f})=-10\log_{{10}}\left("
+            rf"10^{{-{base[idx]:.1f}/10}}+10^{{-{line_path[idx]:.1f}/10}}\right)"
+            rf"={total_empty[idx]:.1f}\ \mathrm{{dB}}"
+        )
+
+        st.markdown("**8. Camino aéreo con absorbente**")
         st.latex(
             rf"\Delta TL_\mathrm{{abs}}({selected_f})="
             rf"{absorbent_gain_curve[idx]:.1f}\ \mathrm{{dB}}"
         )
         st.latex(
-            rf"TL_\mathrm{{línea+abs}}({selected_f})="
-            rf"{connected_empty[idx]:.1f}+{absorbent_gain_curve[idx]:.1f}="
-            rf"{connected_abs[idx]:.1f}\ \mathrm{{dB}}"
+            rf"TL_\mathrm{{abs}}({selected_f})="
+            rf"{base[idx]:.1f}+{absorbent_gain_curve[idx]:.1f}="
+            rf"{air_abs[idx]:.1f}\ \mathrm{{dB}}"
+        )
+
+        st.markdown("**9. TL total final con absorbente y conexión lineal**")
+        st.latex(
+            rf"TL_\mathrm{{total,abs}}({selected_f})=-10\log_{{10}}\left("
+            rf"10^{{-{air_abs[idx]:.1f}/10}}+10^{{-{line_path[idx]:.1f}/10}}\right)"
+            rf"={total_abs[idx]:.1f}\ \mathrm{{dB}}"
         )
 
         st.caption(
             "Las curvas se calculan mediante tres regiones de comportamiento. "
-            "El TL base se calcula por regiones. La curva de conexión lineal utiliza "
-            "el modelo simplificado explicado en el punto 6 y el aporte del absorbente "
-            "se muestra por separado para que el origen de cada resultado sea visible."
+            "El absorbente modifica el camino aéreo; la conexión lineal permanece como "
+            "un camino mecánico paralelo. Los resultados totales se obtienen sumando "
+            "coeficientes de transmisión y convirtiendo nuevamente a decibeles."
         )
 
     st.markdown("### 9 · Comprobación conceptual")
