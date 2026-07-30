@@ -5951,8 +5951,8 @@ def lab2_stage5():
     st.markdown("### 7 · Laboratorio interactivo: construye el tabique")
     st.info(
         "Modifica las propiedades de las hojas y la cámara. El laboratorio calcula "
-        "el tabique con el motor WALLS/AKUZOFT utilizado por SONARA y lo compara con "
-        "la hoja equivalente de igual masa total."
+        "el comportamiento acústico del tabique y lo compara con una hoja equivalente "
+        "de igual masa superficial total."
     )
     support_type=st.radio(
         "Tipo de conexión lineal que deseas representar",
@@ -5961,7 +5961,7 @@ def lab2_stage5():
         key="s5_real_support_type",
     )
     st.caption(
-        "Ambas alternativas usan el modelo de montante simple de SONARA. La selección "
+        "Ambas alternativas usan el mismo modelo de conexión lineal simple. La selección "
         "cambia la lectura constructiva; no asigna automáticamente propiedades "
         "mecánicas diferentes al acero y a la madera."
     )
@@ -6002,7 +6002,7 @@ def lab2_stage5():
         index=2,key="s5_real_absorbent",
     )
 
-    def _sonara_walls_integral(surface_mass,rigidity,loss_factor,frequencies):
+    def _angular_transmission_integral(surface_mass,rigidity,loss_factor,frequencies):
         rho_air=1.18
         sound_speed=343.0
         theta=np.linspace(0.0,(4.0/9.0)*np.pi,720)
@@ -6027,9 +6027,9 @@ def lab2_stage5():
     fc2_value=float(fc2)
     rigidity1=float(m1)*(sound_speed**2/(2.0*np.pi*fc1_value))**2
     rigidity2=float(m2)*(sound_speed**2/(2.0*np.pi*fc2_value))**2
-    tl_leaf1=_sonara_walls_integral(float(m1),rigidity1,float(eta1),LAB2_FREQS)
-    tl_leaf2=_sonara_walls_integral(float(m2),rigidity2,float(eta2),LAB2_FREQS)
-    equivalent=_sonara_walls_integral(
+    tl_leaf1=_angular_transmission_integral(float(m1),rigidity1,float(eta1),LAB2_FREQS)
+    tl_leaf2=_angular_transmission_integral(float(m2),rigidity2,float(eta2),LAB2_FREQS)
+    equivalent=_angular_transmission_integral(
         float(m1+m2),rigidity1+rigidity2,float(eta1+eta2),LAB2_FREQS,
     )
     f0=(
@@ -6087,7 +6087,7 @@ def lab2_stage5():
     a.metric("f₀ del sistema ideal",f"{f0:.0f} Hz")
     b.metric("Efecto de conexión",f"{correction:+.1f} dB")
     c.metric(f"TL sin penalización · {selected_f} Hz",f"{ideal[idx]:.1f} dB")
-    d.metric(f"TL SONARA · {selected_f} Hz",f"{connected[idx]:.1f} dB",
+    d.metric(f"TL del tabique · {selected_f} Hz",f"{connected[idx]:.1f} dB",
              delta=f"{connected[idx]-ideal[idx]:+.1f} dB")
 
     if bridge_loss > 3:
@@ -6110,12 +6110,12 @@ def lab2_stage5():
     fig=go.Figure()
     fig.add_trace(go.Scatter(
         x=LAB2_FREQS,y=ideal,mode="lines+markers",
-        name="Panel doble · WALLS sin penalización estructural",
+        name="Panel doble · sin penalización estructural",
         line=dict(color="#08a9d8",width=4),marker=dict(size=6),
     ))
     fig.add_trace(go.Scatter(
         x=LAB2_FREQS,y=connected,mode="lines+markers",
-        name=f"Tabique SONARA · {support_type.lower()}",
+        name=f"Tabique conectado · {support_type.lower()}",
         line=dict(color="#ef8b2c",width=4,dash="dash"),marker=dict(size=7,symbol="diamond"),
     ))
     fig.add_trace(go.Scatter(
@@ -6161,28 +6161,46 @@ def lab2_stage5():
     st.success(
         f"**Lectura docente:** La configuración representa una conexión lineal mediante "
         f"{support_type.lower()}. {spacing_reading} {mass_reading} La frecuencia crítica "
-        f"dominante es {fc_high:.0f} Hz y el efecto estructural aplicado por SONARA "
+        f"dominante es {fc_high:.0f} Hz y el efecto estructural calculado "
         f"en la banda seleccionada es {correction:+.1f} dB. La curva naranja representa "
-        f"el modelo WALLS/AKUZOFT para montante simple; "
+        f"el tabique con conexión lineal simple; "
         f"no debe interpretarse como un resultado certificado de obra."
     )
 
     with st.expander("Ver procedimiento matemático paso a paso"):
-        st.markdown(
-            rf"""
-            1. Masa total: \(m'_1+m'_2={m1:.1f}+{m2:.1f}={m1+m2:.1f}\ \mathrm{{kg/m^2}}\).
-            2. Las rigideces se obtienen desde \(B_i=m'_i[c^2/(2\pi f_{{c,i}})]^2\):
-            \(B_1={rigidity1:.2f}\) y \(B_2={rigidity2:.2f}\ \mathrm{{N\,m}}\).
-            3. SONARA integra la transmisión angular de cada hoja entre \(0^\circ\) y \(80^\circ\).
-            4. Resonancia masa–aire–masa: \(f_0={f0:.1f}\ \mathrm{{Hz}}\).
-            5. Límite de cámara: \(f_l={fl:.1f}\ \mathrm{{Hz}}\).
-            6. Ganancia del absorbente: \(G_a={absorbent_gain:.1f}\ \mathrm{{dB}}\).
-            7. Penalización de montante simple y fijaciones: \({-2.0+fixing_penalty:+.2f}\ \mathrm{{dB}}\).
+        st.markdown("**1. Masa superficial total**")
+        st.latex(
+            rf"m'_1+m'_2={m1:.1f}+{m2:.1f}={m1+m2:.1f}\ \mathrm{{kg/m^2}}"
+        )
 
-            El laboratorio usa las mismas tres regiones y constantes del motor
-            WALLS/AKUZOFT de SONARA; la ecuación simplificada del punto 6 queda como
-            referencia pedagógica y no gobierna estas curvas.
-            """
+        st.markdown("**2. Rigidez de cada hoja**")
+        st.latex(r"B_i=m'_i\left(\frac{c^2}{2\pi f_{c,i}}\right)^2")
+        st.latex(
+            rf"B_1={rigidity1:.2f}\ \mathrm{{N\,m}},"
+            rf"\qquad B_2={rigidity2:.2f}\ \mathrm{{N\,m}}"
+        )
+
+        st.markdown(
+            "**3. Transmisión angular:** el modelo integra la transmisión de cada "
+            "hoja para ángulos de incidencia entre 0° y 80°."
+        )
+
+        st.markdown("**4. Frecuencia de resonancia masa–aire–masa**")
+        st.latex(rf"f_0={f0:.1f}\ \mathrm{{Hz}}")
+
+        st.markdown("**5. Frecuencia límite de la cámara**")
+        st.latex(rf"f_l={fl:.1f}\ \mathrm{{Hz}}")
+
+        st.markdown("**6. Ganancia asociada al absorbente**")
+        st.latex(rf"G_a={absorbent_gain:.1f}\ \mathrm{{dB}}")
+
+        st.markdown("**7. Penalización por montante simple y fijaciones**")
+        st.latex(rf"\Delta TL_\mathrm{{fij}}={-2.0+fixing_penalty:+.2f}\ \mathrm{{dB}}")
+
+        st.caption(
+            "Las curvas se calculan mediante tres regiones de comportamiento. "
+            "La ecuación simplificada del punto 6 se conserva como referencia "
+            "pedagógica y no gobierna las curvas del laboratorio."
         )
 
     st.markdown("### 9 · Comprobación conceptual")
