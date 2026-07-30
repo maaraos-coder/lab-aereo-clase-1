@@ -5935,11 +5935,11 @@ def lab2_stage5():
         r"20\log_{10}\left(\frac{m'_1}{m'_1+m'_2}\right)-18"
     )
     st.markdown(r"""
-    - \(b\): separación entre líneas de conexión o montantes, en metros.
-    - \(f_c\): frecuencia crítica más alta de las dos hojas, en Hz.
-    - \(m'_1\) y \(m'_2\): masas superficiales de las hojas, en kg/m².
-    - \(TL_{m'_1+m'_2}\): pérdida por transmisión de una hoja equivalente con la masa total.
-    - \(\Delta TL_{m'}\): corrección del modelo para la conexión lineal.
+- $b$: separación entre líneas de conexión o montantes, en metros.
+- $f_c$: frecuencia crítica más alta de las dos hojas, en Hz.
+- $m'_1$ y $m'_2$: masas superficiales de las hojas 1 y 2, en $\mathrm{kg/m^2}$.
+- $TL_{m'_1+m'_2}(f)$: pérdida por transmisión de una hoja equivalente cuya masa superficial es $m'_1+m'_2$.
+- $\Delta TL_{m'}$: corrección, en decibeles, asociada a la conexión lineal.
     """)
     st.warning("""
     **Alcance del cálculo:** es un modelo pedagógico simplificado para estudiar el
@@ -5950,9 +5950,9 @@ def lab2_stage5():
 
     st.markdown("### 7 · Laboratorio interactivo: construye el tabique")
     st.info(
-        "Modifica las hojas y la separación de los montantes. La aplicación compara "
-        "el panel doble ideal de Sharp, el tabique con conexión lineal y una hoja "
-        "equivalente con la misma masa total."
+        "Modifica las propiedades de las hojas y la cámara. El laboratorio calcula "
+        "el tabique con el motor WALLS/AKUZOFT utilizado por SONARA y lo compara con "
+        "la hoja equivalente de igual masa total."
     )
     support_type=st.radio(
         "Tipo de conexión lineal que deseas representar",
@@ -5961,9 +5961,9 @@ def lab2_stage5():
         key="s5_real_support_type",
     )
     st.caption(
-        "Ambas alternativas se calculan con el modelo lineal entregado. La selección "
-        "cambia la lectura constructiva, no introduce propiedades mecánicas específicas "
-        "del acero o de la madera."
+        "Ambas alternativas usan el modelo de montante simple de SONARA. La selección "
+        "cambia la lectura constructiva; no asigna automáticamente propiedades "
+        "mecánicas diferentes al acero y a la madera."
     )
     c1,c2,c3,c4=st.columns(4)
     m1=c1.number_input("Masa hoja 1 · m′₁ (kg/m²)",5.0,80.0,10.0,1.0,key="s5_real_m1")
@@ -5985,23 +5985,109 @@ def lab2_stage5():
         key="s5_real_f",
     )
 
-    fc_high=max(float(fc1),float(fc2))
-    correction=(
-        10*math.log10(max(spacing*fc_high,1e-9))
-        +20*math.log10(m1/(m1+m2))
-        -18
+    c8,c9,c10=st.columns(3)
+    eta1=c8.number_input(
+        "Factor de pérdidas hoja 1 · η₁",
+        min_value=0.005,max_value=0.200,value=0.030,step=0.005,
+        format="%.3f",key="s5_real_eta1",
     )
-    equivalent=_mass_law_curve(m1+m2)
-    connected=equivalent+correction
-    ideal,f0,fl=_sharp_curve(m1,m2,depth,"Independiente")
+    eta2=c9.number_input(
+        "Factor de pérdidas hoja 2 · η₂",
+        min_value=0.005,max_value=0.200,value=0.030,step=0.005,
+        format="%.3f",key="s5_real_eta2",
+    )
+    absorbent_type=c10.selectbox(
+        "Absorbente en la cámara",
+        ["Sin absorbente","Lana mineral 40 kg/m³","Lana mineral 60 kg/m³","Lana mineral 80 kg/m³"],
+        index=2,key="s5_real_absorbent",
+    )
+
+    def _sonara_walls_integral(surface_mass,rigidity,loss_factor,frequencies):
+        rho_air=1.18
+        sound_speed=343.0
+        theta=np.linspace(0.0,(4.0/9.0)*np.pi,720)
+        sin_theta=np.sin(theta)
+        cos_theta=np.cos(theta)
+        values=[]
+        for frequency in np.asarray(frequencies,dtype=float):
+            omega=2.0*np.pi*frequency
+            mass_term=(omega*surface_mass*cos_theta)/(2.0*rho_air*sound_speed)
+            bending_term=((omega**2)*rigidity*(sin_theta**4))/(surface_mass*sound_speed**4)
+            denominator=(1.0+loss_factor*mass_term*bending_term)**2+(mass_term*(1.0-bending_term))**2
+            angular_integrand=(1.0/denominator)*cos_theta*sin_theta
+            angular_integral=float(np.trapezoid(angular_integrand,theta))
+            transmission=max(angular_integral*2.0904,1e-12)
+            values.append(10.0*np.log10(1.0/transmission))
+        return np.asarray(values,dtype=float)
+
+    rho_air=1.18
+    sound_speed=343.0
+    cavity_depth=max(float(depth)*1e-3,1e-4)
+    fc1_value=float(fc1)
+    fc2_value=float(fc2)
+    rigidity1=float(m1)*(sound_speed**2/(2.0*np.pi*fc1_value))**2
+    rigidity2=float(m2)*(sound_speed**2/(2.0*np.pi*fc2_value))**2
+    tl_leaf1=_sonara_walls_integral(float(m1),rigidity1,float(eta1),LAB2_FREQS)
+    tl_leaf2=_sonara_walls_integral(float(m2),rigidity2,float(eta2),LAB2_FREQS)
+    equivalent=_sonara_walls_integral(
+        float(m1+m2),rigidity1+rigidity2,float(eta1+eta2),LAB2_FREQS,
+    )
+    f0=(
+        (1.0/(2.0*np.pi))*np.sqrt(rho_air*sound_speed**2)
+        *np.sqrt((float(m1)+float(m2))/(float(m1)*float(m2)*cavity_depth))
+    )
+    fl=sound_speed/(2.0*np.pi*cavity_depth)
+    absorbent_gain={
+        "Sin absorbente":0.0,
+        "Lana mineral 40 kg/m³":1.5,
+        "Lana mineral 60 kg/m³":3.0,
+        "Lana mineral 80 kg/m³":4.5,
+    }[absorbent_type]
+    fixing_penalty=-max(0.0,600.0-float(spacing)*1000.0)/300.0
+    connected=np.zeros_like(LAB2_FREQS,dtype=float)
+    for band_index,frequency in enumerate(LAB2_FREQS):
+        if frequency<f0:
+            connected[band_index]=equivalent[band_index]
+        elif frequency<fl:
+            connected[band_index]=(
+                tl_leaf1[band_index]+tl_leaf2[band_index]
+                +20.0*np.log10(max(float(frequency)*cavity_depth,1e-12))-29.0
+                +absorbent_gain
+            )
+        else:
+            connected[band_index]=(
+                tl_leaf1[band_index]+tl_leaf2[band_index]+6.0
+                +absorbent_gain*0.35
+            )
+        connected[band_index]+=-2.0+fixing_penalty
+
+    ideal=np.zeros_like(LAB2_FREQS,dtype=float)
+    for band_index,frequency in enumerate(LAB2_FREQS):
+        if frequency<f0:
+            ideal[band_index]=equivalent[band_index]
+        elif frequency<fl:
+            ideal[band_index]=(
+                tl_leaf1[band_index]+tl_leaf2[band_index]
+                +20.0*np.log10(max(float(frequency)*cavity_depth,1e-12))-29.0
+                +absorbent_gain
+            )
+        else:
+            ideal[band_index]=(
+                tl_leaf1[band_index]+tl_leaf2[band_index]+6.0
+                +absorbent_gain*0.35
+            )
+
+    fc_high=max(fc1_value,fc2_value)
+    correction=float(connected[int(np.where(LAB2_FREQS==selected_f)[0][0])]-
+                     ideal[int(np.where(LAB2_FREQS==selected_f)[0][0])])
     idx=int(np.where(LAB2_FREQS==selected_f)[0][0])
     bridge_loss=float(ideal[idx]-connected[idx])
 
     a,b,c,d=st.columns(4)
     a.metric("f₀ del sistema ideal",f"{f0:.0f} Hz")
-    b.metric("Corrección ΔTL",f"{correction:+.1f} dB")
-    c.metric(f"TL ideal · {selected_f} Hz",f"{ideal[idx]:.1f} dB")
-    d.metric(f"TL conectado · {selected_f} Hz",f"{connected[idx]:.1f} dB",
+    b.metric("Efecto de conexión",f"{correction:+.1f} dB")
+    c.metric(f"TL sin penalización · {selected_f} Hz",f"{ideal[idx]:.1f} dB")
+    d.metric(f"TL SONARA · {selected_f} Hz",f"{connected[idx]:.1f} dB",
              delta=f"{connected[idx]-ideal[idx]:+.1f} dB")
 
     if bridge_loss > 3:
@@ -6024,12 +6110,12 @@ def lab2_stage5():
     fig=go.Figure()
     fig.add_trace(go.Scatter(
         x=LAB2_FREQS,y=ideal,mode="lines+markers",
-        name="Panel doble ideal · Sharp",
+        name="Panel doble · WALLS sin penalización estructural",
         line=dict(color="#08a9d8",width=4),marker=dict(size=6),
     ))
     fig.add_trace(go.Scatter(
         x=LAB2_FREQS,y=connected,mode="lines+markers",
-        name=f"Tabique real · {support_type.lower()}",
+        name=f"Tabique SONARA · {support_type.lower()}",
         line=dict(color="#ef8b2c",width=4,dash="dash"),marker=dict(size=7,symbol="diamond"),
     ))
     fig.add_trace(go.Scatter(
@@ -6075,8 +6161,9 @@ def lab2_stage5():
     st.success(
         f"**Lectura docente:** La configuración representa una conexión lineal mediante "
         f"{support_type.lower()}. {spacing_reading} {mass_reading} La frecuencia crítica "
-        f"dominante utilizada es {fc_high:.0f} Hz y la corrección calculada es "
-        f"{correction:+.1f} dB. La curva naranja representa el modelo conectado; "
+        f"dominante es {fc_high:.0f} Hz y el efecto estructural aplicado por SONARA "
+        f"en la banda seleccionada es {correction:+.1f} dB. La curva naranja representa "
+        f"el modelo WALLS/AKUZOFT para montante simple; "
         f"no debe interpretarse como un resultado certificado de obra."
     )
 
@@ -6084,10 +6171,17 @@ def lab2_stage5():
         st.markdown(
             rf"""
             1. Masa total: \(m'_1+m'_2={m1:.1f}+{m2:.1f}={m1+m2:.1f}\ \mathrm{{kg/m^2}}\).
-            2. Frecuencia crítica dominante: \(f_c=\max({fc1},{fc2})={fc_high:.0f}\ \mathrm{{Hz}}\).
-            3. Separación entre conexiones: \(b={spacing:.2f}\ \mathrm{{m}}\).
-            4. Corrección: \(\Delta TL_{{m'}}={correction:+.2f}\ \mathrm{{dB}}\).
-            5. En cada banda se calcula \(TL_{{\mathrm{{línea}}}}=TL_{{m'_1+m'_2}}+\Delta TL_{{m'}}\).
+            2. Las rigideces se obtienen desde \(B_i=m'_i[c^2/(2\pi f_{{c,i}})]^2\):
+            \(B_1={rigidity1:.2f}\) y \(B_2={rigidity2:.2f}\ \mathrm{{N\,m}}\).
+            3. SONARA integra la transmisión angular de cada hoja entre \(0^\circ\) y \(80^\circ\).
+            4. Resonancia masa–aire–masa: \(f_0={f0:.1f}\ \mathrm{{Hz}}\).
+            5. Límite de cámara: \(f_l={fl:.1f}\ \mathrm{{Hz}}\).
+            6. Ganancia del absorbente: \(G_a={absorbent_gain:.1f}\ \mathrm{{dB}}\).
+            7. Penalización de montante simple y fijaciones: \({-2.0+fixing_penalty:+.2f}\ \mathrm{{dB}}\).
+
+            El laboratorio usa las mismas tres regiones y constantes del motor
+            WALLS/AKUZOFT de SONARA; la ecuación simplificada del punto 6 queda como
+            referencia pedagógica y no gobierna estas curvas.
             """
         )
 
