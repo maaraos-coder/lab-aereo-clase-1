@@ -4035,6 +4035,9 @@ LAB2_IMAGES = {
     "s2_tau_angulo": "punto3_tau_angulo_profesional.png",
     "s2_ley_masa": "punto6_impedancia_ley_masa_profesional.png",
     "s2_frecuencia_critica": "punto7_frecuencia_critica_profesional.png",
+    "s4_propiedades_placas": "etapa4_propiedades_placas.svg",
+    "s4_resonancia": "etapa4_resonancia_masa_aire_masa.svg",
+    "s4_regiones": "etapa4_ecuacion_tres_regiones.svg",
 }
 
 def _lab2_image(image_key, caption=None):
@@ -5460,6 +5463,15 @@ def lab2_stage4():
         "Para cada hoja i, m′ es la masa superficial en kg/m² y B es la rigidez "
         "a flexión en N·m."
     )
+    _lab2_image(
+        "s4_propiedades_placas",
+        "Cada hoja aporta masa superficial y rigidez a flexión al sistema doble.",
+    )
+    _lab2_plain_language_cards(
+        "Cada placa conserva su propio peso por metro cuadrado y su propia resistencia a doblarse.",
+        "El espesor aumenta la masa linealmente, pero la rigidez crece con el cubo del espesor.",
+        "Suponer que dos placas separadas por aire se comportan desde el inicio como una sola placa gruesa.",
+    )
 
     st.markdown("### 2 · Resonancia masa–aire–masa")
     st.markdown(r"""
@@ -5483,6 +5495,15 @@ def lab2_stage4():
     st.latex(r"f_1=\frac{c}{2\pi d}")
     st.caption(
         "En ambas expresiones, d se ingresa en metros; ρ₀ = 1,18 kg/m³ y c = 343 m/s."
+    )
+    _lab2_image(
+        "s4_resonancia",
+        "En la resonancia, las dos masas quedan acopladas por el resorte neumático de la cámara.",
+    )
+    _lab2_plain_language_cards(
+        "Las placas son las masas y el aire encerrado funciona como un resorte que las conecta.",
+        "Una cámara más profunda o placas más pesadas desplazan normalmente f₀ hacia frecuencias bajas.",
+        "Pensar que agregar una segunda placa siempre mejora el aislamiento: cerca de f₀ puede aparecer una caída.",
     )
 
     st.markdown("### 3 · Ecuación por regiones")
@@ -5512,6 +5533,15 @@ def lab2_stage4():
     st.caption(
         "TL₁, TL₂ y TLₑq se obtienen con el mismo cálculo angular y de campo "
         "utilizado para las placas simples en la Etapa 3."
+    )
+    _lab2_image(
+        "s4_regiones",
+        "La respuesta del panel doble cambia al atravesar f₀ y f₁.",
+    )
+    _lab2_plain_language_cards(
+        "La curva no se calcula con una sola regla: el modelo cambia según la frecuencia.",
+        "Bajo f₀ domina el conjunto acoplado; entre f₀ y f₁ actúa masa–aire–masa; sobre f₁ se combinan ambas hojas.",
+        "Aplicar la ecuación de la región central a todo el espectro o interpretar las discontinuidades como un fenómeno real exacto.",
     )
 
     materials={
@@ -5588,6 +5618,12 @@ def lab2_stage4():
     d_metric.metric("Transición f₁",f"{f1:.0f} Hz")
 
     st.markdown("#### Curva y tres regiones del modelo")
+    st.markdown(
+        "La curva azul gruesa representa el **TL del sistema doble**. Las líneas "
+        "punteadas muestran el comportamiento de cada placa por separado. Los fondos "
+        "de color identifican las tres regiones del modelo y las líneas verticales "
+        "marcan las frecuencias características calculadas para la configuración actual."
+    )
     fig=go.Figure()
     fig.add_vrect(
         x0=50,x1=min(f0,5000),fillcolor="#dcecff",opacity=.42,
@@ -5604,10 +5640,10 @@ def lab2_stage4():
             line_width=0,annotation_text="3 · Región superior",
             annotation_position="top left")
     fig.add_trace(go.Scatter(
-        x=frequencies,y=tl1,mode="lines",name=f"Placa 1 · {material_1}",
+        x=frequencies,y=tl1,mode="lines",name=f"Placa 1: {material_1}",
         line=dict(color="#5598d4",width=2,dash="dot")))
     fig.add_trace(go.Scatter(
-        x=frequencies,y=tl2,mode="lines",name=f"Placa 2 · {material_2}",
+        x=frequencies,y=tl2,mode="lines",name=f"Placa 2: {material_2}",
         line=dict(color="#d99734",width=2,dash="dot")))
     fig.add_trace(go.Scatter(
         x=frequencies,y=tl_double,mode="lines",name="Panel doble",
@@ -5619,17 +5655,29 @@ def lab2_stage4():
         fig.add_vline(x=f1,line_dash="dash",line_color="#16845b",
                       annotation_text="f₁",annotation_position="top")
     fig.update_layout(
-        title="Pérdida por transmisión · placas simples y sistema doble",
         xaxis_title="Frecuencia (Hz) · escala lineal",
         yaxis_title="TL de campo (dB)",
-        xaxis=dict(type="linear",range=[50,5000],dtick=500),
-        height=510,hovermode="x unified",
-        margin=dict(l=40,r=20,t=75,b=45),
-        legend=dict(orientation="h",y=1.16))
+        xaxis=dict(type="linear",range=[50,5000],dtick=500,showgrid=True),
+        yaxis=dict(showgrid=True,gridcolor="rgba(23,63,99,.10)"),
+        height=570,hovermode="x unified",
+        margin=dict(l=55,r=25,t=90,b=70),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.08,
+            xanchor="center",
+            x=.5,
+            bgcolor="rgba(255,255,255,.92)",
+        ))
     st.plotly_chart(fig,use_container_width=True,key="lab2_s4_double_curve")
     st.caption(
         "Las discontinuidades en f₀ y f₁ pertenecen a la formulación idealizada por "
         "tramos. La predicción no incorpora fugas, uniones rígidas ni transmisiones laterales."
+    )
+    _lab2_plain_language_cards(
+        "Mueve los materiales, espesores y la cámara para ver cómo cambia la pared completa, no solo una placa.",
+        "Observa primero dónde quedan f₀ y f₁; después compara la línea gruesa del panel doble con las dos líneas punteadas.",
+        "Elegir la mejor solución mirando un único valor máximo de TL e ignorar la caída de resonancia y la banda de interés.",
     )
 
     st.markdown("#### Resultados por frecuencia")
