@@ -4691,226 +4691,277 @@ def lab2_stage2():
         "Confundir la frecuencia crítica con una resonancia propia global de la placa.",
     )
 
-    st.markdown("### 8. Laboratorio de incidencia de campo y aislamiento")
+    st.markdown("### 8. Laboratorio interactivo: incidencia y aislamiento")
     st.markdown("""
-    Esta aplicación reúne lo desarrollado en los puntos 2, 3 y 4. Primero calcula
-    la transmisión de cada **rayo individual** y después combina energéticamente
-    todas las direcciones incluidas en el campo seleccionado.
+    Una misma placa puede evaluarse bajo tres condiciones de incidencia. La diferencia
+    no está en el material, sino en **cómo llega la energía sonora** y en la forma de
+    combinarla:
 
-    El procedimiento técnico se realiza en cuatro pasos:
+    - **Incidencia normal:** ondas paralelas que llegan perpendicularmente a la placa.
+    - **Campo de laboratorio 0°–78°:** promedio energético de múltiples incidencias
+      comprendidas entre 0° y 78°.
+    - **Campo difuso ideal 0°–90°:** modelo ideal con energía procedente de todo el
+      hemisferio incidente.
+
+    Selecciona una condición para resaltarla y cambia la frecuencia. La aplicación
+    recalcula simultáneamente los tres resultados, de modo que puedas comparar el efecto
+    del modelo de incidencia sin confundir el promedio de campo con un rayo aislado.
     """)
-    st.markdown("1. Se calcula el coeficiente de transmisión de cada dirección:")
-    st.latex(r"\tau(\theta)")
-    st.markdown("2. Cada dirección se pondera según su aporte al campo:")
-    st.latex(r"w(\theta)=\sin(\theta)\cos(\theta)")
-    st.markdown("3. Se obtiene el promedio energético de los coeficientes:")
-    st.latex(
-        r"\overline{\tau}="
-        r"\frac{\int_{0}^{\theta_{\max}}\tau(\theta)"
-        r"\sin(\theta)\cos(\theta)\,d\theta}"
-        r"{\int_{0}^{\theta_{\max}}\sin(\theta)\cos(\theta)\,d\theta}"
-    )
-    st.markdown("4. El promedio energético se convierte a pérdida de transmisión:")
-    st.latex(r"TL=-10\log_{10}\left(\overline{\tau}\right)")
-    st.caption(
-        "Símbolos: τ = coeficiente de transmisión; θ = ángulo de incidencia; "
-        "w(θ) = ponderación angular; τ̄ = coeficiente de transmisión promedio; "
-        "θmáx = ángulo máximo incluido; TL = pérdida de transmisión, en dB."
-    )
+
     lab_mode_options = [
         "Incidencia normal · 0°",
         "Campo de laboratorio · 0° a 78°",
         "Campo difuso ideal · 0° a 90°",
     ]
-    control_a, control_b, control_c = st.columns([1.35, 1, 1])
-    field_mode = control_a.selectbox(
-        "Campo que deseas analizar",
+    control_a, control_b = st.columns([1.55, 1])
+    field_mode = control_a.radio(
+        "Condición que deseas observar",
         lab_mode_options,
         index=1,
+        horizontal=True,
         key="lab2_field_mode",
     )
-    ray_angle = control_b.slider(
-        "Rayo individual θ",
-        0,
-        89,
-        30,
-        key="lab2_field_ray_angle",
-        help="Este rayo sirve para explorar una dirección; no representa por sí solo el campo.",
-    )
-    angular_frequency = control_c.select_slider(
-        "Frecuencia (Hz)",
+    angular_frequency = control_b.select_slider(
+        "Frecuencia de cálculo (Hz)",
         options=LAB2_FREQS.tolist(),
         value=500,
         key="lab2_field_frequency",
     )
 
     angular_mass = 10.0
-    calculation_angles = np.linspace(0.0, 89.9, 900)
-    calculation_angles_rad = np.deg2rad(calculation_angles)
-    tau_by_angle = np.array([
-        _mass_sheet_tau(angular_mass, angular_frequency, float(theta))
-        for theta in calculation_angles
-    ])
-    weights_by_angle = (
-        np.sin(calculation_angles_rad) * np.cos(calculation_angles_rad)
-    )
 
     def _field_average_tau(limit_degrees):
         field_angles = np.linspace(0.0, float(limit_degrees), 900)
         field_angles_rad = np.deg2rad(field_angles)
         field_tau = np.array([
-            _mass_sheet_tau(
-                angular_mass, angular_frequency, float(theta)
-            )
+            _mass_sheet_tau(angular_mass, angular_frequency, float(theta))
             for theta in field_angles
         ])
         field_weights = np.sin(field_angles_rad) * np.cos(field_angles_rad)
         if hasattr(np, "trapezoid"):
-            numerator = np.trapezoid(
-                field_tau * field_weights, field_angles_rad
-            )
+            numerator = np.trapezoid(field_tau * field_weights, field_angles_rad)
             denominator = np.trapezoid(field_weights, field_angles_rad)
         else:
-            numerator = np.trapz(
-                field_tau * field_weights, field_angles_rad
-            )
+            numerator = np.trapz(field_tau * field_weights, field_angles_rad)
             denominator = np.trapz(field_weights, field_angles_rad)
         return max(float(numerator / max(denominator, 1e-15)), 1e-15)
 
-    tau_ray = _mass_sheet_tau(
-        angular_mass, angular_frequency, ray_angle
-    )
-    tau_normal = _mass_sheet_tau(
-        angular_mass, angular_frequency, 0
-    )
+    tau_normal = _mass_sheet_tau(angular_mass, angular_frequency, 0)
     tau_field_78 = _field_average_tau(78.0)
     tau_field_90 = _field_average_tau(89.9)
-    tl_ray = -10 * math.log10(tau_ray)
     tl_normal = -10 * math.log10(tau_normal)
     tl_field_78 = -10 * math.log10(tau_field_78)
     tl_field_90 = -10 * math.log10(tau_field_90)
 
-    selected_limit = {
-        "Incidencia normal · 0°": 0.0,
-        "Campo de laboratorio · 0° a 78°": 78.0,
-        "Campo difuso ideal · 0° a 90°": 89.9,
-    }[field_mode]
-    selected_tau = {
-        "Incidencia normal · 0°": tau_normal,
-        "Campo de laboratorio · 0° a 78°": tau_field_78,
-        "Campo difuso ideal · 0° a 90°": tau_field_90,
-    }[field_mode]
-    selected_tl = -10 * math.log10(selected_tau)
+    field_results = {
+        "Incidencia normal · 0°": (tau_normal, tl_normal),
+        "Campo de laboratorio · 0° a 78°": (tau_field_78, tl_field_78),
+        "Campo difuso ideal · 0° a 90°": (tau_field_90, tl_field_90),
+    }
+    selected_tau, selected_tl = field_results[field_mode]
 
-    chart_a, chart_b = st.columns(2)
-    with chart_a:
-        st.plotly_chart(
-            _lab2_incidence_figure(ray_angle, tau_ray),
-            use_container_width=True,
-            key="lab2_field_incidence_ray",
-        )
-    with chart_b:
-        fig_field = go.Figure()
-        if selected_limit > 0:
-            fig_field.add_vrect(
-                x0=0,
-                x1=selected_limit,
-                fillcolor="#dbeafe",
-                opacity=0.38,
-                line_width=0,
-                annotation_text="Ángulos incluidos",
-                annotation_position="top left",
-            )
-        fig_field.add_trace(go.Scatter(
-            x=calculation_angles,
-            y=tau_by_angle,
-            mode="lines",
-            name="τ(θ)",
-            line=dict(color="#1565c0", width=3),
-            customdata=weights_by_angle,
-            hovertemplate=(
-                "θ=%{x:.1f}°<br>τ=%{y:.4g}"
-                "<br>ponderación=%{customdata:.3f}<extra></extra>"
-            ),
-        ))
-        fig_field.add_trace(go.Scatter(
-            x=[ray_angle],
-            y=[tau_ray],
-            mode="markers",
-            name=f"Rayo {ray_angle}°",
-            marker=dict(size=12, color="#c62828"),
-        ))
-        if selected_limit > 0:
-            fig_field.add_vline(
-                x=selected_limit,
-                line_dash="dash",
-                line_color="#ef6c00",
-            )
-        fig_field.update_layout(
-            title="Transmisión y ángulos incluidos en el promedio",
-            xaxis_title="Ángulo respecto de la normal (°)",
-            yaxis_title="Coeficiente de transmisión τ",
-            height=390,
-            margin=dict(l=35, r=15, t=55, b=40),
-            legend=dict(orientation="h", y=1.13),
-        )
-        st.plotly_chart(
-            fig_field,
-            use_container_width=True,
-            key="lab2_field_tau_by_angle",
-        )
-
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("TL del rayo", f"{tl_ray:.1f} dB", f"θ = {ray_angle}°")
-    m2.metric("TL normal", f"{tl_normal:.1f} dB", "0°")
-    m3.metric("TL de campo", f"{tl_field_78:.1f} dB", "0°–78°")
-    m4.metric("TL difuso ideal", f"{tl_field_90:.1f} dB", "0°–90°")
-
-    comparison_names = [
-        f"Rayo {ray_angle}°",
-        "Normal 0°",
-        "Campo 0°–78°",
-        "Difuso 0°–90°",
+    # Esquema pedagógico: tres campos visibles y la selección destacada.
+    field_colors = {
+        "Incidencia normal · 0°": "#1565c0",
+        "Campo de laboratorio · 0° a 78°": "#ef6c00",
+        "Campo difuso ideal · 0° a 90°": "#7b1fa2",
+    }
+    field_titles = [
+        "Incidencia normal",
+        "Campo de laboratorio 0°–78°",
+        "Campo difuso ideal 0°–90°",
     ]
-    comparison_values = [tl_ray, tl_normal, tl_field_78, tl_field_90]
+    field_keys = lab_mode_options
+    fig_fields = go.Figure()
+    for panel_index, (panel_title, panel_key) in enumerate(zip(field_titles, field_keys)):
+        x0 = panel_index * 4.0
+        active = panel_key == field_mode
+        color = field_colors[panel_key]
+        fig_fields.add_shape(
+            type="rect",
+            x0=x0 + 0.05,
+            x1=x0 + 3.75,
+            y0=0.15,
+            y1=4.65,
+            fillcolor=color if active else "#f8fafc",
+            opacity=0.11 if active else 1.0,
+            line=dict(color=color if active else "#cbd5e1", width=4 if active else 1.5),
+            layer="below",
+        )
+        panel_x = x0 + 2.55
+        fig_fields.add_shape(
+            type="rect",
+            x0=panel_x,
+            x1=panel_x + 0.12,
+            y0=0.8,
+            y1=3.85,
+            fillcolor="#475569",
+            line=dict(color="#334155", width=1),
+        )
+        fig_fields.add_annotation(
+            x=x0 + 1.9,
+            y=4.3,
+            text=f"<b>{panel_title}</b>",
+            showarrow=False,
+            font=dict(size=14, color="#0f172a"),
+        )
+
+        if panel_index == 0:
+            ray_origins = [(x0 + 0.45, 1.45), (x0 + 0.45, 2.3), (x0 + 0.45, 3.15)]
+        elif panel_index == 1:
+            ray_origins = [
+                (x0 + 0.45, 0.65), (x0 + 0.45, 1.25), (x0 + 0.45, 2.3),
+                (x0 + 0.45, 3.35), (x0 + 0.45, 3.95),
+            ]
+        else:
+            ray_origins = [
+                (x0 + 0.35, 0.35), (x0 + 0.35, 0.9), (x0 + 0.35, 1.55),
+                (x0 + 0.35, 2.3), (x0 + 0.35, 3.05), (x0 + 0.35, 3.7),
+                (x0 + 0.35, 4.25),
+            ]
+        for origin_x, origin_y in ray_origins:
+            fig_fields.add_annotation(
+                x=panel_x,
+                y=2.3,
+                ax=origin_x,
+                ay=origin_y,
+                xref="x",
+                yref="y",
+                axref="x",
+                ayref="y",
+                text="",
+                showarrow=True,
+                arrowhead=3,
+                arrowsize=1.1,
+                arrowwidth=2.8 if active else 1.8,
+                arrowcolor=color if active else "#94a3b8",
+            )
+        fig_fields.add_annotation(
+            x=x0 + 1.9,
+            y=0.42,
+            text="<b>SELECCIONADO</b>" if active else "Seleccionar arriba",
+            showarrow=False,
+            font=dict(size=11, color=color if active else "#64748b"),
+        )
+
+    fig_fields.update_xaxes(range=[0, 11.8], visible=False, fixedrange=True)
+    fig_fields.update_yaxes(range=[0, 4.9], visible=False, fixedrange=True)
+    fig_fields.update_layout(
+        title="Cómo llega la energía sonora a la placa",
+        height=430,
+        margin=dict(l=10, r=10, t=55, b=10),
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+        showlegend=False,
+    )
+    st.plotly_chart(
+        fig_fields,
+        use_container_width=True,
+        key="lab2_three_incidence_fields",
+        config={"displayModeBar": False},
+    )
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("TL normal", f"{tl_normal:.1f} dB", "Incidencia 0°")
+    m2.metric("TL de campo", f"{tl_field_78:.1f} dB", "Promedio 0°–78°")
+    m3.metric("TL difuso ideal", f"{tl_field_90:.1f} dB", "Promedio 0°–90°")
+
+    comparison_names = ["Normal 0°", "Campo 0°–78°", "Difuso ideal 0°–90°"]
+    comparison_values = [tl_normal, tl_field_78, tl_field_90]
+    comparison_colors = [
+        field_colors["Incidencia normal · 0°"],
+        field_colors["Campo de laboratorio · 0° a 78°"],
+        field_colors["Campo difuso ideal · 0° a 90°"],
+    ]
     fig_comparison = go.Figure(go.Bar(
         x=comparison_names,
         y=comparison_values,
-        marker_color=["#c62828", "#455a64", "#1565c0", "#7b1fa2"],
+        marker_color=comparison_colors,
         text=[f"{value:.1f} dB" for value in comparison_values],
         textposition="outside",
+        hovertemplate="%{x}<br>TL = %{y:.1f} dB<extra></extra>",
     ))
     fig_comparison.update_layout(
-        title=(
-            f"Comparación a {angular_frequency} Hz · "
-            f"selección: {field_mode}"
-        ),
+        title=f"Comparación del aislamiento a {angular_frequency} Hz",
         xaxis_title="Condición de incidencia",
-        yaxis_title="TL (dB)",
-        height=365,
+        yaxis_title="Pérdida de transmisión, TL (dB)",
+        height=360,
         margin=dict(l=35, r=15, t=60, b=45),
         showlegend=False,
+    )
+    fig_comparison.update_yaxes(
+        range=[0, max(comparison_values) * 1.22],
+        gridcolor="#e2e8f0",
     )
     st.plotly_chart(
         fig_comparison,
         use_container_width=True,
         key="lab2_field_tl_comparison",
+        config={"displayModeBar": False},
     )
+
     transmitted_percent = 100.0 * selected_tau
+    if field_mode == "Incidencia normal · 0°":
+        field_explanation = (
+            "Las ondas llegan perpendicularmente y todas comparten la misma dirección. "
+            "El resultado corresponde a una incidencia única, no a un promedio angular."
+        )
+    elif field_mode == "Campo de laboratorio · 0° a 78°":
+        field_explanation = (
+            "El resultado combina energéticamente todas las incidencias entre 0° y 78°. "
+            "No corresponde al TL de una onda que llega a 78°."
+        )
+    else:
+        field_explanation = (
+            "El modelo ideal incorpora incidencias de prácticamente todo el hemisferio. "
+            "Los ángulos rasantes se incluyen con su ponderación energética, no con igual peso."
+        )
     st.markdown(
-        f'<div class="lesson"><b>Lectura de la selección:</b> '
-        f'<b>{field_mode}</b> entrega un TL de <b>{selected_tl:.1f} dB</b> '
-        f'y transmite aproximadamente <b>{transmitted_percent:.3g} %</b> de la '
-        f'energía incidente en este modelo ideal de masa. El rayo rojo de '
-        f'{ray_angle}° permite estudiar una dirección, pero no sustituye al promedio '
-        'energético del campo.</div>',
+        f'<div class="lesson"><b>Interpretación automática:</b> a '
+        f'<b>{angular_frequency} Hz</b>, la condición <b>{field_mode}</b> entrega '
+        f'<b>TL = {selected_tl:.1f} dB</b> y transmite aproximadamente '
+        f'<b>{transmitted_percent:.3g} %</b> de la energía incidente en este modelo '
+        f'ideal de masa. {field_explanation}</div>',
         unsafe_allow_html=True,
     )
-    st.info(
-        "Idea clave: el TL de campo entre 0° y 78° no es el TL de una onda que "
-        "llega a 78°. Es el resultado de combinar energéticamente todas las "
-        "incidencias comprendidas entre 0° y 78°."
-    )
+
+    with st.expander("Ver detalle matemático"):
+        st.markdown(
+            "Para cada dirección se calcula primero el coeficiente de transmisión "
+            "de la hoja simple:"
+        )
+        st.latex(
+            r"\tau(\theta)=\left[1+\left("
+            r"\frac{\omega m'\cos\theta}{2\rho_0c}"
+            r"\right)^2\right]^{-1}"
+        )
+        st.markdown(
+            "Para los campos angulares, los coeficientes se integran con ponderación "
+            "energética y solo después se convierten a decibeles:"
+        )
+        st.latex(
+            r"\overline{\tau}="
+            r"\frac{\displaystyle\int_{0}^{\theta_{\max}}\tau(\theta)"
+            r"\sin\theta\cos\theta\,d\theta}"
+            r"{\displaystyle\int_{0}^{\theta_{\max}}"
+            r"\sin\theta\cos\theta\,d\theta}"
+        )
+        st.latex(r"TL=-10\log_{10}\left(\overline{\tau}\right)")
+        st.markdown("""
+        - **τ(θ):** coeficiente de transmisión para el ángulo θ.
+        - **θ:** ángulo de incidencia medido desde la normal.
+        - **ω = 2πf:** frecuencia angular.
+        - **m′:** masa superficial de la placa.
+        - **ρ₀:** densidad del aire.
+        - **c:** velocidad del sonido en el aire.
+        - **θmáx:** 78° para el campo de laboratorio y aproximadamente 90° para el
+          campo difuso ideal.
+        - **τ̄:** coeficiente de transmisión promedio.
+        - **TL:** pérdida de transmisión, en dB.
+
+        Los valores de TL no se promedian directamente. Primero se promedia la energía
+        mediante τ y luego se transforma el resultado a decibeles.
+        """)
     st.markdown("### 9. Explorador de las cuatro zonas")
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
     props={
