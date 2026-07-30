@@ -5639,15 +5639,33 @@ def lab2_stage4():
             x0=max(50,f1),x1=5000,fillcolor="#dcf5e8",opacity=.42,
             line_width=0,annotation_text="3 · Región superior",
             annotation_position="top left")
-    fig.add_trace(go.Scatter(
-        x=frequencies,y=tl1,mode="lines",name=f"Placa 1: {material_1}",
-        line=dict(color="#5598d4",width=2,dash="dot")))
-    fig.add_trace(go.Scatter(
-        x=frequencies,y=tl2,mode="lines",name=f"Placa 2: {material_2}",
-        line=dict(color="#d99734",width=2,dash="dot")))
+    # El panel doble se dibuja primero para que las curvas de cada placa
+    # permanezcan visibles por encima, incluso cuando siguen valores cercanos.
     fig.add_trace(go.Scatter(
         x=frequencies,y=tl_double,mode="lines",name="Panel doble",
-        line=dict(color="#173f63",width=4)))
+        line=dict(color="#173f63",width=5)))
+    # Los marcadores alternados permiten reconocer ambas placas cuando son
+    # idénticas y sus curvas coinciden exactamente.
+    fig.add_trace(go.Scatter(
+        x=frequencies,y=tl1,mode="lines",
+        name=f"Placa 1: {material_1}",
+        line=dict(color="#1976d2",width=2.5,dash="dash")))
+    fig.add_trace(go.Scatter(
+        x=frequencies,y=tl2,mode="lines",
+        name=f"Placa 2: {material_2}",
+        line=dict(color="#e07a00",width=2.5,dash="dot")))
+    marker_step=max(1,len(frequencies)//16)
+    fig.add_trace(go.Scatter(
+        x=frequencies[::marker_step],y=tl1[::marker_step],
+        mode="markers",showlegend=False,hoverinfo="skip",
+        marker=dict(color="#1976d2",size=6,symbol="circle")))
+    fig.add_trace(go.Scatter(
+        x=frequencies[marker_step//2::marker_step],
+        y=tl2[marker_step//2::marker_step],
+        mode="markers",showlegend=False,hoverinfo="skip",
+        marker=dict(
+            color="white",line=dict(color="#e07a00",width=2),
+            size=8,symbol="diamond")))
     if 50 <= f0 <= 5000:
         fig.add_vline(x=f0,line_dash="dash",line_color="#d64545",
                       annotation_text="f₀",annotation_position="top")
@@ -5659,15 +5677,19 @@ def lab2_stage4():
         yaxis_title="TL de campo (dB)",
         xaxis=dict(type="linear",range=[50,5000],dtick=500,showgrid=True),
         yaxis=dict(showgrid=True,gridcolor="rgba(23,63,99,.10)"),
-        height=570,hovermode="x unified",
-        margin=dict(l=55,r=25,t=90,b=70),
+        height=650,hovermode="x unified",
+        margin=dict(l=65,r=30,t=105,b=145),
         legend=dict(
             orientation="h",
-            yanchor="bottom",
-            y=1.08,
+            yanchor="top",
+            y=-.20,
             xanchor="center",
             x=.5,
+            title_text="",
             bgcolor="rgba(255,255,255,.92)",
+            bordercolor="rgba(23,63,99,.18)",
+            borderwidth=1,
+            font=dict(size=13),
         ))
     st.plotly_chart(fig,use_container_width=True,key="lab2_s4_double_curve")
     st.caption(
