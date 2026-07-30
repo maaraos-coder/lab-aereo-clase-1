@@ -5927,7 +5927,47 @@ def lab2_stage5():
     disponer del modelo o de datos de ensayo del sistema específico.
     """)
 
-    st.markdown("### 6 · Modelo simplificado para conexión lineal")
+    st.markdown("### 6 · Cómo se obtiene cada pérdida por transmisión")
+    st.markdown("""
+    Para interpretar un tabique real conviene separar el cálculo en tres resultados.
+    Cada uno incorpora un mecanismo adicional y responde una pregunta distinta.
+    """)
+
+    st.markdown("#### 6.1 · TL base del panel doble")
+    st.markdown("""
+    Es la pérdida por transmisión de las dos hojas separadas por una **cámara de
+    aire vacía**, antes de incorporar montantes o material absorbente. Se calcula
+    por bandas de frecuencia y cambia según la región en que se encuentre el
+    sistema.
+    """)
+    st.latex(r"""
+    TL_{\mathrm{base}}(f)=
+    \begin{cases}
+    TL_{m'_1+m'_2}(f), & f<f_0 \\[4pt]
+    TL_1(f)+TL_2(f)+20\log_{10}(f\,d)-29, & f_0\leq f<f_l \\[4pt]
+    TL_1(f)+TL_2(f)+6, & f\geq f_l
+    \end{cases}
+    """)
+    st.latex(
+        r"f_0=\frac{1}{2\pi}\sqrt{\rho_0c^2"
+        r"\left(\frac{m'_1+m'_2}{m'_1m'_2d}\right)}"
+        r"\qquad ; \qquad"
+        r"f_l=\frac{c}{2\pi d}"
+    )
+    st.markdown(r"""
+- $TL_1(f)$ y $TL_2(f)$: pérdida por transmisión de cada hoja.
+- $TL_{m'_1+m'_2}(f)$: pérdida por transmisión de una hoja equivalente con la masa superficial total.
+- $d$: profundidad de la cámara, en metros.
+- $f_0$: frecuencia de resonancia masa–aire–masa.
+- $f_l$: frecuencia límite utilizada para separar las regiones del modelo.
+    """)
+
+    st.markdown("#### 6.2 · TL para la conexión lineal")
+    st.markdown("""
+    Cuando ambas caras se vinculan mediante montantes continuos, el modelo
+    simplificado representa el sistema conectado a partir de una hoja equivalente
+    y una corrección asociada a la geometría de las líneas de unión.
+    """)
     st.latex(r"TL_{\mathrm{línea}}(f)=TL_{m'_1+m'_2}(f)+\Delta TL_{m'}")
     st.latex(
         r"\Delta TL_{m'}="
@@ -5941,11 +5981,31 @@ def lab2_stage5():
 - $TL_{m'_1+m'_2}(f)$: pérdida por transmisión de una hoja equivalente cuya masa superficial es $m'_1+m'_2$.
 - $\Delta TL_{m'}$: corrección, en decibeles, asociada a la conexión lineal.
     """)
+
+    st.markdown("#### 6.3 · TL con conexión lineal y absorbente")
+    st.markdown("""
+    El material poroso incorporado dentro de la cámara disipa energía mediante
+    pérdidas viscosas y térmicas, reduce las reflexiones internas y amortigua el
+    acoplamiento acústico entre las hojas. Su aporte se aplica al sistema que ya
+    contiene la conexión lineal:
+    """)
+    st.latex(
+        r"TL_{\mathrm{línea+abs}}(f)="
+        r"TL_{\mathrm{línea}}(f)+\Delta TL_{\mathrm{abs}}(f)"
+    )
+    st.markdown(r"""
+- $\Delta TL_{\mathrm{abs}}(f)$: mejora por banda asociada al amortiguamiento de la cámara.
+- El absorbente **no elimina** el camino mecánico formado por montantes y fijaciones.
+- Su efecto real depende de la frecuencia, resistividad al flujo, espesor, profundidad de cámara y porcentaje de llenado; no solamente de la densidad nominal.
+
+**Secuencia de lectura:** $TL_{\mathrm{base}} \rightarrow
+TL_{\mathrm{línea}} \rightarrow TL_{\mathrm{línea+abs}}$.
+    """)
     st.warning("""
-    **Alcance del cálculo:** es un modelo pedagógico simplificado para estudiar el
-    efecto de conexiones lineales. No reemplaza un ensayo de laboratorio ni incorpora
-    automáticamente fugas, cajas eléctricas, encuentros, transmisiones laterales o
-    errores de montaje.
+    **Alcance del cálculo:** la descomposición permite comprender por separado la
+    cámara, la conexión y el absorbente. Es un modelo pedagógico y no reemplaza
+    un ensayo de laboratorio ni incorpora automáticamente fugas, cajas eléctricas,
+    encuentros, transmisiones laterales o errores de montaje.
     """)
 
     st.markdown("### 7 · Laboratorio interactivo: construye el tabique")
@@ -6043,94 +6103,74 @@ def lab2_stage5():
         "Lana mineral 60 kg/m³":3.0,
         "Lana mineral 80 kg/m³":4.5,
     }[absorbent_type]
-    fixing_penalty=-max(0.0,600.0-float(spacing)*1000.0)/300.0
-    connected=np.zeros_like(LAB2_FREQS,dtype=float)
+    absorbent_gain_curve=np.where(
+        LAB2_FREQS < fl,
+        absorbent_gain,
+        absorbent_gain*0.35,
+    )
+    base=np.zeros_like(LAB2_FREQS,dtype=float)
     for band_index,frequency in enumerate(LAB2_FREQS):
         if frequency<f0:
-            connected[band_index]=equivalent[band_index]
+            base[band_index]=equivalent[band_index]
         elif frequency<fl:
-            connected[band_index]=(
+            base[band_index]=(
                 tl_leaf1[band_index]+tl_leaf2[band_index]
                 +20.0*np.log10(max(float(frequency)*cavity_depth,1e-12))-29.0
-                +absorbent_gain
             )
         else:
-            connected[band_index]=(
+            base[band_index]=(
                 tl_leaf1[band_index]+tl_leaf2[band_index]+6.0
-                +absorbent_gain*0.35
-            )
-        connected[band_index]+=-2.0+fixing_penalty
-
-    ideal=np.zeros_like(LAB2_FREQS,dtype=float)
-    for band_index,frequency in enumerate(LAB2_FREQS):
-        if frequency<f0:
-            ideal[band_index]=equivalent[band_index]
-        elif frequency<fl:
-            ideal[band_index]=(
-                tl_leaf1[band_index]+tl_leaf2[band_index]
-                +20.0*np.log10(max(float(frequency)*cavity_depth,1e-12))-29.0
-                +absorbent_gain
-            )
-        else:
-            ideal[band_index]=(
-                tl_leaf1[band_index]+tl_leaf2[band_index]+6.0
-                +absorbent_gain*0.35
             )
 
     fc_high=max(fc1_value,fc2_value)
-    correction=float(connected[int(np.where(LAB2_FREQS==selected_f)[0][0])]-
-                     ideal[int(np.where(LAB2_FREQS==selected_f)[0][0])])
+    line_correction=(
+        10.0*np.log10(max(float(spacing)*fc_high,1e-12))
+        +20.0*np.log10(float(m1)/(float(m1)+float(m2)))
+        -18.0
+    )
+    connected_empty=equivalent+line_correction
+    connected_abs=connected_empty+absorbent_gain_curve
     idx=int(np.where(LAB2_FREQS==selected_f)[0][0])
-    bridge_loss=float(ideal[idx]-connected[idx])
 
     a,b,c,d=st.columns(4)
     a.metric("f₀ del sistema ideal",f"{f0:.0f} Hz")
-    b.metric("Efecto de conexión",f"{correction:+.1f} dB")
-    c.metric(f"TL sin penalización · {selected_f} Hz",f"{ideal[idx]:.1f} dB")
-    d.metric(f"TL del tabique · {selected_f} Hz",f"{connected[idx]:.1f} dB",
-             delta=f"{connected[idx]-ideal[idx]:+.1f} dB")
+    b.metric(f"TL base · {selected_f} Hz",f"{base[idx]:.1f} dB")
+    c.metric(f"TL conexión lineal · {selected_f} Hz",f"{connected_empty[idx]:.1f} dB")
+    d.metric(f"TL conexión + absorbente · {selected_f} Hz",f"{connected_abs[idx]:.1f} dB",
+             delta=f"{absorbent_gain_curve[idx]:+.1f} dB por absorbente")
 
-    if bridge_loss > 3:
-        st.error(
-            f"**El puente estructural domina en esta banda:** el modelo conectado "
-            f"entrega {bridge_loss:.1f} dB menos que el sistema ideal."
-        )
-    elif bridge_loss > 0:
-        st.warning(
-            f"**La conexión reduce el beneficio ideal:** la diferencia calculada es "
-            f"de {bridge_loss:.1f} dB a {selected_f} Hz."
-        )
-    else:
-        st.info(
-            "**En esta banda el modelo ideal no supera al conectado.** Revisa la "
-            "posición respecto de f₀ y recuerda que cada aproximación describe un "
-            "mecanismo diferente."
-        )
+    st.info(
+        f"**Lectura de la banda de {selected_f} Hz:** el panel doble con cámara vacía "
+        f"entrega un TL base de {base[idx]:.1f} dB. El modelo simplificado de conexión "
+        f"lineal entrega {connected_empty[idx]:.1f} dB y el absorbente seleccionado "
+        f"aporta {absorbent_gain_curve[idx]:.1f} dB, obteniéndose "
+        f"{connected_abs[idx]:.1f} dB."
+    )
 
     fig=go.Figure()
     fig.add_trace(go.Scatter(
-        x=LAB2_FREQS,y=ideal,mode="lines+markers",
-        name="Panel doble · sin penalización estructural",
+        x=LAB2_FREQS,y=base,mode="lines+markers",
+        name="TL base · cámara vacía y sin conexión",
         line=dict(color="#08a9d8",width=4),marker=dict(size=6),
     ))
     fig.add_trace(go.Scatter(
-        x=LAB2_FREQS,y=connected,mode="lines+markers",
-        name=f"Tabique conectado · {support_type.lower()}",
+        x=LAB2_FREQS,y=connected_empty,mode="lines+markers",
+        name=f"TL conexión lineal · {support_type.lower()}",
         line=dict(color="#ef8b2c",width=4,dash="dash"),marker=dict(size=7,symbol="diamond"),
     ))
     fig.add_trace(go.Scatter(
-        x=LAB2_FREQS,y=equivalent,mode="lines",
-        name="Hoja equivalente · masa total",
-        line=dict(color="#74839a",width=2,dash="dot"),
+        x=LAB2_FREQS,y=connected_abs,mode="lines+markers",
+        name=f"TL conexión + {absorbent_type.lower()}",
+        line=dict(color="#1b9e77",width=4),marker=dict(size=6,symbol="square"),
     ))
     fig.add_vline(x=selected_f,line_color="#1d3557",line_dash="dot",line_width=2)
     fig.add_annotation(
-        x=selected_f,y=max(float(ideal[idx]),float(connected[idx])),
+        x=selected_f,y=max(float(base[idx]),float(connected_empty[idx]),float(connected_abs[idx])),
         text=f"{selected_f} Hz",showarrow=True,arrowhead=2,ay=-42,
         font=dict(color="#17324d"),
     )
     fig.update_layout(
-        title="Comparación espectral: sistema ideal y tabique con montantes",
+        title="Obtención progresiva del TL del tabique",
         xaxis_title="Frecuencia central (Hz)",yaxis_title="Pérdida por transmisión TL (dB)",
         xaxis_type="log",hovermode="x unified",height=520,
         margin=dict(l=45,r=25,t=75,b=115),
@@ -6161,9 +6201,9 @@ def lab2_stage5():
     st.success(
         f"**Lectura docente:** La configuración representa una conexión lineal mediante "
         f"{support_type.lower()}. {spacing_reading} {mass_reading} La frecuencia crítica "
-        f"dominante es {fc_high:.0f} Hz y el efecto estructural calculado "
-        f"en la banda seleccionada es {correction:+.1f} dB. La curva naranja representa "
-        f"el tabique con conexión lineal simple; "
+        f"dominante es {fc_high:.0f} Hz y la corrección del modelo lineal es "
+        f"{line_correction:+.1f} dB. La curva naranja representa el resultado de "
+        f"la conexión lineal y la curva verde incorpora además el absorbente; "
         f"no debe interpretarse como un resultado certificado de obra."
     )
 
@@ -6191,16 +6231,37 @@ def lab2_stage5():
         st.markdown("**5. Frecuencia límite de la cámara**")
         st.latex(rf"f_l={fl:.1f}\ \mathrm{{Hz}}")
 
-        st.markdown("**6. Ganancia asociada al absorbente**")
-        st.latex(rf"G_a={absorbent_gain:.1f}\ \mathrm{{dB}}")
+        st.markdown("**6. Corrección del modelo de conexión lineal**")
+        st.latex(
+            rf"\Delta TL_{{m'}}="
+            rf"10\log_{{10}}({float(spacing):.2f}\cdot {fc_high:.0f})+"
+            rf"20\log_{{10}}\left(\frac{{{float(m1):.1f}}}"
+            rf"{{{float(m1):.1f}+{float(m2):.1f}}}\right)-18"
+            rf"={line_correction:.2f}\ \mathrm{{dB}}"
+        )
+        st.latex(
+            rf"TL_\mathrm{{línea}}({selected_f})="
+            rf"TL_{{m'_1+m'_2}}({selected_f})+\Delta TL_{{m'}}="
+            rf"{equivalent[idx]:.1f}+({line_correction:.2f})="
+            rf"{connected_empty[idx]:.1f}\ \mathrm{{dB}}"
+        )
 
-        st.markdown("**7. Penalización por montante simple y fijaciones**")
-        st.latex(rf"\Delta TL_\mathrm{{fij}}={-2.0+fixing_penalty:+.2f}\ \mathrm{{dB}}")
+        st.markdown("**7. Aporte del absorbente en la banda seleccionada**")
+        st.latex(
+            rf"\Delta TL_\mathrm{{abs}}({selected_f})="
+            rf"{absorbent_gain_curve[idx]:.1f}\ \mathrm{{dB}}"
+        )
+        st.latex(
+            rf"TL_\mathrm{{línea+abs}}({selected_f})="
+            rf"{connected_empty[idx]:.1f}+{absorbent_gain_curve[idx]:.1f}="
+            rf"{connected_abs[idx]:.1f}\ \mathrm{{dB}}"
+        )
 
         st.caption(
             "Las curvas se calculan mediante tres regiones de comportamiento. "
-            "La ecuación simplificada del punto 6 se conserva como referencia "
-            "pedagógica y no gobierna las curvas del laboratorio."
+            "El TL base se calcula por regiones. La curva de conexión lineal utiliza "
+            "el modelo simplificado explicado en el punto 6 y el aporte del absorbente "
+            "se muestra por separado para que el origen de cada resultado sea visible."
         )
 
     st.markdown("### 9 · Comprobación conceptual")
