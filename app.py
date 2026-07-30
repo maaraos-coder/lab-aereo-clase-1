@@ -5627,18 +5627,30 @@ def lab2_stage4():
     fig=go.Figure()
     fig.add_vrect(
         x0=50,x1=min(f0,5000),fillcolor="#dcecff",opacity=.42,
-        line_width=0,annotation_text="1 · Panel equivalente",
-        annotation_position="top left")
+        line_width=0)
     if f0 < 5000:
         fig.add_vrect(
             x0=max(50,f0),x1=min(f1,5000),fillcolor="#fff0cf",opacity=.42,
-            line_width=0,annotation_text="2 · Masa–aire–masa",
-            annotation_position="top left")
+            line_width=0)
     if f1 < 5000:
         fig.add_vrect(
             x0=max(50,f1),x1=5000,fillcolor="#dcf5e8",opacity=.42,
-            line_width=0,annotation_text="3 · Región superior",
-            annotation_position="top left")
+            line_width=0)
+    # Los nombres de las regiones ocupan una franja propia sobre el gráfico.
+    # Se posicionan en el centro de cada intervalo para que no se monten sobre
+    # las líneas ni sobre las etiquetas f₀ y f₁.
+    region_limits=[
+        (50,min(f0,5000),"1 · Panel equivalente"),
+        (max(50,f0),min(f1,5000),"2 · Masa–aire–masa"),
+        (max(50,f1),5000,"3 · Región superior"),
+    ]
+    for x_start,x_end,label in region_limits:
+        if x_end > x_start:
+            fig.add_annotation(
+                x=(x_start+x_end)/2,y=1.115,xref="x",yref="paper",
+                text=f"<b>{label}</b>",showarrow=False,
+                xanchor="center",yanchor="bottom",
+                font=dict(size=12,color="#173f63"))
     # El panel doble se dibuja primero para que las curvas de cada placa
     # permanezcan visibles por encima, incluso cuando siguen valores cercanos.
     fig.add_trace(go.Scatter(
@@ -5668,17 +5680,17 @@ def lab2_stage4():
             size=8,symbol="diamond")))
     if 50 <= f0 <= 5000:
         fig.add_vline(x=f0,line_dash="dash",line_color="#d64545",
-                      annotation_text="f₀",annotation_position="top")
+                      annotation_text="f₀",annotation_position="top right")
     if 50 <= f1 <= 5000:
         fig.add_vline(x=f1,line_dash="dash",line_color="#16845b",
-                      annotation_text="f₁",annotation_position="top")
+                      annotation_text="f₁",annotation_position="top right")
     fig.update_layout(
         xaxis_title="Frecuencia (Hz) · escala lineal",
         yaxis_title="TL de campo (dB)",
         xaxis=dict(type="linear",range=[50,5000],dtick=500,showgrid=True),
         yaxis=dict(showgrid=True,gridcolor="rgba(23,63,99,.10)"),
         height=650,hovermode="x unified",
-        margin=dict(l=65,r=30,t=105,b=145),
+        margin=dict(l=65,r=30,t=135,b=145),
         legend=dict(
             orientation="h",
             yanchor="top",
