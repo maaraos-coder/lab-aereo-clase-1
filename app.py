@@ -145,8 +145,35 @@ padding:.85rem .9rem;grid-template-columns:minmax(0,1fr) auto;gap:.55rem}
 [data-testid="stSidebar"] .sidebar-score b,[data-testid="stSidebar"] .sidebar-score .score-number{color:#fff!important}
 [data-testid="stSidebar"] .sidebar-score small{color:#d9f5ff!important;font-size:.72rem;white-space:normal}
 [data-testid="stSidebar"] .sidebar-score .score-number{font-size:1.25rem;text-align:right}
-[data-testid="stSidebar"] [data-baseweb="select"] *{color:#14243a!important}
-[data-testid="stSidebar"] [data-baseweb="select"] input{color:#14243a!important;-webkit-text-fill-color:#14243a!important}
+[data-testid="stSidebar"] [data-baseweb="select"]>div,
+[data-testid="stSidebar"] [data-baseweb="input"]>div,
+[data-testid="stSidebar"] [data-baseweb="textarea"]>div,
+[data-testid="stSidebar"] [data-testid="stNumberInput"]>div>div{
+ background:#f8fbff!important;border:1px solid #8db4d4!important;color:#102a43!important;
+ box-shadow:0 1px 2px rgba(0,24,54,.12)!important
+}
+[data-testid="stSidebar"] [data-baseweb="select"] *,
+[data-testid="stSidebar"] [data-baseweb="input"] *,
+[data-testid="stSidebar"] [data-baseweb="textarea"] *,
+[data-testid="stSidebar"] [data-testid="stNumberInput"] *{
+ color:#102a43!important;-webkit-text-fill-color:#102a43!important
+}
+[data-testid="stSidebar"] input,[data-testid="stSidebar"] textarea{
+ background:#f8fbff!important;color:#102a43!important;-webkit-text-fill-color:#102a43!important;
+ caret-color:#102a43!important
+}
+[data-testid="stSidebar"] input::placeholder,[data-testid="stSidebar"] textarea::placeholder{
+ color:#607d98!important;-webkit-text-fill-color:#607d98!important;opacity:1!important
+}
+[data-testid="stSidebar"] [data-testid="stNumberInput"] button{
+ background:#dcecf8!important;border-color:#8db4d4!important
+}
+[data-testid="stSidebar"] [data-testid="stNumberInput"] button svg,
+[data-testid="stSidebar"] [data-baseweb="select"] svg{fill:#173f5f!important;color:#173f5f!important}
+[data-testid="stSidebar"] button[kind="secondary"]{
+ background:#0b669c!important;border:1px solid #5ed8f0!important;color:#fff!important
+}
+[data-testid="stSidebar"] button[kind="secondary"] *{color:#fff!important;-webkit-text-fill-color:#fff!important}
 [data-testid="stSidebar"] [data-testid="stLinkButton"] a,
 [data-testid="stSidebar"] .stButton>button,
 [data-testid="stSidebar"] [data-testid="stExpander"] summary{
