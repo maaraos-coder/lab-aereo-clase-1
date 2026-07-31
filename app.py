@@ -1567,8 +1567,8 @@ def teacher_publication_management():
 
 def formula_reference():
     """Fallback reference view; the sidebar button opens the complete floating formulary."""
-    header("FORMULARIO DEL DIPLOMADO","Compendio acumulativo de los diez laboratorios",
-           "El contenido visible se actualiza automáticamente con la publicación de cada laboratorio.")
+    header("FORMULARIO DEL DIPLOMADO","Compendio de los dos laboratorios disponibles",
+           "Incluye únicamente las fórmulas utilizadas actualmente en los Laboratorios 1 y 2 del Curso 1.")
     st.info("Usa el botón «Abrir Formulario del Diplomado» de la barra lateral.")
     tab1,tab2,tab3,tab4=st.tabs([
         "Recintos y absorción","Transmisión y aislamiento",
@@ -1620,30 +1620,10 @@ def formula_reference():
 
 def formula_popup_button():
     """Open the cumulative Diploma reference without creating a second login session."""
-    visible_labs=set()
-    if st.session_state.get("role")=="Docente":
-        visible_labs={(course_index,lab_number) for course_index in range(1,6) for lab_number in (1,2)}
-    else:
-        client=_supabase()
-        if client is not None:
-            try:
-                rows=_course_classes(client)
-                released={
-                    row.get("id") for row in rows
-                    if row.get("status") in ("published","archived") and _is_open(row.get("opens_at"))
-                }
-                first_ids={LABORATORIES[1]["id"]:(1,1),LABORATORIES[2]["id"]:(1,2)}
-                for class_id,key in first_ids.items():
-                    if class_id in released:
-                        visible_labs.add(key)
-                for course_index,course in enumerate(COURSE_LABS,2):
-                    for lab in course["labs"]:
-                        if lab["id"] in released:
-                            visible_labs.add((course_index,lab["number"]))
-            except Exception:
-                visible_labs={(1,1)}
-        else:
-            visible_labs={(1,1)}
+    # El formulario describe el material académico actualmente cargado, no el
+    # calendario de publicación. Alumno y docente deben consultar exactamente
+    # los mismos dos laboratorios reales del Curso 1.
+    visible_labs={(1,1),(1,2)}
     popup=build_formulary_html(visible_labs)
     popup_json=json.dumps(popup,ensure_ascii=False)
     components.html(f"""
