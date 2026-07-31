@@ -980,7 +980,7 @@ def _is_answer_state(key):
     if key.startswith(blocked):
         return False
     return (
-        key.startswith(("ans_","checked_","sent_","exam_","q","s3","s5","s7","s9","e9_","final_"))
+        key.startswith(("ans_","checked_","sent_","exam_","q","lab1_","s3","s5","s7","s9","e9_","final_"))
         or key in {"case_V","case_A","case_calc","case_diff","case_pct",
                    "case_bands","case_choice","case_justification"}
     )
@@ -1246,11 +1246,12 @@ def score_counter(stage=None,compact=False):
     # que ya está persistido en user_progress, no esperar a que exista ese
     # registro final en responses.
     if ACTIVE_LAB==1 and stage==10 and not rows:
+        draft_answers=st.session_state.get("lab1_final_answers",{})
         answered_questions=sum(
-            st.session_state.get(f"q{i}") is not None for i in range(len(LAB1_QUESTIONS))
+            draft_answers.get(str(i)) is not None for i in range(len(LAB1_QUESTIONS))
         )
         correct_questions=sum(
-            st.session_state.get(f"q{i}")==options[correct]
+            draft_answers.get(str(i))==options[correct]
             for i,(_,options,correct) in enumerate(LAB1_QUESTIONS)
         )
         theory_live=correct_questions/len(LAB1_QUESTIONS)*80
@@ -3822,7 +3823,8 @@ def _lab1_case_score(calc,diff,pct,bands,choice,justification):
     return min(20,practical)
 
 def _finish_lab1_final(reason='submitted'):
-    answers={str(i):st.session_state.get(f'q{i}') for i in range(29)}
+    answers=dict(st.session_state.get('lab1_final_answers',{}))
+    answers={str(i):answers.get(str(i)) for i in range(29)}
     answer_indexes={}
     hits=0
     for i,(_,options,correct) in enumerate(LAB1_QUESTIONS):
@@ -3901,18 +3903,35 @@ def lab1_stage10():
 
     tab1, tab2 = st.tabs(['Preguntas 1 a 29', 'Pregunta 30 · Caso práctico'])
     with tab1:
+        # Keep every answer in a durable dictionary. Only one radio widget is
+        # rendered at a time, and Streamlit removes hidden widget keys when the
+        # student changes question; the dictionary must therefore be the source
+        # of truth for progress and Supabase persistence.
+        if not isinstance(st.session_state.get('lab1_final_answers'),dict):
+            # Migrate any answer saved by APP 112-114 under the former q0..q28
+            # widget keys, so the student's existing progress is not discarded.
+            st.session_state['lab1_final_answers']={
+                str(i):st.session_state.get(f'q{i}')
+                for i in range(29) if st.session_state.get(f'q{i}') is not None
+            }
+        draft_answers=st.session_state['lab1_final_answers']
         qn = st.selectbox('Pregunta', range(29), format_func=lambda i: f'Pregunta {i + 1}')
         q, opts, correct = LAB1_QUESTIONS[qn]
         st.markdown(f'<div class="question-box"><div class="question-label">PREGUNTA {qn + 1} DE 29</div><div class="question-text">{q}</div></div>', unsafe_allow_html=True)
-        ans = st.radio('Selecciona una alternativa', opts, index=None, key=f'q{qn}', label_visibility='collapsed')
+        saved_answer=draft_answers.get(str(qn))
+        radio_index=opts.index(saved_answer) if saved_answer in opts else None
+        ans = st.radio('Selecciona una alternativa', opts, index=radio_index,
+                       key=f'_lab1_visible_q{qn}', label_visibility='collapsed')
         if st.button('Guardar respuesta', key=f'save{qn}'):
             if ans is None:
                 st.warning('Selecciona una alternativa.')
             else:
+                draft_answers[str(qn)]=ans
+                st.session_state['lab1_final_answers']=draft_answers
                 save_user_progress()
                 st.success('Respuesta guardada.')
-        answered=sum(st.session_state.get(f'q{i}') is not None for i in range(29))
-        hits=sum(st.session_state.get(f'q{i}')==LAB1_QUESTIONS[i][1][LAB1_QUESTIONS[i][2]] for i in range(29))
+        answered=sum(draft_answers.get(str(i)) is not None for i in range(29))
+        hits=sum(draft_answers.get(str(i))==LAB1_QUESTIONS[i][1][LAB1_QUESTIONS[i][2]] for i in range(29))
         theory_score=hits/29*80
         st.progress(answered/29)
         st.caption(f'{answered} de 29 respuestas registradas · Puntaje teórico acumulado: {theory_score:.1f}/80')
@@ -3930,10 +3949,11 @@ def lab1_stage10():
         choice = st.radio('Recomendación', ['Solución A', 'Solución B'], index=None, key='case_choice')
         justification = st.text_area('Justificación técnico-económica', key='case_justification')
         practical_live=_lab1_case_score(calc,diff,pct,bands,choice,justification)
-        theory_hits=sum(st.session_state.get(f'q{i}')==LAB1_QUESTIONS[i][1][LAB1_QUESTIONS[i][2]] for i in range(29))
+        draft_answers=st.session_state.get('lab1_final_answers',{})
+        theory_hits=sum(draft_answers.get(str(i))==LAB1_QUESTIONS[i][1][LAB1_QUESTIONS[i][2]] for i in range(29))
         theory_live=theory_hits/29*80
         st.markdown(f'<div class="good"><b>Puntaje acumulado: {theory_live+practical_live:.1f}/100</b><br>Teoría: {theory_live:.1f}/80 · Caso práctico: {practical_live}/20.</div>',unsafe_allow_html=True)
-        answered=sum(st.session_state.get(f'q{i}') is not None for i in range(29))
+        answered=sum(draft_answers.get(str(i)) is not None for i in range(29))
         if st.button('Enviar evaluación definitiva',type='primary',use_container_width=True,key='lab1_final_submit'):
             if answered<29 or choice is None or not justification.strip():
                 st.session_state['lab1_confirm_incomplete']=True
