@@ -1240,11 +1240,44 @@ def score_counter(stage=None,compact=False):
     completed=len({row[1] for row in rows})
     expected=(len(LAB_POINT_SCHEMAS.get(ACTIVE_LAB,{}).get(stage,{})) if stage is not None else
               sum(len(LAB_POINT_SCHEMAS[ACTIVE_LAB][s]) for s in activity_stages))
+
+    # La evaluación final del Laboratorio 1 se guarda como un único registro
+    # definitivo. Antes del envío, la tarjeta lateral debe reflejar el avance
+    # que ya está persistido en user_progress, no esperar a que exista ese
+    # registro final en responses.
+    if ACTIVE_LAB==1 and stage==10 and not rows:
+        answered_questions=sum(
+            st.session_state.get(f"q{i}") is not None for i in range(len(LAB1_QUESTIONS))
+        )
+        correct_questions=sum(
+            st.session_state.get(f"q{i}")==options[correct]
+            for i,(_,options,correct) in enumerate(LAB1_QUESTIONS)
+        )
+        theory_live=correct_questions/len(LAB1_QUESTIONS)*80
+        practical_live=_lab1_case_score(
+            st.session_state.get("case_calc",0),
+            st.session_state.get("case_diff",0),
+            st.session_state.get("case_pct",0),
+            st.session_state.get("case_bands",[]),
+            st.session_state.get("case_choice"),
+            st.session_state.get("case_justification",""),
+        )
+        case_started=any([
+            float(st.session_state.get("case_calc",0) or 0)>0,
+            float(st.session_state.get("case_diff",0) or 0)>0,
+            float(st.session_state.get("case_pct",0) or 0)>0,
+            bool(st.session_state.get("case_bands",[])),
+            bool(st.session_state.get("case_choice")),
+            bool(str(st.session_state.get("case_justification","")).strip()),
+        ])
+        earned=theory_live+practical_live
+        completed=answered_questions+int(case_started)
+        expected=30
     pct=100*earned/maximum if maximum else 0
     if compact:
         st.markdown(
             f'<div class="score-counter sidebar-score"><div><b>🏆 {title}</b>'
-            f'<small>{completed} de {expected} actividades respondidas</small>'
+            f'<small>{completed} de {expected} respuestas registradas</small>'
             f'<div class="score-track"><div class="score-fill" style="width:{min(pct,100):.1f}%"></div></div></div>'
             f'<div class="score-number">{earned:g}/{maximum:g}<small>{pct:.0f}%</small></div></div>',
             unsafe_allow_html=True,
