@@ -116,7 +116,7 @@ LAB_POINT_SCHEMAS = {
         7: {"compare_solutions": 10},
         8: {"compound_door": 10},
         9: {"final_comprehension": 40},
-        10: {"final_exam": 100},
+        10: {"final_integrated_design": 60},
     },
 }
 LAB_ACTIVITY_STAGES = {1: [3, 5, 7, 9], 2: [6, 7, 8]}
@@ -980,7 +980,7 @@ def _is_answer_state(key):
     if key.startswith(blocked):
         return False
     return (
-        key.startswith(("ans_","checked_","sent_","exam_","q","lab1_","s3","s5","s7","s9","e9_","final_"))
+        key.startswith(("ans_","checked_","sent_","exam_","q","lab1_","l2s10_","s3","s5","s7","s9","e9_","final_"))
         or key in {"case_V","case_A","case_calc","case_diff","case_pct",
                    "case_bands","case_choice","case_justification"}
     )
@@ -8099,7 +8099,7 @@ def teacher_course_results(compact=False):
     if client is not None:
         try:
             all_rows=(client.table("responses").select("*,users(display_name,email)")
-                      .eq("class_id",CLASS_ID).in_("question_key",["final_exam","final_comprehension"])
+                      .in_("class_id",["clase-01-aislamiento-ruido-aereo","clase-02-aislamiento-ruido-aereo-minvu"]).in_("question_key",["final_exam","final_comprehension","final_integrated_design"])
                       .execute().data or [])
             consolidated={}
             for row in all_rows:
@@ -8107,15 +8107,16 @@ def teacher_course_results(compact=False):
                 key=row.get("user_key") or user.get("email") or str(row.get("id"))
                 item=consolidated.setdefault(key,{
                     "Alumno":user.get("display_name") or user.get("email") or key,
-                    "Lab. 1 · Etapa 10":"Pendiente","Lab. 2 · Etapa 9":"Pendiente",
+                    "Lab. 1 · Etapa 10":"Pendiente","Lab. 2 · Etapa 9":"Pendiente","Lab. 2 · Etapa 10":"Pendiente",
                     "Total registrado":"Pendiente",
                 })
                 score=row.get("teacher_score") if row.get("teacher_score") is not None else row.get("auto_score")
                 if row.get("question_key")=="final_exam": item["Lab. 1 · Etapa 10"]=f"{float(score or 0):.1f}/100"
                 if row.get("question_key")=="final_comprehension": item["Lab. 2 · Etapa 9"]=f"{float(score or 0):.1f}/40"
+                if row.get("question_key")=="final_integrated_design": item["Lab. 2 · Etapa 10"]=f"{float(score or 0):.1f}/60"
             for item in consolidated.values():
                 values=[]
-                for field,maximum in (("Lab. 1 · Etapa 10",100),("Lab. 2 · Etapa 9",40)):
+                for field,maximum in (("Lab. 1 · Etapa 10",100),("Lab. 2 · Etapa 9",40),("Lab. 2 · Etapa 10",60)):
                     if item[field]!="Pendiente": values.append(float(item[field].split("/")[0])/maximum*100)
                 item["Total registrado"]=f"{sum(values)/len(values):.1f}%" if values else "Pendiente"
             if consolidated:
@@ -8130,7 +8131,7 @@ def teacher_course_results(compact=False):
     evaluations={
         "Laboratorio 1 · Etapa 10 · Evaluación final":("lab1",100),
         "Laboratorio 2 · Etapa 9 · Comprensión":("lab2",40),
-        "Laboratorio 2 · Etapa 10 · Desarrollo (pendiente)":("pending",60),
+        "Laboratorio 2 · Etapa 10 · Diseño integrador":("integrated",60),
     }
     label=st.selectbox("Laboratorio y evaluación",list(evaluations),
                        key=f"course_results_evaluation_{'compact' if compact else 'full'}")
@@ -8140,7 +8141,41 @@ def teacher_course_results(compact=False):
     elif kind=="lab2":
         teacher_stage9_results(compact=compact)
     else:
-        st.info("Esta evaluación se habilitará cuando se incorpore el problema de desarrollo de la Etapa 10 del Laboratorio 2.")
+        _teacher_lab2_integrated_results(compact=compact)
+
+def _teacher_lab2_integrated_results(compact=False):
+    client=_supabase()
+    if client is None:
+        st.info("Los resultados estarán disponibles al conectar la aplicación.")
+        return
+    try:
+        rows=(client.table("responses").select("*,users(display_name,email)")
+              .eq("class_id","clase-02-aislamiento-ruido-aereo-minvu")
+              .eq("question_key","final_integrated_design").execute().data or [])
+    except Exception as exc:
+        st.warning(f"No fue posible cargar los desarrollos: {exc}"); return
+    if not rows:
+        st.info("Todavía no hay desarrollos enviados en la Etapa 10 del Laboratorio 2."); return
+    labels=[]
+    for row in rows:
+        user=row.get("users") or {}; labels.append(f"{user.get('display_name') or user.get('email') or row.get('user_key')} · {str(row.get('updated_at') or '')[:16]}")
+    idx=st.selectbox("Alumno",range(len(rows)),format_func=lambda i:labels[i],key=f"l2s10_teacher_student_{'c' if compact else 'f'}")
+    row=rows[idx]; payload=row.get("answer") or {}
+    if isinstance(payload,dict) and "value" in payload:
+        try: payload=json.loads(payload["value"])
+        except Exception: payload={}
+    result=payload.get("calculated_result",{}) if isinstance(payload,dict) else {}
+    student=payload.get("student_result",{}) if isinstance(payload,dict) else {}
+    st.markdown(f"**Resultado calculado:** Rw(C; Ctr) = {result.get('rw','—')} ({result.get('c','—')}; {result.get('ctr','—')}) dB")
+    st.write(f"Respuesta ingresada por el alumno: Rw={student.get('rw','—')} dB · C={student.get('c','—')} dB · Ctr={student.get('ctr','—')} dB")
+    for label,key in (("Muro/tabique","wall"),("Ventana","window"),("Puerta","door")):
+        data=payload.get(key,{}) if isinstance(payload,dict) else {}; st.write(f"**{label}:** {data.get('description','Sin información')} · Rw {data.get('rw','—')} dB")
+    st.write(f"Puntaje de diseño: {payload.get('design_score',0):g}/40 · Comprensión: {payload.get('comprehension_score',0):g}/20")
+    current=row.get("teacher_score") if row.get("teacher_score") is not None else row.get("auto_score") or 0
+    adjusted=st.number_input("Puntaje docente",0.,60.,float(current),1.,key=f"l2s10_teacher_score_{row.get('id')}_{compact}")
+    note=st.text_area("Observación docente",value=row.get("teacher_note") or "",key=f"l2s10_teacher_note_{row.get('id')}_{compact}")
+    if st.button("Guardar revisión del diseño integrador",type="primary",key=f"l2s10_teacher_save_{row.get('id')}_{compact}"):
+        client.table("responses").update({"teacher_score":adjusted,"teacher_note":note,"teacher_level":"Correcta" if adjusted>=36 else "Parcialmente correcta","status":"reviewed","updated_at":_now()}).eq("id",row["id"]).execute(); st.success("Revisión guardada.")
 
 def _finish_stage9(reason="submitted"):
     answers={str(i):st.session_state.get(f"e9_q{i}") for i in range(10)}
@@ -8263,7 +8298,158 @@ def lab2_stage9():
         if st.button("Confirmar envío con respuestas pendientes",key="e9_submit_incomplete"):
             _finish_stage9("submitted_incomplete")
             st.rerun()
-def lab2_stage10(): _lab2_pending(10,"Aplicación integradora")
+LAB2_S10_FREQS=np.array([100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150],dtype=float)
+LAB2_S10_MATERIALS={
+    "Madera contrachapada":{"rho":600.,"E":6.e9,"nu":.30,"eta":.020,"th":[9,12,15,18,21]},
+    "Vidrio":{"rho":2500.,"E":70.e9,"nu":.23,"eta":.010,"th":[4,5,6,8,10,12]},
+    "Hormigón":{"rho":2400.,"E":30.e9,"nu":.20,"eta":.010,"th":[80,100,120,150,200]},
+    "Ladrillo cerámico":{"rho":1800.,"E":15.e9,"nu":.20,"eta":.015,"th":[70,100,120,140,200]},
+}
+LAB2_S10_LEAVES={
+    "Yeso-cartón estándar":{"rho":800.,"E":2.5e9,"eta":.030,"th":[10.,12.5,15.]},
+    "Yeso-cartón alta densidad":{"rho":1000.,"E":3.0e9,"eta":.030,"th":[12.5,15.]},
+    "Madera contrachapada":{"rho":600.,"E":6.e9,"eta":.020,"th":[9.,12.,15.,18.,21.]},
+}
+LAB2_S10_DOORS={
+    "P1 · Interior hueca, sin sello":18,
+    "P2 · Aglomerada 35 mm":25,
+    "P3 · Madera maciza 45 mm, con sellos":32,
+    "P4 · Acústica simple con sellos y sello inferior":38,
+    "P5 · Acústica de alta prestación":43,
+    "P6 · Acústica reforzada":48,
+}
+LAB2_S10_QUESTIONS=[
+    ("¿Por qué el Rw combinado no se obtiene promediando los Rw individuales?",["Porque los decibeles dependen del color del material","Porque deben combinarse los coeficientes de transmisión ponderados por superficie","Porque siempre se usa el menor Rw","Porque la puerta se excluye"],1),
+    ("¿Qué elemento puede controlar el resultado aunque ocupe poca superficie?",["El de menor aislamiento, especialmente si tiene fugas","Solo el muro de mayor área","El cielo del pasillo","El piso de la sala"],0),
+    ("Para voces y actividades interiores del pasillo, ¿qué resultado complementa principalmente a Rw?",["Rw+C","Rw+Ctr exclusivamente","La media aritmética de TL","T60"],0),
+    ("¿Qué ventaja puede aportar una ventana doble con vidrios de espesores diferentes?",["Elimina toda transmisión lateral","Evita superponer exactamente las coincidencias de ambas hojas","Hace innecesario el marco","Convierte Ctr en cero"],1),
+    ("Si el muro tiene Rw muy alto pero la puerta es débil, ¿qué mejora suele ser más eficiente?",["Seguir aumentando únicamente la masa del muro","Mejorar puerta, sellos y encuentros","Reducir el área del muro","Agregar absorción dentro del aula"],1),
+]
+
+def _lab2_s10_indices(curve):
+    curve=np.asarray(curve,dtype=float)
+    rw_data=rw_from_curve(curve)
+    rw=int(rw_data[0]) if rw_data else 0
+    sc=np.array([-29,-26,-23,-21,-19,-17,-15,-13,-12,-11,-10,-9,-9,-9,-9,-9],dtype=float)
+    stc=np.array([-20,-20,-18,-16,-15,-14,-13,-12,-11,-9,-8,-9,-10,-11,-13,-15],dtype=float)
+    c=int(round(-10*np.log10(np.sum(10**((sc-curve)/10)))-rw))
+    ctr=int(round(-10*np.log10(np.sum(10**((stc-curve)/10)))-rw))
+    return rw,c,ctr
+
+def _lab2_s10_single(material,thickness):
+    p=LAB2_S10_MATERIALS[material]; h=float(thickness)/1000
+    m=p["rho"]*h; b=p["E"]*h**3/(12*(1-p["nu"]**2))
+    _,tl,_,_,_=_panel_simple_field_tl(LAB2_S10_FREQS,m,b,p["eta"])
+    return np.asarray(tl,dtype=float)
+
+def _lab2_s10_double(mat1,th1,layers1,mat2,th2,layers2,gap_mm,absorbent):
+    p1,p2=LAB2_S10_LEAVES[mat1],LAB2_S10_LEAVES[mat2]
+    h1=float(th1)*int(layers1)/1000; h2=float(th2)*int(layers2)/1000; d=float(gap_mm)/1000
+    m1,m2=p1["rho"]*h1,p2["rho"]*h2
+    b1=p1["E"]*h1**3/12; b2=p2["E"]*h2**3/12
+    _,tl1,_,_,_=_panel_simple_field_tl(LAB2_S10_FREQS,m1,b1,p1["eta"])
+    _,tl2,_,_,_=_panel_simple_field_tl(LAB2_S10_FREQS,m2,b2,p2["eta"])
+    _,tleq,_,_,_=_panel_simple_field_tl(LAB2_S10_FREQS,m1+m2,b1+b2,p1["eta"]+p2["eta"])
+    f0=(1/(2*math.pi))*math.sqrt(1.18*343**2)*math.sqrt((m1+m2)/(m1*m2*d)); f1=343/(2*math.pi*d)
+    tl=np.where(LAB2_S10_FREQS<f0,tleq,np.where(LAB2_S10_FREQS<f1,tl1+tl2+20*np.log10(LAB2_S10_FREQS*d)-29,tl1+tl2+6))
+    bonus={"Sin absorbente":0.,"Lana de vidrio 15 kg/m³":2.,"Lana de vidrio 32 kg/m³":3.,"Lana mineral 40 kg/m³":4.,"Lana mineral 60 kg/m³":5.}[absorbent]
+    return np.asarray(tl+bonus*(1-np.exp(-LAB2_S10_FREQS/315)),dtype=float)
+
+def _lab2_s10_door_curve(target):
+    shape=np.array([-12,-10,-8,-6,-4,-2,0,1,2,3,4,5,6,7,8,9],dtype=float)
+    base=REF.astype(float)+shape*.18
+    current=_lab2_s10_indices(base)[0]
+    return base+(float(target)-current)
+
+def _lab2_s10_plot(title,curves):
+    fig=go.Figure()
+    for name,curve in curves:
+        fig.add_trace(go.Scatter(x=LAB2_S10_FREQS,y=curve,mode="lines+markers",name=name))
+    fig.update_layout(title=title,height=430,xaxis_type="log",xaxis_title="Frecuencia (Hz)",yaxis_title="TL / R (dB)",margin=dict(l=30,r=20,t=55,b=35))
+    fig.update_xaxes(tickvals=LAB2_S10_FREQS,ticktext=[str(int(x)) for x in LAB2_S10_FREQS])
+    st.plotly_chart(fig,use_container_width=True)
+
+def lab2_stage10():
+    _lab2_heading(10,"Diseño integrador · paramento sala–pasillo","Diseña muro, ventana y puerta; calcula Rw, C y Ctr; y verifica el requisito Rw ≥ 40 dB.")
+    st.info("Duración: 40 minutos · 60 puntos. Las curvas se calculan con las mismas herramientas físicas utilizadas en las etapas anteriores.")
+    st.markdown("### Encargo profesional")
+    st.markdown("Una sala de clases de **8,00 × 6,00 × 3,00 m** recibe ruido desde el pasillo. El paramento separador mide **8,00 × 3,00 m** y debe alcanzar **Rw ≥ 40 dB**. Debes diseñar y seleccionar sus tres componentes.")
+    geo=pd.DataFrame([["Muro o tabique",19.71,"82,13 %"],["Ventana 2,00 × 1,20 m",2.40,"10,00 %"],["Puerta 0,90 × 2,10 m",1.89,"7,87 %"],["Total",24.00,"100 %"]],columns=["Elemento","Superficie (m²)","Proporción"])
+    st.dataframe(geo,hide_index=True,use_container_width=True)
+    if st.session_state.get("role")=="Docente": st.warning("Vista docente: pauta y exploración. Los resultados de alumnos se revisan en Centro de resultados.")
+
+    st.markdown("## 1 · Diseña el muro o tabique")
+    wall_type=st.radio("Sistema opaco",["Muro o placa simple","Tabique de placa doble"],horizontal=True,key="l2s10_wall_type")
+    if wall_type=="Muro o placa simple":
+        c1,c2=st.columns(2); mat=c1.selectbox("Material",list(LAB2_S10_MATERIALS),key="l2s10_sm"); th=c2.selectbox("Espesor (mm)",LAB2_S10_MATERIALS[mat]["th"],key="l2s10_st")
+        wall_curve=_lab2_s10_single(mat,th); wall_desc=f"{mat} · {th:g} mm"
+    else:
+        a,b=st.columns(2)
+        with a:
+            m1=st.selectbox("Material hoja 1",list(LAB2_S10_LEAVES),key="l2s10_m1"); t1=st.selectbox("Espesor hoja 1 (mm)",LAB2_S10_LEAVES[m1]["th"],key="l2s10_t1"); n1=st.selectbox("Placas hoja 1",[1,2],key="l2s10_n1")
+        with b:
+            m2=st.selectbox("Material hoja 2",list(LAB2_S10_LEAVES),key="l2s10_m2"); t2=st.selectbox("Espesor hoja 2 (mm)",LAB2_S10_LEAVES[m2]["th"],key="l2s10_t2"); n2=st.selectbox("Placas hoja 2",[1,2],key="l2s10_n2")
+        c,d=st.columns(2); gap=c.selectbox("Cámara (mm)",[40,60,80,100,120,150],key="l2s10_gap"); absorb=d.selectbox("Absorbente",["Sin absorbente","Lana de vidrio 15 kg/m³","Lana de vidrio 32 kg/m³","Lana mineral 40 kg/m³","Lana mineral 60 kg/m³"],key="l2s10_abs")
+        wall_curve=_lab2_s10_double(m1,t1,n1,m2,t2,n2,gap,absorb); wall_desc=f"{n1}×{m1} {t1:g} / {gap} mm / {n2}×{m2} {t2:g} · {absorb}"
+    wr,wc,wt=_lab2_s10_indices(wall_curve); st.success(f"Resultado diseñado: Rw(C; Ctr) = {wr} ({wc:+d}; {wt:+d}) dB")
+    _lab2_s10_plot("Curva del elemento opaco",[("Muro/tabique",wall_curve)])
+    if st.button("Incorporar muro al paramento",type="primary",key="l2s10_pick_wall"):
+        st.session_state["l2s10_wall"]={"description":wall_desc,"curve":wall_curve.tolist(),"rw":wr,"c":wc,"ctr":wt}; save_user_progress(); st.success("Muro incorporado y guardado.")
+
+    st.markdown("## 2 · Diseña la ventana")
+    window_type=st.radio("Tipo de ventana",["Vidrio simple","Ventana doble"],horizontal=True,key="l2s10_window_type")
+    if window_type=="Vidrio simple":
+        g=st.selectbox("Espesor del vidrio (mm)",[4,5,6,8,10,12],key="l2s10_g"); window_curve,_m,_b,_fc=_glass_panel_tl(g,.010,LAB2_S10_FREQS); window_desc=f"Vidrio simple {g} mm"
+    else:
+        x,y,z=st.columns(3); g1=x.selectbox("Vidrio 1 (mm)",[4,5,6,8,10,12],key="l2s10_g1"); wg=y.selectbox("Cámara (mm)",[6,10,12,16,20,30,50,80],key="l2s10_wgap"); g2=z.selectbox("Vidrio 2 (mm)",[4,5,6,8,10,12],index=2,key="l2s10_g2")
+        window_curve,*_=_double_window_model(g1,g2,wg/1000,1.2,2.0,.10,.010,.010,LAB2_S10_FREQS); window_desc=f"Ventana doble {g1}/{wg}/{g2} mm"
+    vr,vc,vt=_lab2_s10_indices(window_curve); st.success(f"Resultado diseñado: Rw(C; Ctr) = {vr} ({vc:+d}; {vt:+d}) dB")
+    _lab2_s10_plot("Curva de la ventana",[("Ventana",window_curve)])
+    if st.button("Incorporar ventana al paramento",type="primary",key="l2s10_pick_window"):
+        st.session_state["l2s10_window"]={"description":window_desc,"curve":np.asarray(window_curve).tolist(),"rw":vr,"c":vc,"ctr":vt}; save_user_progress(); st.success("Ventana incorporada y guardada.")
+
+    st.markdown("## 3 · Selecciona la puerta")
+    door=st.selectbox("Solución de puerta",list(LAB2_S10_DOORS),key="l2s10_door_type"); door_curve=_lab2_s10_door_curve(LAB2_S10_DOORS[door]); dr,dc,dtc=_lab2_s10_indices(door_curve)
+    st.caption("La curva incluye de forma referencial el efecto de la hoja, sellos y encuentros; no se calcula solo por ley de masa.")
+    st.success(f"Resultado referencial: Rw(C; Ctr) = {dr} ({dc:+d}; {dtc:+d}) dB")
+    if st.button("Incorporar puerta al paramento",type="primary",key="l2s10_pick_door"):
+        st.session_state["l2s10_door"]={"description":door,"curve":door_curve.tolist(),"rw":dr,"c":dc,"ctr":dtc}; save_user_progress(); st.success("Puerta incorporada y guardada.")
+
+    st.markdown("## 4 · Paramento sala de clases–pasillo")
+    wall=st.session_state.get("l2s10_wall"); window=st.session_state.get("l2s10_window"); door_saved=st.session_state.get("l2s10_door")
+    if not all([wall,window,door_saved]):
+        st.warning("Incorpora primero el muro, la ventana y la puerta. Cada botón conserva la curva completa para el cálculo compuesto."); return
+    st.markdown(f"""<div style='border-radius:20px;padding:1.2rem;background:linear-gradient(135deg,#eaf5ff,#f8fbff);border:2px solid #88bce8'><b>PASILLO → SALA DE CLASES</b><br><br>🧱 <b>Muro · 19,71 m²:</b> {wall['description']} · Rw {wall['rw']} dB<br>🪟 <b>Ventana · 2,40 m²:</b> {window['description']} · Rw {window['rw']} dB<br>🚪 <b>Puerta · 1,89 m²:</b> {door_saved['description']} · Rw {door_saved['rw']} dB</div>""",unsafe_allow_html=True)
+    combined=-10*np.log10((19.71*10**(-np.array(wall["curve"])/10)+2.40*10**(-np.array(window["curve"])/10)+1.89*10**(-np.array(door_saved["curve"])/10))/24.0)
+    cr,cc,cct=_lab2_s10_indices(combined); _lab2_s10_plot("Aislamiento por tercios de octava",[("Muro",wall["curve"]),("Ventana",window["curve"]),("Puerta",door_saved["curve"]),("Paramento combinado",combined)])
+    with st.expander("Ver tabla espectral del cálculo compuesto"):
+        st.dataframe(pd.DataFrame({"Frecuencia (Hz)":LAB2_S10_FREQS.astype(int),"Muro (dB)":np.round(wall["curve"],1),"Ventana (dB)":np.round(window["curve"],1),"Puerta (dB)":np.round(door_saved["curve"],1),"Combinado (dB)":np.round(combined,1)}),hide_index=True,use_container_width=True)
+    st.markdown("## 5 · Ingresa e interpreta tu resultado")
+    q1,q2,q3=st.columns(3); ans_rw=q1.number_input("Rw combinado (dB)",0,100,0,key="l2s10_ans_rw"); ans_c=q2.number_input("C (dB)",-30,10,0,key="l2s10_ans_c"); ans_ctr=q3.number_input("Ctr (dB)",-30,10,0,key="l2s10_ans_ctr")
+    st.caption("El resultado no se revela hasta verificar tu cálculo.")
+    if st.button("Verificar resultado",key="l2s10_verify"):
+        st.session_state["l2s10_verified"]=True; save_user_progress()
+    if st.session_state.get("l2s10_verified"):
+        numeric=sum([abs(ans_rw-cr)<=1,abs(ans_c-cc)<=1,abs(ans_ctr-cct)<=1]); design_score=20+numeric*(20/3)
+        st.success(f"Resultado calculado: Rw(C; Ctr) = {cr} ({cc:+d}; {cct:+d}) dB · Rw+C = {cr+cc} dB")
+        (st.success if cr>=40 else st.error)(f"{'Cumple' if cr>=40 else 'No cumple'} el requisito Rw ≥ 40 dB.")
+        weakest=min([(wall['rw'],'muro'),(window['rw'],'ventana'),(door_saved['rw'],'puerta')])[1]; st.info(f"Elemento débil de la selección: **{weakest}**. La influencia final depende simultáneamente de su transmisión y superficie.")
+    else: design_score=0
+
+    st.markdown("## 6 · Preguntas de comprensión")
+    correct_count=0
+    answers={}
+    for i,(question,options,correct) in enumerate(LAB2_S10_QUESTIONS):
+        value=st.radio(f"{i+1}. {question}",options,index=None,key=f"l2s10_q{i}"); answers[str(i)]=value
+        if value==options[correct]: correct_count+=1
+    comprehension_score=correct_count*4; total=round(design_score+comprehension_score,1)
+    st.metric("Puntaje acumulado",f"{total:g}/60")
+    if st.button("Enviar desarrollo definitivo",type="primary",use_container_width=True,key="l2s10_submit"):
+        if not st.session_state.get("l2s10_verified") or any(v is None for v in answers.values()): st.warning("Verifica el resultado y responde las cinco preguntas antes de enviar.")
+        else:
+            payload={"geometry":{"room":"8.00×6.00×3.00 m","wall":19.71,"window":2.40,"door":1.89,"total":24.00},"wall":wall,"window":window,"door":door_saved,"combined_curve":combined.tolist(),"student_result":{"rw":ans_rw,"c":ans_c,"ctr":ans_ctr},"calculated_result":{"rw":cr,"c":cc,"ctr":cct},"answers":answers,"design_score":design_score,"comprehension_score":comprehension_score}
+            _save_formative(10,"final_integrated_design","Diseño integrador del paramento sala–pasillo",json.dumps(payload,ensure_ascii=False),"Correcta" if total>=36 else "Parcialmente correcta",f"Resultado automático: {total:g}/60 puntos.",score=total,max_score=60,correct_answer=f"Resultado dependiente del diseño; cálculo verificado banda por banda. Selección enviada: Rw(C;Ctr)={cr}({cc:+d};{cct:+d}) dB.")
+            st.session_state["l2s10_submitted"]=True; save_user_progress(); st.success(f"Desarrollo enviado y guardado · {total:g}/60 puntos.")
 
 def lab2_stage3():
     """Ejercicio comparativo de tres placas simples homogéneas."""
