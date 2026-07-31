@@ -8325,6 +8325,37 @@ LAB2_S10_QUESTIONS=[
     ("¿Qué ventaja puede aportar una ventana doble con vidrios de espesores diferentes?",["Elimina toda transmisión lateral","Evita superponer exactamente las coincidencias de ambas hojas","Hace innecesario el marco","Convierte Ctr en cero"],1),
     ("Si el muro tiene Rw muy alto pero la puerta es débil, ¿qué mejora suele ser más eficiente?",["Seguir aumentando únicamente la masa del muro","Mejorar puerta, sellos y encuentros","Reducir el área del muro","Agregar absorción dentro del aula"],1),
 ]
+LAB2_S10_EXPLANATIONS=[
+    "El aislamiento compuesto se obtiene convirtiendo cada aislamiento por banda en coeficiente de transmisión, ponderándolo por su superficie y convirtiendo luego el resultado nuevamente a decibeles.",
+    "Una puerta, ventana o junta con bajo aislamiento puede transmitir mucha más energía que el resto del paramento, incluso cuando su superficie es relativamente pequeña.",
+    "El término C adapta Rw a espectros de ruido con predominio medio y alto, como voces y actividades interiores; por eso el resultado de referencia es Rw+C.",
+    "Usar vidrios de espesores diferentes ayuda a separar sus zonas de coincidencia y evita que ambas hojas presenten exactamente la misma pérdida de aislamiento en las mismas bandas.",
+    "Cuando la puerta es la vía dominante, seguir aumentando el aislamiento del muro entrega muy poco beneficio. La intervención eficiente es mejorar la hoja, los sellos perimetrales, el encuentro inferior y la instalación.",
+]
+
+def teacher_lab2_stage10_answer_key():
+    """Pauta docente de la Etapa 10, sin controles destinados al alumno."""
+    st.info(
+        "Vista docente: esta pantalla muestra la pauta y los resultados correctos. "
+        "No permite seleccionar sistemas, ingresar valores, contestar preguntas ni enviar el ejercicio."
+    )
+    st.markdown("### Pauta del cálculo integrador")
+    st.latex(r"\tau_{T,f}=\frac{19{,}71\,10^{-R_{m,f}/10}+2{,}40\,10^{-R_{v,f}/10}+1{,}89\,10^{-R_{p,f}/10}}{24{,}00}")
+    st.latex(r"R_{T,f}=-10\log_{10}(\tau_{T,f})")
+    st.success(
+        "Resultado correcto del procedimiento: combinar las curvas por transmisión y superficie "
+        "en cada tercio de octava; con la curva combinada construir Rw y calcular C y Ctr. "
+        "El diseño cumple cuando Rw ≥ 40 dB. El valor numérico depende de la solución seleccionada por cada alumno."
+    )
+    st.markdown("### Pauta · Preguntas de comprensión")
+    for i,(question,options,correct) in enumerate(LAB2_S10_QUESTIONS):
+        with st.expander(f"Pregunta {i+1}",expanded=i==0):
+            st.markdown(f"**{question}**")
+            for option_index,option in enumerate(options):
+                prefix="✅" if option_index==correct else "○"
+                st.write(f"{prefix} {chr(65+option_index)}. {option}")
+            st.success(f"Respuesta correcta: {options[correct]}")
+            st.info(LAB2_S10_EXPLANATIONS[i])
 
 def _lab2_s10_indices(curve):
     curve=np.asarray(curve,dtype=float)
@@ -8448,7 +8479,12 @@ def lab2_stage10():
     st.markdown("Una sala de clases de **8,00 × 6,00 × 3,00 m** recibe ruido desde el pasillo. El paramento separador mide **8,00 × 3,00 m** y debe alcanzar **Rw ≥ 40 dB**. Debes diseñar y seleccionar sus tres componentes.")
     geo=pd.DataFrame([["Muro o tabique",19.71,"82,13 %"],["Ventana 2,00 × 1,20 m",2.40,"10,00 %"],["Puerta 0,90 × 2,10 m",1.89,"7,87 %"],["Total",24.00,"100 %"]],columns=["Elemento","Superficie (m²)","Proporción"])
     st.dataframe(geo,hide_index=True,use_container_width=True)
-    if st.session_state.get("role")=="Docente": st.warning("Vista docente: pauta y exploración. Los resultados de alumnos se revisan en Centro de resultados.")
+    if st.session_state.get("role")=="Docente":
+        teacher_lab2_stage10_answer_key()
+        st.markdown("---")
+        st.markdown("### Resultados enviados por los alumnos")
+        _teacher_lab2_integrated_results()
+        return
 
     st.markdown("## 1 · Diseña el muro o tabique")
     wall_type=st.radio("Sistema opaco",["Muro o placa simple","Tabique de placa doble"],horizontal=True,key="l2s10_wall_type")
