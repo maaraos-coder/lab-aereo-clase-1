@@ -4066,10 +4066,17 @@ def lab2_stage10():
     stage10()
 
 # ---------------------------------------------------------------------------
-# Laboratorio 2 · Clase 1 · Primer bloque de 120 minutos
+# Laboratorio 2 · Clase de 4 horas con pausa de 30 minutos
 # Modelos de predicción del aislamiento a ruido aéreo
 # ---------------------------------------------------------------------------
-LAB2_MINUTES = [10, 15, 30, 35, 20, 25, 5, 30, 40, 0, 0]
+# Laboratorio 2: jornada de 4 horas.
+# 210 minutos de trabajo + 30 minutos de pausa después de la Etapa 5.
+# Los dos bloques tienen 105 minutos efectivos de trabajo cada uno.
+LAB2_MINUTES = [10, 15, 25, 15, 20, 20, 10, 15, 20, 20, 40]
+LAB2_BREAK_AFTER_STAGE = 5
+LAB2_BREAK_MINUTES = 30
+LAB2_ACTIVE_MINUTES = sum(LAB2_MINUTES)
+LAB2_TOTAL_MINUTES = LAB2_ACTIVE_MINUTES + LAB2_BREAK_MINUTES
 LAB2_FREQS = np.array([63, 80, 100, 125, 160, 200, 250, 315, 400, 500,
                        630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000])
 
@@ -4273,11 +4280,14 @@ def lab2_stage0():
         "ETAPA 0 · BIENVENIDA",
         "Laboratorio 2 · Modelos de predicción del aislamiento acústico",
         "Una experiencia visual para reconocer el sistema constructivo, seleccionar el modelo físico y leer correctamente su curva de pérdida de transmisión.",
+        show_overview=False,
+        duration_minutes=LAB2_MINUTES[0],
     )
     st.markdown(
-        '<div class="class-clock"><div><strong>⏱️ Duración de este bloque: 2 horas</strong>'
-        '<br><span>Conceptos físicos, simuladores, casos constructivos y comparación de soluciones</span>'
-        '</div><div><strong>120 min</strong></div></div>',
+        f'<div class="class-clock"><div><strong>⏱️ Duración total del laboratorio: 4 horas</strong>'
+        f'<br><span>{LAB2_ACTIVE_MINUTES} min de aprendizaje y evaluación + '
+        f'{LAB2_BREAK_MINUTES} min de pausa</span>'
+        f'</div><div><strong>{LAB2_TOTAL_MINUTES} min</strong></div></div>',
         unsafe_allow_html=True,
     )
     st.markdown(
@@ -4285,12 +4295,16 @@ def lab2_stage0():
         unsafe_allow_html=True,
     )
     route = [
-        ("Pérdida de transmisión", "Relaciona la energía incidente y transmitida con τ y TL.", 15),
-        ("Panel simple", "Reconoce incidencia, rigidez, resonancias, ley de masa y coincidencia.", 30),
-        ("Casos reales", "Compara yeso-cartón, vidrio monolítico y hormigón por bandas.", 15),
-        ("Panel doble", "Explora masas, cámara de aire, resonancia y conexiones estructurales.", 20),
-        ("Modelo de Sharp", "Calcula f₀, fₗ y el TL correspondiente en cada tramo.", 25),
-        ("Comparación aplicada", "Contrasta un panel pesado con un tabique liviano desacoplado.", 5),
+        ("Pérdida de transmisión", "Relaciona la energía incidente y transmitida con τ y TL.", LAB2_MINUTES[1]),
+        ("Panel simple", "Reconoce incidencia, rigidez, resonancias, ley de masa y coincidencia.", LAB2_MINUTES[2]),
+        ("Comparación de placas", "Compara yeso-cartón, vidrio monolítico y hormigón por bandas.", LAB2_MINUTES[3]),
+        ("Panel doble", "Explora masas, cámara de aire, resonancia y conexiones estructurales.", LAB2_MINUTES[4]),
+        ("Modelo de Sharp", "Calcula f₀, fₗ y el TL correspondiente en cada tramo.", LAB2_MINUTES[5]),
+        ("Ventanas dobles", "Analiza la cámara, las hojas y la pérdida de transmisión del sistema.", LAB2_MINUTES[6]),
+        ("Bandas de frecuencia", "Distingue octavas y tercios de octava e interpreta sus curvas.", LAB2_MINUTES[7]),
+        ("Rw, C y Ctr", "Obtiene e interpreta el índice ponderado y sus adaptaciones espectrales.", LAB2_MINUTES[8]),
+        ("Evaluación de comprensión", "Resuelve 10 preguntas con alternativas en un único intento.", LAB2_MINUTES[9]),
+        ("Aplicación integradora", "Desarrolla y justifica la solución del caso técnico final.", LAB2_MINUTES[10]),
     ]
     html = '<div class="route-grid">'
     for i, (title, description, minutes) in enumerate(route, 1):
@@ -4300,6 +4314,13 @@ def lab2_stage0():
             f'<span class="route-time">⏱️ {minutes} min</span></div></div>'
         )
     st.markdown(html + "</div>", unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="warn" style="margin-top:1rem"><b>☕ Pausa programada: '
+        f'{LAB2_BREAK_MINUTES} minutos</b><br>Se realizará después de la Etapa '
+        f'{LAB2_BREAK_AFTER_STAGE}. Primer bloque: 105 min · Pausa: 30 min · '
+        f'Segundo bloque: 105 min.</div>',
+        unsafe_allow_html=True,
+    )
     st.markdown(
         '<div class="good" style="margin-top:1rem"><b>Así aprenderás:</b> '
         'concepto visual → fundamento físico → ecuación → simulación → caso real → interpretación de la curva.</div>',
@@ -8873,7 +8894,7 @@ LAB1_STAGE_TITLES = [
     ("Etapa 10","Evaluación final del Laboratorio 1"),
 ]
 LAB2_STAGE_TITLES = [
-    ("Etapa 0","Ruta de las primeras dos horas"),
+    ("Etapa 0","Ruta completa del Laboratorio 2"),
     ("Etapa 1","Pérdida de transmisión: energía, τ y TL"),
     ("Etapa 2","Panel simple: incidencia y cuatro zonas"),
     ("Etapa 3","Comparación aplicada de placas simples"),
