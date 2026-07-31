@@ -4093,7 +4093,6 @@ LAB2_IMAGES = {
 LAB2_IMAGES.update({
     "stage7_espectro_a_bandas": "stage7_espectro_a_bandas.png",
     "stage7_octava_vs_tercio": "stage7_octava_vs_tercio.png",
-    "stage8_airborne_rw": "stage8_airborne_rw.png",
 })
 
 def _lab2_image(image_key, caption=None):
@@ -7015,7 +7014,50 @@ def lab2_stage8():
     )
 
     st.markdown("""
-    ### 1 · ¿Qué resume el número único?
+    ### 1 · ¿Por qué se informa Rw y no solamente R o TL?
+
+    Tanto **R** como **TL** describen la reducción de la transmisión sonora en una
+    **frecuencia o banda determinada**. Por ejemplo, informar R = 48 dB a 500 Hz
+    solo explica lo que ocurre en esa banda: el mismo elemento puede entregar un
+    valor menor en graves, uno mayor en agudos y presentar un valle de coincidencia.
+
+    Por eso, un único R o TL no representa el comportamiento global del elemento y
+    tampoco permite comparar soluciones si no se indica exactamente la frecuencia.
+    En aislamiento a ruido aéreo se informa **Rw** porque resume, mediante un
+    procedimiento normalizado, la curva completa de 16 tercios de octava entre
+    100 y 3.150 Hz.
+
+    **Rw no reemplaza la curva R(f): la resume.** La curva se conserva para el
+    diagnóstico técnico; Rw se usa para declarar, especificar y comparar el
+    desempeño mediante un mismo criterio.
+    """)
+    why_a, why_b, why_c = st.columns(3)
+    with why_a:
+        st.markdown(
+            '<div class="route-card"><span class="step">R o TL</span><div>'
+            '<b>Resultado por banda</b><p>Indica cuánto se reduce el sonido en una '
+            'frecuencia concreta.</p></div></div>', unsafe_allow_html=True,
+        )
+    with why_b:
+        st.markdown(
+            '<div class="route-card"><span class="step">R(f)</span><div>'
+            '<b>Diagnóstico completo</b><p>Permite localizar graves débiles, '
+            'resonancias y coincidencia.</p></div></div>', unsafe_allow_html=True,
+        )
+    with why_c:
+        st.markdown(
+            '<div class="route-card"><span class="step">Rw</span><div>'
+            '<b>Comparación normalizada</b><p>Condensa las 16 bandas con una misma '
+            'regla de ponderación.</p></div></div>', unsafe_allow_html=True,
+        )
+    st.warning(
+        "**Lectura correcta:** Rw = 52 dB no significa R = 52 dB en todas las "
+        "frecuencias. Significa que la curva completa obtuvo un índice ponderado "
+        "de 52 dB mediante el procedimiento normalizado."
+    )
+
+    st.markdown("""
+    ### 2 · Del resultado por bandas al número único
 
     La reducción sonora **R** de un elemento constructivo cambia con la frecuencia.
     Una pared puede aislar bien en bandas medias y presentar un valle en bajas
@@ -7050,7 +7092,7 @@ def lab2_stage8():
         "titular cuando la fuente tiene otro reparto de energía por frecuencia."
     )
 
-    st.markdown("### 2 · ¿Cuándo corresponde usar Rw?")
+    st.markdown("### 3 · ¿Cuándo corresponde usar Rw?")
     st.write("""
     **Rw describe el aislamiento a ruido aéreo de un elemento ensayado en
     laboratorio**, como un muro, tabique, puerta, ventana, piso o cubierta. La fuente
@@ -7082,7 +7124,18 @@ def lab2_stage8():
             unsafe_allow_html=True,
         )
 
-    st.markdown("### 3 · Curva de referencia y desviaciones desfavorables")
+    st.markdown("### 4 · Curva de referencia y desviaciones desfavorables")
+    st.write("""
+    La **curva de referencia** es una plantilla normalizada con una forma fija. No
+    es la curva medida del tabique ni una exigencia independiente. Se coloca sobre
+    el mismo gráfico de R(f) y solo puede desplazarse verticalmente, sin deformarla.
+
+    En cada una de las 16 bandas se comparan dos valores. Si la referencia queda
+    **por encima** de R(f), al elemento le falta aislamiento respecto de la plantilla
+    y aparece una desviación desfavorable. Si R(f) queda por encima, el resultado es
+    favorable, pero ese excedente vale cero: una banda muy buena no puede borrar un
+    valle de otra banda.
+    """)
     formula_card(
         "Desviación desfavorable en cada banda",
         r"d_i=\max\left(0,\;R_{\mathrm{ref},i}-R_i\right)",
@@ -7106,7 +7159,50 @@ def lab2_stage8():
         "en la banda de 500 Hz."
     )
 
-    st.markdown("### 4 · Procedimiento para obtener Rw")
+    st.markdown("#### Compruébalo moviendo la referencia")
+    demo_freq = np.array([100, 125, 160, 200, 250, 315, 400, 500,
+                          630, 800, 1000, 1250, 1600, 2000, 2500, 3150])
+    demo_r = np.array([27, 31, 35, 39, 43, 47, 50, 52,
+                       54, 56, 55, 51, 57, 59, 61, 63], dtype=float)
+    demo_ref_shape = np.array([33, 36, 39, 42, 45, 48, 51, 52,
+                               53, 54, 55, 56, 56, 56, 56, 56], dtype=float)
+    demo_rw = st.slider(
+        "Posición de la referencia en 500 Hz (dB)", 42, 58, 50, 1,
+        key="lab2_s8_demo_reference",
+    )
+    demo_ref = demo_ref_shape + (demo_rw - 52)
+    demo_dev = np.maximum(0.0, demo_ref - demo_r)
+    demo_total = float(np.sum(demo_dev))
+    demo_fig = go.Figure()
+    demo_fig.add_trace(go.Scatter(x=demo_freq, y=demo_r, mode="lines+markers",
+                                  name="R(f)", line=dict(color="#25d6b2", width=4)))
+    demo_fig.add_trace(go.Scatter(x=demo_freq, y=demo_ref, mode="lines+markers",
+                                  name="Referencia desplazada",
+                                  line=dict(color="#ff9f43", width=3, shape="hv")))
+    for demo_i in np.where(demo_dev > 0)[0]:
+        demo_fig.add_trace(go.Scatter(
+            x=[demo_freq[demo_i], demo_freq[demo_i]],
+            y=[demo_r[demo_i], demo_ref[demo_i]], mode="lines",
+            line=dict(color="#ff4d6d", width=5), showlegend=False,
+            hovertemplate=f"{demo_freq[demo_i]} Hz<br>Déficit: {demo_dev[demo_i]:.1f} dB<extra></extra>",
+        ))
+    demo_fig.update_layout(height=430, xaxis_type="log",
+                           xaxis_title="Frecuencia central (Hz)",
+                           yaxis_title="Reducción sonora (dB)",
+                           hovermode="x unified", margin=dict(l=30, r=20, t=35, b=35))
+    demo_fig.update_xaxes(tickvals=demo_freq,
+                          ticktext=[str(v) if v < 1000 else f"{v/1000:g}k" for v in demo_freq])
+    st.plotly_chart(demo_fig, use_container_width=True)
+    demo_a, demo_b, demo_c = st.columns(3)
+    demo_a.metric("Bandas desfavorables", int(np.sum(demo_dev > 0)))
+    demo_b.metric("Suma de desviaciones", f"{demo_total:.1f} dB")
+    demo_c.metric("Condición", "Cumple" if demo_total <= 32 else "No cumple")
+    if demo_total <= 32:
+        st.success("Esta posición cumple Σdᵢ ≤ 32 dB. Intenta subirla 1 dB: solo será la posición final si la nueva suma deja de cumplir.")
+    else:
+        st.error("Esta posición supera 32 dB. La referencia debe bajarse hasta recuperar el cumplimiento.")
+
+    st.markdown("### 5 · Procedimiento gráfico para obtener Rw")
     st.markdown("""
     1. Se dispone de los valores de **R** en los 16 tercios de octava entre 100 y
        3.150 Hz.
@@ -7122,7 +7218,46 @@ def lab2_stage8():
         "valle. El método no lo permite: las diferencias favorables valen cero."
     )
 
-    st.markdown("### 5 · ¿Qué significan C y Ctr?")
+    rw_step = st.select_slider(
+        "Recorre el procedimiento",
+        options=[1, 2, 3, 4, 5], value=1,
+        format_func=lambda n: {
+            1: "1 · Curva R(f)", 2: "2 · Superponer referencia",
+            3: "3 · Identificar déficits", 4: "4 · Verificar Σdᵢ ≤ 32 dB",
+            5: "5 · Leer Rw en 500 Hz",
+        }[n], key="lab2_s8_rw_step",
+    )
+    guided = go.Figure()
+    guided.add_trace(go.Scatter(x=demo_freq, y=demo_r, mode="lines+markers",
+                                name="R(f)", line=dict(color="#25d6b2", width=4)))
+    if rw_step >= 2:
+        guided.add_trace(go.Scatter(x=demo_freq, y=demo_ref, mode="lines+markers",
+                                    name="Curva de referencia",
+                                    line=dict(color="#ff9f43", width=3, shape="hv")))
+    if rw_step >= 3:
+        for demo_i in np.where(demo_dev > 0)[0]:
+            guided.add_trace(go.Scatter(x=[demo_freq[demo_i], demo_freq[demo_i]],
+                                        y=[demo_r[demo_i], demo_ref[demo_i]], mode="lines",
+                                        line=dict(color="#ff4d6d", width=5), showlegend=False))
+    if rw_step == 5:
+        guided.add_vline(x=500, line_dash="dot", line_color="#ffffff")
+        guided.add_annotation(x=500, y=demo_rw, text=f"Rw = {demo_rw} dB",
+                              showarrow=True, arrowhead=2, bgcolor="#10263c")
+    guided.update_layout(height=400, xaxis_type="log", xaxis_title="Frecuencia (Hz)",
+                         yaxis_title="R (dB)", margin=dict(l=30, r=20, t=30, b=35))
+    guided.update_xaxes(tickvals=demo_freq,
+                        ticktext=[str(v) if v < 1000 else f"{v/1000:g}k" for v in demo_freq])
+    st.plotly_chart(guided, use_container_width=True)
+    guided_text = {
+        1: "Primero se necesita la curva R(f) completa en las 16 bandas.",
+        2: "La plantilla conserva su forma y se desplaza verticalmente en pasos enteros de 1 dB.",
+        3: "Las líneas rojas son los únicos déficits que se contabilizan; los excedentes valen cero.",
+        4: f"La suma actual es {demo_total:.1f} dB. Debe ser menor o igual que 32 dB.",
+        5: f"Una vez hallada la posición más alta admisible, se lee la referencia a 500 Hz: Rw = {demo_rw} dB.",
+    }[rw_step]
+    st.info(guided_text)
+
+    st.markdown("### 6 · ¿Qué significan C y Ctr?")
     st.write("""
     Dos elementos con el mismo Rw pueden comportarse de manera distinta frente a
     una conversación, música o tránsito. Los términos de adaptación espectral
@@ -7159,7 +7294,7 @@ def lab2_stage8():
         unsafe_allow_html=True,
     )
 
-    st.markdown("### 6 · Laboratorio interactivo · construye Rw, C y Ctr")
+    st.markdown("#### Aplicación integrada · calcula Rw, C y Ctr con la misma curva")
     st.write(
         "Modifica la forma de la curva por tercios. El laboratorio ajustará la "
         "referencia, mostrará las desviaciones desfavorables y calculará los tres "
