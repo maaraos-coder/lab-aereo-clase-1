@@ -2292,7 +2292,7 @@ def quirt_window_curve(m1,m2,gap,height,width,alpha,freqs=FREQS):
 
 def stage6():
     header("ETAPA 6 · MATERIA + SIMULADORES","Fundamentos físicos del aislamiento acústico",
-           "Modelos de tu tesis AKUZOFT: placas simples, Sharp, resonancia y ventanas dobles mediante Quirt.")
+           "Modelos físicos de placas simples, Sharp, resonancia y ventanas dobles mediante Quirt.")
     full_matter(6)
     tabs=st.tabs(["Transmisión y R","Ley de masa","Coincidencia","Sharp · panel doble","Quirt · ventanas","Elementos compuestos"])
     with tabs[0]:
@@ -2370,7 +2370,7 @@ def stage6():
             "Separa los dos regímenes del modelo de ventana doble.",
         )
         formula_card(
-            "Régimen superior de la ventana doble",
+            "Régimen superior a f₁ · ecuación 2.29",
             r"TL=TL_{\rho s1}+TL_{\rho s2}+10\log_{10}\alpha+10\log_{10}d+"
             r"10\log_{10}\left(\frac{h+w}{hw}\right)+3",
             "<b>α</b>: absorción a incidencia aleatoria del perímetro<br>"
@@ -3883,7 +3883,7 @@ def lab2_stage4():
 def lab2_stage5():
     _lab2_heading(5, "ISO 12354 como puente de diseño",
                   "Pasar del dato del elemento al comportamiento esperado del edificio.")
-    st.markdown("""
+    st.markdown(r"""
     ### Secuencia didáctica simplificada
 
     **1. Entrada:** curva o índice del elemento ensayado.  
@@ -3902,7 +3902,7 @@ def lab2_stage6():
     _lab2_heading(6, "Ejercicio guiado · Sala de Reuniones Dirección",
                   "Resolver el caso junto al docente y documentar cada decisión.")
     st.image(str(ROOT/"assets/course_visuals/stage6_double_wall.webp"),use_container_width=True)
-    st.markdown("""
+    st.markdown(r"""
     ### Ficha de trabajo
 
     - Delimita emisor, receptor y separación.
@@ -4020,13 +4020,30 @@ LAB2_ASSET_DIR = ROOT / "assets" / "lab2"
 LAB2_IMAGES = {
     # Cambia cualquiera de estos archivos manteniendo el mismo nombre.
     "panel_simple": "panel_simple_transmision_profesional.png",
-    "panel_doble": "panel_doble_masa_aire_masa.svg",
+    "panel_doble": "etapa4_sistema_doble_profesional.webp",
     "metalcon": "metalcon_simple_vs_doble.svg",
-    "yeso_carton": "material_yeso_carton.svg",
+    "yeso_carton": "panel_simple_yeso_carton.png",
+    "madera": "panel_simple_madera.png",
     "vidrio": "material_vidrio_monolitico.svg",
-    "hormigon": "material_hormigon.svg",
+    "hormigon": "muro_simple_hormigon.png",
     "comparador_hormigon": "comparador_panel_hormigon.svg",
     "comparador_tabique": "comparador_tabique_doble.svg",
+    "s2_punto1": "punto1_placa_masa_superficial_profesional.webp",
+    "s2_punto2": "punto2_tipos_incidencia_profesional.webp",
+    "s2_punto3": "punto3_rigidez_flexion_profesional.webp",
+    "s2_punto4": "punto4_promedio_campo_profesional.webp",
+    "s2_tau_angulo": "punto3_tau_angulo_profesional.png",
+    "s2_ley_masa": "punto6_impedancia_ley_masa_profesional.png",
+    "s2_frecuencia_critica": "punto7_frecuencia_critica_profesional.png",
+    "s4_propiedades_placas": "etapa4_propiedades_placas_profesional.webp",
+    "s4_resonancia": "etapa4_resonancia_profesional.webp",
+    "s4_regiones": "etapa4_tres_regiones_profesional.webp",
+    "s5_tabique_real": "etapa5_tabique_real_profesional.webp",
+    "s5_ideal_vs_conectado": "etapa5_ideal_vs_conectado_profesional.webp",
+    "s5_conexion_lineal_metal": "etapa5_conexion_lineal_metal_profesional.png",
+    "s5_conexion_lineal_madera": "etapa5_conexion_lineal_madera_profesional.png",
+    "s5_conexion_puntual": "etapa5_conexion_puntual_profesional.png",
+    "s5_geometria_camara_montantes": "etapa5_geometria_camara_montantes_profesional.png",
 }
 
 def _lab2_image(image_key, caption=None):
@@ -4040,6 +4057,29 @@ def _lab2_image(image_key, caption=None):
     st.warning(f"No se encontró la imagen: {expected}")
     st.caption("Súbela a GitHub con ese nombre exacto; no es necesario modificar el código.")
     return False
+
+def _lab2_plain_language_cards(simple, observe, mistake):
+    """Three visible conceptual bridges for students without an engineering background."""
+    st.markdown(
+        f"""
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:.8rem;margin:.85rem 0 1.15rem">
+          <div style="background:#eef8ff;border:1px solid #b9def5;border-radius:14px;padding:1rem">
+            <div style="font-size:.76rem;font-weight:800;color:#0877c5">💡 EN PALABRAS SIMPLES</div>
+            <div style="margin-top:.45rem;color:#17324d;line-height:1.5">{simple}</div>
+          </div>
+          <div style="background:#f1fbf7;border:1px solid #bfe8d5;border-radius:14px;padding:1rem">
+            <div style="font-size:.76rem;font-weight:800;color:#13845f">👀 QUÉ DEBES OBSERVAR</div>
+            <div style="margin-top:.45rem;color:#17324d;line-height:1.5">{observe}</div>
+          </div>
+          <div style="background:#fff8ec;border:1px solid #f1d39b;border-radius:14px;padding:1rem">
+            <div style="font-size:.76rem;font-weight:800;color:#a56108">⚠️ ERROR FRECUENTE</div>
+            <div style="margin-top:.45rem;color:#17324d;line-height:1.5">{mistake}</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 def _lab2_incidence_figure(theta, tau=1.0):
     """Return incidence geometry; transmitted-ray weight follows calculated tau."""
@@ -4125,8 +4165,24 @@ def _sharp_curve(m1, m2, depth, connection="Independiente"):
         total.append(value)
     return np.array(total), f0, fl
 
-def _plot_curves(series, title, markers=None):
+def _plot_curves(series, title, markers=None, highlight=None):
     fig = go.Figure()
+    if highlight:
+        x0, x1, label, color = highlight
+        x0 = max(float(LAB2_FREQS[0]), float(x0))
+        x1 = min(float(LAB2_FREQS[-1]), float(x1))
+        if x1 > x0:
+            fig.add_vrect(
+                x0=x0,
+                x1=x1,
+                fillcolor=color,
+                opacity=.22,
+                line_width=0,
+                layer="below",
+                annotation_text=label,
+                annotation_position="top left",
+                annotation_font=dict(color="#17324d", size=12),
+            )
     for name, values, style in series:
         fig.add_trace(go.Scatter(
             x=LAB2_FREQS, y=values, mode="lines+markers", name=name,
@@ -4141,7 +4197,9 @@ def _plot_curves(series, title, markers=None):
         xaxis_type="log", hovermode="x unified", height=430,
         margin=dict(l=35,r=20,t=65,b=40), legend=dict(orientation="h",y=1.12))
     fig.update_xaxes(tickvals=[63,125,250,500,1000,2000,4000],
-                     ticktext=["63","125","250","500","1k","2k","4k"])
+                     ticktext=["63","125","250","500","1k","2k","4k"],
+                     range=[math.log10(50),math.log10(5000)],
+                     autorange=False)
     st.plotly_chart(fig, use_container_width=True)
 
 def _lab2_heading(stage, title, purpose):
@@ -4422,6 +4480,10 @@ def lab2_stage2():
     _lab2_heading(2, "Panel simple: incidencia y cuatro zonas físicas",
                   "Relacionar masa, frecuencia, rigidez, resonancia y coincidencia con la forma de la curva.")
     _lab2_image("panel_simple")
+    st.caption(
+        "Placa simple sometida a una onda sonora: una parte de la energía se refleja, "
+        "otra hace vibrar la placa y una fracción se transmite al recinto receptor."
+    )
     st.markdown("""
     Un **panel simple** es una hoja o conjunto de capas unidas rígidamente que vibran como
     una sola masa: vidrio monolítico, placa de yeso, tablero de madera, chapa o muro macizo.
@@ -4450,7 +4512,13 @@ def lab2_stage2():
     movimiento, pero la respuesta real también depende de la rigidez de flexión, las
     dimensiones, los apoyos, el amortiguamiento y la frecuencia.
     """)
-    st.markdown("### 2. Incidencia normal, oblicua, aleatoria y de campo")
+    _lab2_image("s2_punto1")
+    _lab2_plain_language_cards(
+        "La masa superficial indica cuánto pesa un metro cuadrado de placa.",
+        "Compara placas del mismo tamaño: la más densa o gruesa tendrá mayor m′.",
+        "Usar la masa total de la pared. La ley de masa utiliza kg/m², no kg.",
+    )
+    st.markdown("### 2. Incidencia normal y oblicua")
     st.markdown("""
     El ángulo **θ se mide respecto de la línea normal a la placa**, no respecto de su
     superficie:
@@ -4463,6 +4531,39 @@ def lab2_stage2():
     en un recinto reverberante existe energía que alcanza la placa desde muchas direcciones:
     eso se representa mediante un promedio energético angular.
     """)
+    _lab2_image("s2_punto2")
+    _lab2_plain_language_cards(
+        "El sonido puede llegar de frente o inclinado; el ángulo cambia cómo empuja la placa.",
+        "El ángulo se mide desde la línea perpendicular a la placa: 0° es incidencia normal.",
+        "Medir θ desde la superficie o creer que 78° representa por sí solo todo el campo.",
+    )
+    st.markdown("### 3. Coeficiente de transmisión sonora según el ángulo")
+    st.latex(r"\tau(\theta)=\left[1+\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)^2\right]^{-1}")
+    st.latex(r"TL(\theta)=-10\log_{10}\left[\tau(\theta)\right]")
+    st.markdown("""
+    El coeficiente **τ(θ)** representa la fracción de potencia sonora incidente que
+    atraviesa la placa para una dirección específica. Es un valor adimensional entre
+    0 y 1: cuanto menor es τ, menor energía se transmite y mayor es la pérdida de
+    transmisión **TL**.
+
+    En esta expresión, **ω = 2πf** es la frecuencia angular, **m′** es la masa
+    superficial de la placa, **ρ₀** es la densidad del aire, **c** es la velocidad del
+    sonido y **θ** es el ángulo medido desde la normal. El término **cos θ** hace que
+    la impedancia efectiva que presenta la placa cambie con la dirección de llegada.
+    Por eso una misma placa y una misma frecuencia no entregan un único resultado para
+    todas las incidencias.
+
+    El cálculo se realiza primero en escala energética mediante τ(θ). Después se
+    convierte a decibeles con **TL(θ) = −10 log₁₀[τ(θ)]**. Por ejemplo, τ = 0,01
+    significa que atraviesa el 1 % de la potencia incidente y equivale a TL = 20 dB.
+    """)
+    _lab2_image("s2_tau_angulo")
+    _lab2_plain_language_cards(
+        "Cada dirección deja pasar una fracción distinta de energía, representada por τ(θ).",
+        "Observa cómo varía la energía transmitida al cambiar únicamente el ángulo.",
+        "Interpretar τ como decibeles: τ es una proporción energética y TL es su expresión logarítmica.",
+    )
+    st.markdown("### 4. Incidencia aleatoria y promedio de campo")
     st.latex(
         r"\overline{\tau}="
         r"\frac{\displaystyle\int_{0}^{\theta_{\mathrm{lim}}}"
@@ -4472,6 +4573,28 @@ def lab2_stage2():
     )
     st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}\left(\overline{\tau}\right)")
     st.markdown("""
+    En un campo sonoro reverberante la placa recibe simultáneamente energía desde muchas
+    direcciones. El resultado de campo no corresponde al TL de un ángulo particular:
+    se obtiene integrando los coeficientes **τ(θ)** de todas las direcciones consideradas.
+
+    La ponderación **sin θ cos θ** tiene un significado físico. **sin θ** representa la
+    cantidad de direcciones disponibles dentro de cada anillo angular, mientras que
+    **cos θ** representa la componente de intensidad sonora normal a la superficie.
+    El denominador normaliza esa ponderación para que el resultado sea un promedio
+    energético y no una suma dependiente del intervalo elegido.
+
+    En este laboratorio se adopta **θ_lim = 78°** como aproximación práctica de campo.
+    Se integran todas las incidencias entre 0° y 78°; no se calcula únicamente la
+    transmisión a 78°. Una vez obtenido el coeficiente medio **τ̄**, recién entonces
+    se transforma a decibeles para obtener **TL_campo**.
+    """)
+    _lab2_image("s2_punto4")
+    _lab2_plain_language_cards(
+        "Un recinto real envía sonido hacia la placa desde muchas direcciones a la vez.",
+        "El resultado de campo integra desde 0° hasta 78° con ponderación energética.",
+        "Promediar directamente los TL o tomar el valor a 78° como si fuera el promedio de campo.",
+    )
+    st.markdown("""
     - **Incidencia aleatoria o campo difuso ideal:** supone direcciones distribuidas
       estadísticamente hasta 90°.
     - **Incidencia de campo:** aproximación práctica del promedio angular; frecuentemente
@@ -4480,7 +4603,7 @@ def lab2_stage2():
     No se promedian directamente valores de TL en decibeles. Primero se promedian los
     coeficientes de transmisión τ y después se transforma el resultado a decibeles.
     """)
-    st.markdown("### 3. Rigidez de flexión: la placa también se deforma")
+    st.markdown("### 5. Rigidez de flexión: la placa también se deforma")
     st.markdown("""
     Una placa simple no se desplaza únicamente como una masa rígida: también se curva.
     La resistencia que opone a esa deformación se denomina **rigidez de flexión**:
@@ -4510,7 +4633,13 @@ def lab2_stage2():
     sonora entre ambas caras que hace vibrar la placa. En la región donde domina la
     inercia puede simplificarse este equilibrio y obtenerse la ley de masa.
     """)
-    st.markdown("### 4. De la impedancia de masa a la ley de masa aproximada")
+    _lab2_image("s2_punto3")
+    _lab2_plain_language_cards(
+        "La placa no solo se desplaza: también se curva. D mide cuánto cuesta doblarla.",
+        "El espesor aparece elevado al cubo; pequeños cambios de h modifican mucho la rigidez.",
+        "Suponer que una placa más pesada siempre tiene proporcionalmente mayor rigidez.",
+    )
+    st.markdown("### 6. De la impedancia de masa a la ley de masa aproximada")
     st.markdown("""
     En la región donde domina la **inercia**, una hoja ideal puede representarse mediante
     su impedancia mecánica por unidad de superficie. Para una excitación armónica:
@@ -4537,62 +4666,312 @@ def lab2_stage2():
     adoptado y solo describe la tendencia de la zona controlada por masa, lejos de las
     resonancias, la coincidencia, las fugas y las transmisiones laterales.
     """)
+    _lab2_image("s2_ley_masa",
+                "Zona controlada por masa: una placa más pesada opone mayor inercia.")
+    _lab2_plain_language_cards(
+        "Una placa pesada se parece a un carro difícil de empujar: se mueve menos ante el sonido.",
+        "En la zona de masa, duplicar m′ o la frecuencia aumenta el TL aproximadamente 6 dB.",
+        "Extender la recta de ley de masa a resonancias y coincidencia, donde deja de ser válida.",
+    )
 
-    st.markdown("### 5. Laboratorio angular con resultado acústico")
-    control_a,control_b=st.columns(2)
-    angle=control_a.slider("Ángulo respecto de la normal",0,78,30,key="lab2_angle")
-    angular_frequency=control_b.select_slider(
-        "Frecuencia de cálculo (Hz)", options=LAB2_FREQS.tolist(),
-        value=500, key="lab2_angle_frequency")
-    angular_mass=10.0
-    tau_angle=_mass_sheet_tau(angular_mass,angular_frequency,angle)
-    tl_angle=-10*math.log10(tau_angle)
-    tau_normal=_mass_sheet_tau(angular_mass,angular_frequency,0)
-    tl_normal=-10*math.log10(tau_normal)
-    chart_a,chart_b=st.columns(2)
-    with chart_a:
-        st.plotly_chart(
-            _lab2_incidence_figure(angle,tau_angle),
-            use_container_width=True,key="lab2_incidence_calculated")
-    angle_curve=np.array([
-        -10*math.log10(_mass_sheet_tau(angular_mass,float(f),angle))
-        for f in LAB2_FREQS
-    ])
-    normal_curve=np.array([
-        -10*math.log10(_mass_sheet_tau(angular_mass,float(f),0))
-        for f in LAB2_FREQS
-    ])
-    with chart_b:
-        fig_angle=go.Figure()
-        fig_angle.add_trace(go.Scatter(x=LAB2_FREQS,y=normal_curve,
-            mode="lines",name="0° · normal",line=dict(width=3,dash="dash")))
-        fig_angle.add_trace(go.Scatter(x=LAB2_FREQS,y=angle_curve,
-            mode="lines+markers",name=f"{angle}° · seleccionado",line=dict(width=3)))
-        fig_angle.add_vline(x=angular_frequency,line_dash="dot")
-        fig_angle.update_layout(title="TL calculado según frecuencia y ángulo",
-            xaxis_title="Frecuencia (Hz)",yaxis_title="TL (dB)",
-            xaxis_type="log",height=390,hovermode="x unified",
-            margin=dict(l=35,r=15,t=55,b=40),
-            legend=dict(orientation="h",y=1.13))
-        st.plotly_chart(fig_angle,use_container_width=True,key="lab2_angle_tl_chart")
-    m1,m2,m3,m4=st.columns(4)
-    m1.metric("TL seleccionado",f"{tl_angle:.1f} dB")
-    m2.metric("τ seleccionado",f"{tau_angle:.3g}")
-    m3.metric("TL a 0°",f"{tl_normal:.1f} dB")
-    m4.metric("Diferencia angular",f"{tl_angle-tl_normal:+.1f} dB")
-    angular_factor=max(math.cos(math.radians(angle)),.01)
+    st.markdown("### 7. Frecuencia crítica y coincidencia")
+    st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
+    st.markdown("""
+    La **frecuencia crítica** es la zona en que la onda sonora puede acoplarse con
+    una onda de flexión de la placa. Ese acoplamiento facilita la transmisión y
+    puede producir un valle en la curva de aislamiento.
+
+    **En sencillo:** existe una zona donde la placa vibra de una forma especialmente
+    favorable para que el sonido pase. Se calcula usando la masa superficial y la
+    rigidez explicadas antes; no es un parámetro independiente.
+    """)
+    st.latex(r"m'=\rho h")
+    st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
+    st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
+    st.caption(
+        "η no determina por sí solo fᶜ; influye principalmente en la profundidad "
+        "y anchura del valle de coincidencia."
+    )
+    _lab2_image("s2_frecuencia_critica",
+                "Coincidencia entre la onda sonora y la onda de flexión de una placa.")
+    _lab2_plain_language_cards(
+        "Es una zona donde la onda aérea logra hacer vibrar la placa con especial eficiencia.",
+        "La curva real forma un valle respecto de la tendencia ideal de ley de masa.",
+        "Confundir la frecuencia crítica con una resonancia propia global de la placa.",
+    )
+
+    st.markdown("### 8. Laboratorio interactivo: incidencia y aislamiento")
+    st.markdown("""
+    Una misma placa puede evaluarse bajo tres condiciones de incidencia. La diferencia
+    no está en el material, sino en **cómo llega la energía sonora** y en la forma de
+    combinarla:
+
+    - **Incidencia normal:** ondas paralelas que llegan perpendicularmente a la placa.
+    - **Campo de laboratorio 0°–78°:** promedio energético de múltiples incidencias
+      comprendidas entre 0° y 78°.
+    - **Campo difuso ideal 0°–90°:** modelo ideal con energía procedente de todo el
+      hemisferio incidente.
+
+    Selecciona una condición para resaltarla y cambia la frecuencia. La aplicación
+    recalcula simultáneamente los tres resultados, de modo que puedas comparar el efecto
+    del modelo de incidencia sin confundir el promedio de campo con un rayo aislado.
+    """)
+
+    lab_mode_options = [
+        "Incidencia normal · 0°",
+        "Campo de laboratorio · 0° a 78°",
+        "Campo difuso ideal · 0° a 90°",
+    ]
+    control_a, control_b = st.columns([1.55, 1])
+    field_mode = control_a.radio(
+        "Condición que deseas observar",
+        lab_mode_options,
+        index=1,
+        horizontal=True,
+        key="lab2_field_mode",
+    )
+    angular_frequency = control_b.select_slider(
+        "Frecuencia de cálculo (Hz)",
+        options=LAB2_FREQS.tolist(),
+        value=500,
+        key="lab2_field_frequency",
+    )
+
+    angular_mass = 10.0
+
+    def _field_average_tau(limit_degrees):
+        field_angles = np.linspace(0.0, float(limit_degrees), 900)
+        field_angles_rad = np.deg2rad(field_angles)
+        field_tau = np.array([
+            _mass_sheet_tau(angular_mass, angular_frequency, float(theta))
+            for theta in field_angles
+        ])
+        field_weights = np.sin(field_angles_rad) * np.cos(field_angles_rad)
+        if hasattr(np, "trapezoid"):
+            numerator = np.trapezoid(field_tau * field_weights, field_angles_rad)
+            denominator = np.trapezoid(field_weights, field_angles_rad)
+        else:
+            numerator = np.trapz(field_tau * field_weights, field_angles_rad)
+            denominator = np.trapz(field_weights, field_angles_rad)
+        return max(float(numerator / max(denominator, 1e-15)), 1e-15)
+
+    tau_normal = _mass_sheet_tau(angular_mass, angular_frequency, 0)
+    tau_field_78 = _field_average_tau(78.0)
+    tau_field_90 = _field_average_tau(89.9)
+    tl_normal = -10 * math.log10(tau_normal)
+    tl_field_78 = -10 * math.log10(tau_field_78)
+    tl_field_90 = -10 * math.log10(tau_field_90)
+
+    field_results = {
+        "Incidencia normal · 0°": (tau_normal, tl_normal),
+        "Campo de laboratorio · 0° a 78°": (tau_field_78, tl_field_78),
+        "Campo difuso ideal · 0° a 90°": (tau_field_90, tl_field_90),
+    }
+    selected_tau, selected_tl = field_results[field_mode]
+
+    # Esquema pedagógico: tres campos visibles y la selección destacada.
+    field_colors = {
+        "Incidencia normal · 0°": "#1565c0",
+        "Campo de laboratorio · 0° a 78°": "#ef6c00",
+        "Campo difuso ideal · 0° a 90°": "#7b1fa2",
+    }
+    field_titles = [
+        "Incidencia normal",
+        "Campo de laboratorio 0°–78°",
+        "Campo difuso ideal 0°–90°",
+    ]
+    field_keys = lab_mode_options
+    fig_fields = go.Figure()
+    for panel_index, (panel_title, panel_key) in enumerate(zip(field_titles, field_keys)):
+        x0 = panel_index * 4.0
+        active = panel_key == field_mode
+        color = field_colors[panel_key]
+        fig_fields.add_shape(
+            type="rect",
+            x0=x0 + 0.05,
+            x1=x0 + 3.75,
+            y0=0.15,
+            y1=4.65,
+            fillcolor=color if active else "#f8fafc",
+            opacity=0.11 if active else 1.0,
+            line=dict(color=color if active else "#cbd5e1", width=4 if active else 1.5),
+            layer="below",
+        )
+        panel_x = x0 + 2.55
+        fig_fields.add_shape(
+            type="rect",
+            x0=panel_x,
+            x1=panel_x + 0.12,
+            y0=0.8,
+            y1=3.85,
+            fillcolor="#475569",
+            line=dict(color="#334155", width=1),
+        )
+        fig_fields.add_annotation(
+            x=x0 + 1.9,
+            y=4.3,
+            text=f"<b>{panel_title}</b>",
+            showarrow=False,
+            font=dict(size=14, color="#0f172a"),
+        )
+
+        if panel_index == 0:
+            ray_origins = [(x0 + 0.45, 1.45), (x0 + 0.45, 2.3), (x0 + 0.45, 3.15)]
+        elif panel_index == 1:
+            ray_origins = [
+                (x0 + 0.45, 0.65), (x0 + 0.45, 1.25), (x0 + 0.45, 2.3),
+                (x0 + 0.45, 3.35), (x0 + 0.45, 3.95),
+            ]
+        else:
+            ray_origins = [
+                (x0 + 0.35, 0.35), (x0 + 0.35, 0.9), (x0 + 0.35, 1.55),
+                (x0 + 0.35, 2.3), (x0 + 0.35, 3.05), (x0 + 0.35, 3.7),
+                (x0 + 0.35, 4.25),
+            ]
+        for origin_x, origin_y in ray_origins:
+            fig_fields.add_annotation(
+                x=panel_x,
+                y=2.3,
+                ax=origin_x,
+                ay=origin_y,
+                xref="x",
+                yref="y",
+                axref="x",
+                ayref="y",
+                text="",
+                showarrow=True,
+                arrowhead=3,
+                arrowsize=1.1,
+                arrowwidth=2.8 if active else 1.8,
+                arrowcolor=color if active else "#94a3b8",
+            )
+        fig_fields.add_annotation(
+            x=x0 + 1.9,
+            y=0.42,
+            text="<b>SELECCIONADO</b>" if active else "Seleccionar arriba",
+            showarrow=False,
+            font=dict(size=11, color=color if active else "#64748b"),
+        )
+
+    fig_fields.update_xaxes(range=[0, 11.8], visible=False, fixedrange=True)
+    fig_fields.update_yaxes(range=[0, 4.9], visible=False, fixedrange=True)
+    fig_fields.update_layout(
+        title="Cómo llega la energía sonora a la placa",
+        height=430,
+        margin=dict(l=10, r=10, t=55, b=10),
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+        showlegend=False,
+    )
+    st.plotly_chart(
+        fig_fields,
+        use_container_width=True,
+        key="lab2_three_incidence_fields",
+        config={"displayModeBar": False},
+    )
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("TL normal", f"{tl_normal:.1f} dB", "Incidencia 0°")
+    m2.metric("TL de campo", f"{tl_field_78:.1f} dB", "Promedio 0°–78°")
+    m3.metric("TL difuso ideal", f"{tl_field_90:.1f} dB", "Promedio 0°–90°")
+
+    comparison_names = ["Normal 0°", "Campo 0°–78°", "Difuso ideal 0°–90°"]
+    comparison_values = [tl_normal, tl_field_78, tl_field_90]
+    comparison_colors = [
+        field_colors["Incidencia normal · 0°"],
+        field_colors["Campo de laboratorio · 0° a 78°"],
+        field_colors["Campo difuso ideal · 0° a 90°"],
+    ]
+    fig_comparison = go.Figure(go.Bar(
+        x=comparison_names,
+        y=comparison_values,
+        marker_color=comparison_colors,
+        text=[f"{value:.1f} dB" for value in comparison_values],
+        textposition="outside",
+        hovertemplate="%{x}<br>TL = %{y:.1f} dB<extra></extra>",
+    ))
+    fig_comparison.update_layout(
+        title=f"Comparación del aislamiento a {angular_frequency} Hz",
+        xaxis_title="Condición de incidencia",
+        yaxis_title="Pérdida de transmisión, TL (dB)",
+        height=360,
+        margin=dict(l=35, r=15, t=60, b=45),
+        showlegend=False,
+    )
+    fig_comparison.update_yaxes(
+        range=[0, max(comparison_values) * 1.22],
+        gridcolor="#e2e8f0",
+    )
+    st.plotly_chart(
+        fig_comparison,
+        use_container_width=True,
+        key="lab2_field_tl_comparison",
+        config={"displayModeBar": False},
+    )
+
+    transmitted_percent = 100.0 * selected_tau
+    if field_mode == "Incidencia normal · 0°":
+        field_explanation = (
+            "Las ondas llegan perpendicularmente y todas comparten la misma dirección. "
+            "El resultado corresponde a una incidencia única, no a un promedio angular."
+        )
+    elif field_mode == "Campo de laboratorio · 0° a 78°":
+        field_explanation = (
+            "El resultado combina energéticamente todas las incidencias entre 0° y 78°. "
+            "No corresponde al TL de una onda que llega a 78°."
+        )
+    else:
+        field_explanation = (
+            "El modelo ideal incorpora incidencias de prácticamente todo el hemisferio. "
+            "Los ángulos rasantes se incluyen con su ponderación energética, no con igual peso."
+        )
     st.markdown(
-        f'<div class="lesson"><b>Lectura calculada:</b> para una hoja ideal de '
-        f'10 kg/m², {angular_frequency} Hz y θ={angle}°, cos θ={angular_factor:.3f}; '
-        f'τ={tau_angle:.4g} y TL={tl_angle:.1f} dB. En este modelo de masa, al acercarse '
-        'a incidencia rasante disminuye la componente normal que excita la hoja. '
-        'El resultado de campo no es el TL de un único ángulo: integra muchos ángulos.</div>',
-        unsafe_allow_html=True)
-    with st.expander("Ver nuevamente el desarrollo del promedio angular"):
-        st.latex(r"\overline{\tau}=\frac{\int_0^{78^\circ}\tau(\theta)\sin\theta\cos\theta\,d\theta}{\int_0^{78^\circ}\sin\theta\cos\theta\,d\theta}")
-        st.latex(r"TL_{\mathrm{campo}}=-10\log_{10}(\overline{\tau})")
-        st.warning("Error frecuente: promediar valores de TL directamente en dB. Primero se promedia τ y luego se transforma.")
-    st.markdown("### 6. Explorador de las cuatro zonas")
+        f'<div class="lesson"><b>Interpretación automática:</b> a '
+        f'<b>{angular_frequency} Hz</b>, la condición <b>{field_mode}</b> entrega '
+        f'<b>TL = {selected_tl:.1f} dB</b> y transmite aproximadamente '
+        f'<b>{transmitted_percent:.3g} %</b> de la energía incidente en este modelo '
+        f'ideal de masa. {field_explanation}</div>',
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("Ver detalle matemático"):
+        st.markdown(
+            "Para cada dirección se calcula primero el coeficiente de transmisión "
+            "de la hoja simple:"
+        )
+        st.latex(
+            r"\tau(\theta)=\left[1+\left("
+            r"\frac{\omega m'\cos\theta}{2\rho_0c}"
+            r"\right)^2\right]^{-1}"
+        )
+        st.markdown(
+            "Para los campos angulares, los coeficientes se integran con ponderación "
+            "energética y solo después se convierten a decibeles:"
+        )
+        st.latex(
+            r"\overline{\tau}="
+            r"\frac{\displaystyle\int_{0}^{\theta_{\max}}\tau(\theta)"
+            r"\sin\theta\cos\theta\,d\theta}"
+            r"{\displaystyle\int_{0}^{\theta_{\max}}"
+            r"\sin\theta\cos\theta\,d\theta}"
+        )
+        st.latex(r"TL=-10\log_{10}\left(\overline{\tau}\right)")
+        st.markdown("""
+        - **τ(θ):** coeficiente de transmisión para el ángulo θ.
+        - **θ:** ángulo de incidencia medido desde la normal.
+        - **ω = 2πf:** frecuencia angular.
+        - **m′:** masa superficial de la placa.
+        - **ρ₀:** densidad del aire.
+        - **c:** velocidad del sonido en el aire.
+        - **θmáx:** 78° para el campo de laboratorio y aproximadamente 90° para el
+          campo difuso ideal.
+        - **τ̄:** coeficiente de transmisión promedio.
+        - **TL:** pérdida de transmisión, en dB.
+
+        Los valores de TL no se promedian directamente. Primero se promedia la energía
+        mediante τ y luego se transforma el resultado a decibeles.
+        """)
+    st.markdown("### 9. Explorador de las cuatro zonas")
     material=st.selectbox("Material",["Yeso-cartón","Vidrio","Madera contrachapada","Hormigón"],key="lab2_panel_material")
     props={
         # densidad, espesor, E [GPa], nu, eta aproximada
@@ -4609,55 +4988,65 @@ def lab2_stage2():
     mass,stiffness,calculated_fc=_critical_frequency(rho,h,young,poisson)
     default_loss=max(5,min(16,5-10*math.log10(eta)))
     curve=_simple_real_curve(mass,calculated_fc,default_loss)
+    zone_explanations={
+        "1 · Rigidez":(
+            "A muy baja frecuencia dominan la rigidez, el tamaño, los apoyos y las "
+            "fijaciones. Al variar el material o el espesor cambia la rigidez a "
+            "flexión D; por eso esta zona no puede predecirse solo con la masa "
+            "superficial m′."
+        ),
+        "2 · Resonancias":(
+            "Los modos propios dependen de la relación D/m′, de las dimensiones y "
+            "de los bordes. Una placa más rígida desplaza sus modos; una placa mayor "
+            "o más pesada tiende a llevarlos hacia frecuencias menores."
+        ),
+        "3 · Ley de masa":(
+            "Entre las resonancias y la coincidencia domina la inercia. En esta "
+            "región resulta útil la ley de masa: al duplicar m′ o la frecuencia, "
+            "el aislamiento aumenta aproximadamente 6 dB."
+        ),
+        "4 · Coincidencia":(
+            f"Para la selección actual, la frecuencia crítica es aproximadamente "
+            f"{calculated_fc:.0f} Hz. En torno a ella, la onda aérea se acopla con "
+            "una onda de flexión de la placa y aumenta la energía transmitida."
+        ),
+    }
+    st.markdown("#### Cómo interpretar la zona seleccionada")
+    st.markdown(
+        f"**{selected_zone}.** {zone_explanations[selected_zone]} "
+        "En el gráfico, el fondo coloreado identifica el intervalo donde domina "
+        "este mecanismo."
+    )
+    if selected_zone=="1 · Rigidez":
+        st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
+    elif selected_zone=="3 · Ley de masa":
+        st.latex(r"TL\approx20\log_{10}(m'f)-47")
+    elif selected_zone=="4 · Coincidencia":
+        st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
+    # Rangos didácticos para mostrar dónde domina cada mecanismo. La zona de
+    # coincidencia sigue a fᶜ, por lo que cambia al modificar material o espesor.
+    zone_highlights={
+        "1 · Rigidez":(50,125,"Zona de rigidez","#9ec5fe"),
+        "2 · Resonancias":(63,250,"Zona de resonancias","#ffd8a8"),
+        "3 · Ley de masa":(
+            250,max(315,.80*calculated_fc),"Zona de ley de masa","#b7e4c7"
+        ),
+        "4 · Coincidencia":(
+            .80*calculated_fc,1.25*calculated_fc,
+            "Zona de coincidencia","#f3b4c2"
+        ),
+    }
     _plot_curves([
         ("Respuesta aproximada",curve,"solid"),
         ("Ley de masa ideal",_mass_law_curve(mass),"dash"),
-    ],f"{material} · m′ = {mass:.1f} kg/m²",[(calculated_fc,"fᶜ")])
+    ],f"{material} · m′ = {mass:.1f} kg/m²",
+       [(calculated_fc,"fᶜ")],zone_highlights[selected_zone])
     z1,z2,z3=st.columns(3)
     z1.metric("Masa superficial m′",f"{mass:.1f} kg/m²")
     z2.metric("Rigidez D",f"{stiffness:.1f} N·m")
     z3.metric("Frecuencia crítica fᶜ",f"{calculated_fc:.0f} Hz")
-    zone_explanations={
-        "1 · Rigidez":(
-            "A muy baja frecuencia dominan la rigidez, el tamaño, los apoyos y las "
-            "fijaciones. Al variar el material o el espesor cambia D = Eh³/[12(1−ν²)]; "
-            "por eso esta zona no puede predecirse solo con m′."
-        ),
-        "2 · Resonancias":(
-            "Los modos propios dependen de D/m′, de las dimensiones y de los bordes. "
-            "Una placa más rígida desplaza sus modos; una placa mayor o más pesada tiende "
-            "a llevarlos hacia frecuencias menores. Los valles no son una recta de masa."
-        ),
-        "3 · Ley de masa":(
-            "Entre resonancias y coincidencia domina la inercia. Aquí sí es útil "
-            "TL ≈ 20 log₁₀(m′f) − 47: duplicar m′ o f aporta aproximadamente 6 dB. "
-            "La línea discontinua es una tendencia, no toda la respuesta real."
-        ),
-        "4 · Coincidencia":(
-            f"Para la selección actual, fᶜ ≈ {calculated_fc:.0f} Hz. En torno a esa "
-            "frecuencia la onda aérea se acopla con una onda de flexión y aumenta la "
-            "radiación transmitida. Cambiar E, ρ o h desplaza fᶜ; el amortiguamiento η "
-            "modifica la profundidad y anchura del valle."
-        ),
-    }
-    st.markdown(
-        f'<div class="lesson"><b>{selected_zone} · por qué cambia:</b> '
-        f'{zone_explanations[selected_zone]}</div>',unsafe_allow_html=True)
-    with st.expander("Desarrollo de la frecuencia crítica"):
-        st.latex(r"D=\frac{Eh^3}{12(1-\nu^2)}")
-        st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{D}}")
-        st.markdown("Para una placa homogénea se combinan las siguientes relaciones:")
-        st.latex(r"m'=\rho h")
-        st.latex(r"D\propto Eh^3")
-        st.latex(r"f_c\propto\frac{1}{h}\sqrt{\frac{\rho}{E}}")
-        st.markdown("""
-        Por eso aumentar el espesor reduce aproximadamente la frecuencia crítica: la
-        rigidez crece con el cubo del espesor, mucho más rápido que la masa superficial,
-        que crece linealmente. Materiales con mayor relación rigidez/masa presentan una
-        frecuencia crítica más baja.
-        """)
     st.caption("Modelo didáctico: muestra mecanismos y tendencias; no sustituye una curva de ensayo del producto.")
-    st.markdown("### 7. Preguntas de comprensión")
+    st.markdown("### 10. Preguntas de comprensión")
     check("lab2_s2_q1",
         "¿De dónde proviene el término aproximado −47 dB de la ley de masa?",
         [
@@ -4704,9 +5093,9 @@ def lab2_stage2():
         "Disminuye aproximadamente en proporción inversa al espesor",
         "Como m′ crece con h y D con h³, fᶜ es aproximadamente proporcional a 1/h para un mismo material.")
 
-def _panel_simple_tau_tesis(frequency, angles_rad, surface_mass, stiffness,
-                            loss_factor, rho_air=1.21, sound_speed=343.0):
-    """Coeficiente angular del modelo original de placa simple de AKUZOFT."""
+def _panel_simple_tau(frequency, angles_rad, surface_mass, stiffness,
+                      loss_factor, rho_air=1.18, sound_speed=343.0):
+    """Coeficiente de transmisión angular para una placa simple homogénea."""
     omega = 2*np.pi*np.asarray(frequency, dtype=float)
     theta = np.asarray(angles_rad, dtype=float)
     omega_grid = omega[..., np.newaxis]
@@ -4724,21 +5113,21 @@ def _panel_simple_tau_tesis(frequency, angles_rad, surface_mass, stiffness,
     return 1/np.maximum(real_part**2+imaginary_part**2, 1e-15)
 
 
-def _panel_simple_field_tl_tesis(frequencies, surface_mass, stiffness,
-                                 loss_factor, theta_limit_deg=78.0):
-    """Integra τ entre 0° y theta_limit con la ponderación de incidencia de campo."""
-    # Regla del punto medio: evita depender de np.trapz/np.trapezoid entre
-    # versiones de NumPy y no evalúa los extremos 0°/90°.
-    edges = np.linspace(0, math.radians(theta_limit_deg), 722)
-    angles = (edges[:-1]+edges[1:])/2
-    delta_theta = edges[1]-edges[0]
-    tau_angular = _panel_simple_tau_tesis(
+def _panel_simple_field_tl(frequencies, surface_mass, stiffness,
+                           loss_factor):
+    """Cálculo de campo para una placa simple entre 0 y 78 grados."""
+    angles = np.linspace(0.0, np.deg2rad(78.0), 720)
+    tau_angular = _panel_simple_tau(
         frequencies, angles, surface_mass, stiffness, loss_factor
     )
     weights = np.sin(angles)*np.cos(angles)
-    integral = np.sum(tau_angular*weights, axis=-1)*delta_theta
-    normalizer = 1/(0.5*math.sin(math.radians(theta_limit_deg))**2)
-    tau_field = np.clip(normalizer*integral, 1e-15, 1.0)
+    integrand = tau_angular*weights
+    if hasattr(np, "trapezoid"):
+        integral = np.trapezoid(integrand, angles, axis=-1)
+    else:
+        integral = np.trapz(integrand, angles, axis=-1)
+    normalizer = 2.0904
+    tau_field = np.maximum(normalizer*integral, 1e-12)
     tl_field = -10*np.log10(tau_field)
     return tau_field, tl_field, angles, tau_angular, normalizer
 
@@ -4757,7 +5146,7 @@ def lab2_stage3():
 
     En este primer ejercicio no se aplicará la ley de masa aproximada ni una corrección
     dibujada para la coincidencia. La curva se obtendrá directamente con la ecuación
-    angular de placa simple de la tesis **AKUZOFT** y su integración de campo hasta 78°.
+    angular de placa simple y su integración de campo.
     """)
     _lab2_image(
         "yeso_carton",
@@ -4861,8 +5250,8 @@ def lab2_stage3():
 
     selected_f=float(selected_frequency)
     tau_field_one,tl_field_one,angles,tau_angular,normalizer=(
-        _panel_simple_field_tl_tesis(
-            np.array([selected_f]),surface_mass,stiffness,eta,78.0
+        _panel_simple_field_tl(
+            np.array([selected_f]),surface_mass,stiffness,eta
         )
     )
     tau_selected=tau_angular[0]
@@ -4917,8 +5306,8 @@ def lab2_stage3():
 
     st.markdown("### Paso 5 · Curva continua de TL en frecuencia lineal")
     frequencies=np.arange(50.0,5000.0+1,10.0)
-    tau_field,tl_field,_,_,_= _panel_simple_field_tl_tesis(
-        frequencies,surface_mass,stiffness,eta,78.0)
+    tau_field,tl_field,_,_,_= _panel_simple_field_tl(
+        frequencies,surface_mass,stiffness,eta)
     selected_index=int(np.argmin(np.abs(frequencies-selected_f)))
     fig=go.Figure()
     fig.add_trace(go.Scatter(
@@ -4949,8 +5338,8 @@ def lab2_stage3():
 
     st.markdown("### Paso 6 · Lectura de resultados")
     sample_frequencies=np.array([125.,250.,500.,1000.,2000.,4000.])
-    sample_tau,sample_tl,_,_,_=_panel_simple_field_tl_tesis(
-        sample_frequencies,surface_mass,stiffness,eta,78.0)
+    sample_tau,sample_tl,_,_,_=_panel_simple_field_tl(
+        sample_frequencies,surface_mass,stiffness,eta)
     results=pd.DataFrame({
         "Frecuencia (Hz)":sample_frequencies.astype(int),
         "τ̄ campo":sample_tau,
@@ -5030,329 +5419,1170 @@ def lab2_stage3():
     )
 
 def lab2_stage4():
-    _lab2_heading(4, "Panel doble y resonancia masa–aire–masa",
-                  "Comprender cuándo dos hojas forman un sistema desacoplado y cómo la cámara modifica la curva.")
-    _lab2_image("panel_doble")
-    st.markdown("""
-    Un **panel doble** posee dos hojas que pueden vibrar de manera diferente, separadas por
-    una cámara. Las hojas actúan como masas y el aire encerrado como resorte. Cerca de la
-    resonancia **f₀**, ambas hojas se acoplan y el aislamiento disminuye. Por encima de esa
-    zona, el desacoplamiento puede superar claramente a una sola hoja de masa equivalente.
+    """Explicación técnica de dos placas simples separadas por una cámara de aire."""
+    _lab2_heading(
+        4,
+        "Pérdida de transmisión en paneles dobles",
+        "Comprender el sistema masa–aire–masa, sus frecuencias características y las tres regiones del modelo.",
+    )
+    _lab2_image(
+        "panel_doble",
+        "Modelo idealizado: dos placas homogéneas simples separadas por una cámara de aire.",
+    )
+    st.markdown(r"""
+    ### Introducción
 
-    La lana mineral reduce la energía de los modos de la cámara, pero no reemplaza la
-    separación estructural ni corrige puentes rígidos.
-    """)
-    c1,c2,c3=st.columns(3)
-    m1=c1.slider("Masa hoja 1 (kg/m²)",5,40,10,key="lab2_d_m1")
-    m2=c2.slider("Masa hoja 2 (kg/m²)",5,40,10,key="lab2_d_m2")
-    depth=c3.slider("Cámara d (mm)",30,200,70,key="lab2_d_depth")
-    connection=st.radio("Conexión constructiva",
-        ["Independiente","Montante compartido","Puente accidental"],horizontal=True,key="lab2_connection")
-    curve,f0,fl=_sharp_curve(m1,m2,depth,connection)
-    a,b,c=st.columns(3)
-    a.metric("Resonancia f₀",f"{f0:.0f} Hz")
-    b.metric("Transición fₗ",f"{fl:.0f} Hz")
-    c.metric("Masa total",f"{m1+m2} kg/m²")
-    _plot_curves([
-        (f"Sistema doble · {connection}",curve,"solid"),
-        ("Una hoja de igual masa",_mass_law_curve(m1+m2),"dash"),
-    ],"Simulador masa–aire–masa",[(f0,"f₀"),(fl,"fₗ")])
-    st.latex(r"f_0=60\sqrt{\frac{1/m'_1+1/m'_2}{d}}")
-    st.caption("d se expresa en metros. Aumentar la profundidad o las masas desplaza f₀ hacia frecuencias más bajas.")
-    _lab2_image("metalcon")
-    st.markdown("""
-    En Metalcon simple, ambas caras se fijan a los mismos montantes: los apoyos repetidos
-    forman una **conexión lineal rígida**. En doble estructura, cada hoja se fija a su propio
-    bastidor y no existe conexión directa si también se separan soleras, tornillos y refuerzos.
-    """)
+    Un panel doble está formado por **dos placas separadas por una cámara de
+    aire**. A diferencia de una placa simple, su comportamiento no depende
+    solamente de la masa y la rigidez de cada hoja: el aire encerrado actúa como
+    un resorte y acopla el movimiento de ambas placas.
 
-def lab2_stage5():
-    _lab2_heading(5, "Modelo de Sharp: TL por tramos",
-                  "Seguir la ecuación activa, ubicar f₀ y fₗ e interpretar los cambios de pendiente.")
-    st.markdown("""
-    Sharp representa el sistema doble mediante regiones. La ecuación cambia porque el
-    mecanismo dominante no es el mismo a ambos lados de **f₀** y **fₗ**:
+    El conjunto puede representarse como un sistema **masa–aire–masa**:
+
+    - La placa 1 constituye la primera masa.
+    - La cámara de aire aporta la elasticidad.
+    - La placa 2 constituye la segunda masa.
+
+    Este mecanismo produce una frecuencia de resonancia \(f_0\) y obliga a
+    estudiar la pérdida por transmisión mediante tres regiones. Por eso, agregar
+    una segunda placa no genera la misma mejora en todas las frecuencias.
+    """)
+    st.info(
+        "**Continuidad con la Etapa 3:** cada hoja se calcula primero como una placa "
+        "simple con integración de campo entre 0° y 78°. Después, ambas curvas se "
+        "combinan mediante la ecuación de panel doble."
+    )
+    st.caption(
+        "En esta explicación se utiliza el modelo teórico ideal. Las correcciones "
+        "por absorbente, montantes, fijaciones, fugas y transmisiones laterales no "
+        "forman parte de esta etapa."
+    )
+
+    st.markdown("### 1 · Propiedades de las dos placas")
+    st.markdown(r"""
+        Cada hoja conserva las propiedades del panel simple estudiado en la
+        Etapa 3. Para la placa \(i\):
+    """)
+    st.latex(r"m'_i=\rho_i h_i")
+    st.latex(r"B_i=\frac{E_i h_i^3}{12}")
+    st.caption(
+        "Para cada hoja i, m′ es la masa superficial en kg/m² y B es la rigidez "
+        "a flexión en N·m."
+    )
+    _lab2_image(
+        "s4_propiedades_placas",
+        "Cada hoja aporta masa superficial y rigidez a flexión al sistema doble.",
+    )
+    _lab2_plain_language_cards(
+        "Cada placa conserva su propio peso por metro cuadrado y su propia resistencia a doblarse.",
+        "El espesor aumenta la masa linealmente, pero la rigidez crece con el cubo del espesor.",
+        "Suponer que dos placas separadas por aire se comportan desde el inicio como una sola placa gruesa.",
+    )
+
+    st.markdown("### 2 · Resonancia masa–aire–masa")
+    st.markdown(r"""
+    En \(f_0\), las dos placas y el aire de la cámara interactúan con mayor
+    intensidad. Esta resonancia constituye una zona desfavorable porque puede
+    reducir el aislamiento del sistema. Su posición depende de las masas
+    superficiales y de la profundidad \(d\) de la cámara:
     """)
     st.latex(
-        r"TL(f)=\begin{cases}"
-        r"TL_{(m'_1+m'_2)}, & f<f_0\\"
-        r"TL_{m'_1}+TL_{m'_2}+20\log_{10}(fd)-29, & f_0\leq f<f_l\\"
-        r"TL_{m'_1}+TL_{m'_2}+6, & f\geq f_l"
+        r"f_0=\frac{1}{2\pi}"
+        r"\sqrt{\rho_0c^2}"
+        r"\sqrt{\frac{m'_1+m'_2}{m'_1m'_2d}}"
+    )
+    st.markdown(r"""
+    Al aumentar la masa de las hojas o la profundidad de la cámara, \(f_0\)
+    normalmente se desplaza hacia frecuencias más bajas.
+
+    La segunda frecuencia característica, \(f_1\), marca el cambio hacia la
+    región superior del modelo:
+    """)
+    st.latex(r"f_1=\frac{c}{2\pi d}")
+    st.caption(
+        "En ambas expresiones, d se ingresa en metros; ρ₀ = 1,18 kg/m³ y c = 343 m/s."
+    )
+    _lab2_image(
+        "s4_resonancia",
+        "En la resonancia, las dos masas quedan acopladas por el resorte neumático de la cámara.",
+    )
+    _lab2_plain_language_cards(
+        "Las placas son las masas y el aire encerrado funciona como un resorte que las conecta.",
+        "Una cámara más profunda o placas más pesadas desplazan normalmente f₀ hacia frecuencias bajas.",
+        "Pensar que agregar una segunda placa siempre mejora el aislamiento: cerca de f₀ puede aparecer una caída.",
+    )
+
+    st.markdown("### 3 · Ecuación por regiones")
+    st.latex(
+        r"TL_D(f)=\begin{cases}"
+        r"TL_{eq}(f), & f<f_0\\[4pt]"
+        r"TL_1(f)+TL_2(f)+20\log_{10}(fd)-29, & f_0\leq f<f_1\\[4pt]"
+        r"TL_1(f)+TL_2(f)+6, & f\geq f_1"
         r"\end{cases}"
     )
-    c1,c2,c3,c4=st.columns(4)
-    m1=c1.number_input("m′₁ (kg/m²)",5.0,80.0,10.0,1.0,key="sharp_m1")
-    m2=c2.number_input("m′₂ (kg/m²)",5.0,80.0,10.0,1.0,key="sharp_m2")
-    depth=c3.number_input("d (mm)",30,300,70,10,key="sharp_d")
-    selected_f=c4.selectbox("Frecuencia (Hz)",LAB2_FREQS.tolist(),index=9,key="sharp_f")
-    curve,f0,fl=_sharp_curve(m1,m2,depth,"Independiente")
-    idx=int(np.where(LAB2_FREQS==selected_f)[0][0])
-    if selected_f < f0:
-        tramo="Tramo 1 · masa total"
-        explanation="Las dos hojas todavía no entregan el beneficio completo del desacoplamiento."
-    elif selected_f < fl:
-        tramo="Tramo 2 · crecimiento masa–aire–masa"
-        explanation="Intervienen ambas hojas y la profundidad de la cámara."
-    else:
-        tramo="Tramo 3 · suma de hojas + 6 dB"
-        explanation="El modelo entra en la región superior definida por la transición."
-    a,b,c=st.columns(3)
-    a.metric("f₀",f"{f0:.0f} Hz")
-    b.metric("fₗ",f"{fl:.0f} Hz")
-    c.metric(f"TL a {selected_f} Hz",f"{curve[idx]:.1f} dB")
-    st.info(f"**{tramo}.** {explanation}")
-    _plot_curves([
-        ("Sharp · doble independiente",curve,"solid"),
-        ("Masa total como una hoja",_mass_law_curve(m1+m2),"dash"),
-    ],"TL de Sharp y frecuencias de transición",[(f0,"f₀"),(fl,"fₗ")])
-    st.markdown("""
-    ### Ejemplo guiado
-    Para dos hojas de 10 kg/m² y una cámara de 70 mm, el simulador calcula primero
-    **f₀** y **fₗ**. Luego ubica cada banda en su tramo. Esta secuencia evita aplicar
-    una única expresión a todo el espectro.
+    st.markdown(r"""
+    **Región 1 · Bajo \(f_0\).** Las placas se comportan de manera acoplada y se
+    representan como un panel equivalente. Todavía no se obtiene el beneficio
+    completo de la cámara.
     """)
-    check("lab2_sharp_q","¿Qué cambio desplaza normalmente f₀ hacia frecuencias más bajas?",
-          ["Reducir la cámara","Aumentar la cámara","Unir rígidamente las hojas"],
-          "Aumentar la cámara","Una cámara más profunda reduce la rigidez del resorte de aire y disminuye f₀.")
+    st.latex(r"m'_{eq}=m'_1+m'_2")
+    st.latex(r"B_{eq}=B_1+B_2")
+    st.latex(r"\eta_{eq}=\eta_1+\eta_2")
+    st.markdown(r"""
+    **Región 2 · Entre \(f_0\) y \(f_1\).** Se desarrolla el comportamiento
+    masa–aire–masa. La pérdida por transmisión depende de las dos placas y
+    aparece explícitamente la profundidad \(d\) de la cámara.
 
-def _sonara_glass_tl(thickness_mm, loss_factor, frequencies=LAB2_FREQS):
-    """TL de un vidrio monolítico con el motor angular SONARA/AKUZOFT."""
-    density=2500.0
-    young=70.0e9
-    poisson=0.23
-    thickness=float(thickness_mm)/1000.0
-    surface_mass=density*thickness
-    stiffness=young*thickness**3/(12*(1-poisson**2))
-    critical=343.0**2/(2*math.pi)*math.sqrt(surface_mass/stiffness)
-    _,tl,_,_,_=_panel_simple_field_tl_tesis(
-        np.asarray(frequencies,dtype=float),
-        surface_mass,stiffness,float(loss_factor),78.0)
-    return np.asarray(tl),surface_mass,stiffness,critical
-
-
-def _quirt_with_sonara_glass(g1_mm,g2_mm,gap_m,height,width,alpha,
-                             eta1,eta2,frequencies=LAB2_FREQS):
-    """Quirt: hojas calculadas por SONARA y cavidad según ecuaciones 2.28–2.29."""
-    tl1,m1,b1,fc1=_sonara_glass_tl(g1_mm,eta1,frequencies)
-    tl2,m2,b2,fc2=_sonara_glass_tl(g2_mm,eta2,frequencies)
-    rho0=1.21
-    sound_speed=343.0
-    f1=(1/(2*math.pi))*math.sqrt(
-        ((m1+m2)*rho0*sound_speed**2)/(gap_m*m1*m2))
-    low=mass_r(m1+m2,np.asarray(frequencies,dtype=float))
-    geometry=(
-        10*math.log10(max(alpha,1e-9))
-        +10*math.log10(max(gap_m,1e-9))
-        +10*math.log10((height+width)/(height*width))
-        +3
+    **Región 3 · Sobre \(f_1\).** El modelo combina la pérdida por transmisión
+    de ambas hojas y agrega 6 dB.
+    """)
+    st.caption(
+        "TL₁, TL₂ y TLₑq se obtienen con el mismo cálculo angular y de campo "
+        "utilizado para las placas simples en la Etapa 3."
     )
-    high=tl1+tl2+geometry
-    total=np.where(np.asarray(frequencies,dtype=float)<f1,low,high)
-    return total,tl1,tl2,low,f1,(m1,m2),(fc1,fc2),geometry
+    _lab2_image(
+        "s4_regiones",
+        "La respuesta del panel doble cambia al atravesar f₀ y f₁.",
+    )
+    _lab2_plain_language_cards(
+        "La curva no se calcula con una sola regla: el modelo cambia según la frecuencia.",
+        "Bajo f₀ domina el conjunto acoplado; entre f₀ y f₁ actúa masa–aire–masa; sobre f₁ se combinan ambas hojas.",
+        "Aplicar la ecuación de la región central a todo el espectro o interpretar las discontinuidades como un fenómeno real exacto.",
+    )
 
+    materials={
+        "Yeso-cartón":{"rho":800.0,"E":2.5,"eta":0.030,"h":12.5},
+        "Madera":{"rho":600.0,"E":10.0,"eta":0.020,"h":18.0},
+        "Hormigón":{"rho":2400.0,"E":30.0,"eta":0.010,"h":100.0},
+    }
+    st.markdown("### 4 · Explorador técnico del modelo")
+    st.markdown(
+        "Modifica los parámetros para observar cómo cambian las masas superficiales, "
+        "las frecuencias características y la curva. Esta sección ilustra la teoría; "
+        "el ejercicio de aplicación aparece al final."
+    )
+    col_left,col_right=st.columns(2)
+    with col_left:
+        st.markdown("#### Placa 1")
+        material_1=st.selectbox(
+            "Material de la placa 1",list(materials),index=0,
+            key="lab2_s4_material_1")
+        default_1=materials[material_1]
+        h1_mm=st.number_input(
+            "Espesor de la placa 1 (mm)",4.0,300.0,float(default_1["h"]),0.5,
+            key="lab2_s4_h1")
+    with col_right:
+        st.markdown("#### Placa 2")
+        material_2=st.selectbox(
+            "Material de la placa 2",list(materials),index=0,
+            key="lab2_s4_material_2")
+        default_2=materials[material_2]
+        h2_mm=st.number_input(
+            "Espesor de la placa 2 (mm)",4.0,300.0,float(default_2["h"]),0.5,
+            key="lab2_s4_h2")
+    depth_mm=st.slider(
+        "Profundidad de la cámara d (mm)",20,300,70,5,
+        key="lab2_s4_depth")
+
+    h1=h1_mm/1000
+    h2=h2_mm/1000
+    d=depth_mm/1000
+    m1=default_1["rho"]*h1
+    m2=default_2["rho"]*h2
+    b1=default_1["E"]*1e9*h1**3/12
+    b2=default_2["E"]*1e9*h2**3/12
+    eta1=default_1["eta"]
+    eta2=default_2["eta"]
+    rho_air=1.18
+    sound_speed=343.0
+    f0=(1/(2*math.pi))*math.sqrt(rho_air*sound_speed**2)*math.sqrt(
+        (m1+m2)/(m1*m2*d)
+    )
+    f1=sound_speed/(2*math.pi*d)
+
+    frequencies=np.arange(50.0,5000.0+1,10.0)
+    _,tl1,_,_,_=_panel_simple_field_tl(frequencies,m1,b1,eta1)
+    _,tl2,_,_,_=_panel_simple_field_tl(frequencies,m2,b2,eta2)
+    _,tl_equivalent,_,_,_=_panel_simple_field_tl(
+        frequencies,m1+m2,b1+b2,eta1+eta2
+    )
+    tl_double=np.empty_like(frequencies)
+    region_1=frequencies < f0
+    region_2=(frequencies >= f0) & (frequencies < f1)
+    region_3=frequencies >= f1
+    tl_double[region_1]=tl_equivalent[region_1]
+    tl_double[region_2]=(
+        tl1[region_2]+tl2[region_2]
+        +20*np.log10(frequencies[region_2]*d)-29
+    )
+    tl_double[region_3]=tl1[region_3]+tl2[region_3]+6
+
+    a,b,c,d_metric=st.columns(4)
+    a.metric("Masa placa 1",f"{m1:.2f} kg/m²")
+    b.metric("Masa placa 2",f"{m2:.2f} kg/m²")
+    c.metric("Resonancia f₀",f"{f0:.0f} Hz")
+    d_metric.metric("Transición f₁",f"{f1:.0f} Hz")
+
+    st.markdown("#### Curva y tres regiones del modelo")
+    st.markdown(
+        "La curva azul gruesa representa el **TL del sistema doble**. Las líneas "
+        "punteadas muestran el comportamiento de cada placa por separado. Los fondos "
+        "de color identifican las tres regiones del modelo y las líneas verticales "
+        "marcan las frecuencias características calculadas para la configuración actual."
+    )
+    fig=go.Figure()
+    fig.add_vrect(
+        x0=50,x1=min(f0,5000),fillcolor="#dcecff",opacity=.42,
+        line_width=0)
+    if f0 < 5000:
+        fig.add_vrect(
+            x0=max(50,f0),x1=min(f1,5000),fillcolor="#fff0cf",opacity=.42,
+            line_width=0)
+    if f1 < 5000:
+        fig.add_vrect(
+            x0=max(50,f1),x1=5000,fillcolor="#dcf5e8",opacity=.42,
+            line_width=0)
+    # El panel doble se dibuja primero para que las curvas de cada placa
+    # permanezcan visibles por encima, incluso cuando siguen valores cercanos.
+    fig.add_trace(go.Scatter(
+        x=frequencies,y=tl_double,mode="lines",name="Panel doble",
+        line=dict(color="#173f63",width=5)))
+    # Los marcadores alternados permiten reconocer ambas placas cuando son
+    # idénticas y sus curvas coinciden exactamente.
+    fig.add_trace(go.Scatter(
+        x=frequencies,y=tl1,mode="lines",
+        name=f"Placa 1: {material_1}",
+        line=dict(color="#1976d2",width=2.5,dash="dash")))
+    fig.add_trace(go.Scatter(
+        x=frequencies,y=tl2,mode="lines",
+        name=f"Placa 2: {material_2}",
+        line=dict(color="#e07a00",width=2.5,dash="dot")))
+    marker_step=max(1,len(frequencies)//16)
+    fig.add_trace(go.Scatter(
+        x=frequencies[::marker_step],y=tl1[::marker_step],
+        mode="markers",showlegend=False,hoverinfo="skip",
+        marker=dict(color="#1976d2",size=6,symbol="circle")))
+    fig.add_trace(go.Scatter(
+        x=frequencies[marker_step//2::marker_step],
+        y=tl2[marker_step//2::marker_step],
+        mode="markers",showlegend=False,hoverinfo="skip",
+        marker=dict(
+            color="white",line=dict(color="#e07a00",width=2),
+            size=8,symbol="diamond")))
+    if 50 <= f0 <= 5000:
+        fig.add_vline(x=f0,line_dash="dash",line_color="#d64545",
+                      annotation_text="f₀",annotation_position="top right")
+    if 50 <= f1 <= 5000:
+        fig.add_vline(x=f1,line_dash="dash",line_color="#16845b",
+                      annotation_text="f₁",annotation_position="top right")
+    fig.update_layout(
+        title=dict(
+            text="Pérdida por transmisión del sistema de panel doble",
+            x=.5,
+            xanchor="center",
+            font=dict(size=20,color="#173f63"),
+        ),
+        xaxis_title="Frecuencia (Hz) · escala lineal",
+        yaxis_title="TL de campo (dB)",
+        xaxis=dict(type="linear",range=[50,5000],dtick=500,showgrid=True),
+        yaxis=dict(showgrid=True,gridcolor="rgba(23,63,99,.10)"),
+        height=650,hovermode="x unified",
+        margin=dict(l=65,r=30,t=90,b=145),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-.20,
+            xanchor="center",
+            x=.5,
+            title_text="",
+            bgcolor="rgba(255,255,255,.92)",
+            bordercolor="rgba(23,63,99,.18)",
+            borderwidth=1,
+            font=dict(size=13),
+        ))
+    st.plotly_chart(fig,use_container_width=True,key="lab2_s4_double_curve")
+    st.caption(
+        "Las discontinuidades en f₀ y f₁ pertenecen a la formulación idealizada por "
+        "tramos. La predicción no incorpora fugas, uniones rígidas ni transmisiones laterales."
+    )
+    _lab2_plain_language_cards(
+        "Mueve los materiales, espesores y la cámara para ver cómo cambia la pared completa, no solo una placa.",
+        "Observa primero dónde quedan f₀ y f₁; después compara la línea gruesa del panel doble con las dos líneas punteadas.",
+        "Elegir la mejor solución mirando un único valor máximo de TL e ignorar la caída de resonancia y la banda de interés.",
+    )
+
+    st.markdown("#### Resultados por frecuencia")
+    sample_frequencies=np.array([125.,250.,500.,1000.,2000.,4000.])
+    sample_indices=[int(np.argmin(np.abs(frequencies-f))) for f in sample_frequencies]
+    table=pd.DataFrame({
+        "Frecuencia (Hz)":sample_frequencies.astype(int),
+        "TL placa 1 (dB)":tl1[sample_indices],
+        "TL placa 2 (dB)":tl2[sample_indices],
+        "TL panel doble (dB)":tl_double[sample_indices],
+        "Región":[
+            "1 · Panel equivalente" if f < f0 else
+            "2 · Masa–aire–masa" if f < f1 else
+            "3 · Región superior"
+            for f in sample_frequencies
+        ],
+    })
+    st.dataframe(
+        table.style.format({
+            "TL placa 1 (dB)":"{:.1f}",
+            "TL placa 2 (dB)":"{:.1f}",
+            "TL panel doble (dB)":"{:.1f}",
+        }),
+        use_container_width=True,hide_index=True)
+
+    st.markdown("### 5 · Ejercicio breve de aplicación")
+    st.markdown(r"""
+    Una sala de máquinas debe separarse de una oficina mediante dos placas y una
+    cámara de aire. Utiliza el explorador con la configuración seleccionada y:
+
+    1. Informa \(m'_1\), \(m'_2\), \(f_0\) y \(f_1\).
+    2. Identifica qué región está activa a 125, 500, 1.000 y 4.000 Hz.
+    3. Compara el \(TL\) del panel doble con el de cada placa simple.
+    4. Modifica solamente la profundidad de la cámara y explica cómo cambian
+       \(f_0\), \(f_1\) y el comportamiento entre 500 y 2.000 Hz.
+    5. Recomienda una profundidad de cámara y justifica técnicamente tu decisión.
+    """)
+    analysis=st.text_area(
+        "Conclusión técnica",
+        key="lab2_s4_analysis",height=150,
+        placeholder=(
+            "Las masas superficiales son... La resonancia f₀ aparece en... "
+            "Entre 500 y 2.000 Hz el sistema... Aumentaría/disminuiría la cámara porque..."
+        ))
+    if st.button("Comprobar mi análisis",key="lab2_s4_check_analysis"):
+        if len(analysis.strip()) < 140:
+            st.warning(
+                "La conclusión aún es breve. Incluye m′₁, m′₂, f₀, f₁, al menos "
+                "dos valores de TL y una decisión sobre la cámara.")
+        else:
+            st.success(
+                "La extensión es suficiente. Verifica que tu decisión se apoye en "
+                "los valores calculados y en la región activa del modelo.")
+
+    st.markdown("### 6 · Comprobación conceptual")
+    check(
+        "lab2_s4_q1",
+        "¿Qué representa físicamente el aire contenido en la cámara?",
+        ["Un resorte acústico","Una tercera placa rígida","Una fuente sonora","Una fuga"],
+        "Un resorte acústico",
+        "Las dos placas actúan como masas y el aire encerrado aporta la elasticidad del sistema."
+    )
+    check(
+        "lab2_s4_q2",
+        "¿Qué sucede normalmente con f₀ al aumentar la profundidad de la cámara?",
+        ["Disminuye","Aumenta","No cambia","Se hace igual a f₁"],
+        "Disminuye",
+        "Al aumentar d disminuye la rigidez efectiva del resorte de aire y la resonancia se desplaza hacia abajo."
+    )
+    check(
+        "lab2_s4_q3",
+        "¿Qué modelo se aplica por debajo de f₀?",
+        [
+            "Un panel equivalente con masas, rigideces y pérdidas combinadas",
+            "La suma de ambas placas más 6 dB",
+            "Solo la placa más pesada",
+            "La ecuación de la cámara sin considerar las placas",
+        ],
+        "Un panel equivalente con masas, rigideces y pérdidas combinadas",
+        "Bajo f₀ el cálculo utiliza m′eq, Beq y ηeq para representar la respuesta conjunta."
+    )
+    check(
+        "lab2_s4_q4",
+        "¿Cuál expresión corresponde a la región entre f₀ y f₁?",
+        [
+            "TL₁ + TL₂ + 20 log₁₀(fd) − 29",
+            "TL₁ + TL₂ + 6",
+            "TL de la placa 1 solamente",
+            "20 log₁₀(m′₁ + m′₂)",
+        ],
+        "TL₁ + TL₂ + 20 log₁₀(fd) − 29",
+        "En la región intermedia intervienen ambas hojas y aparece explícitamente la profundidad de la cámara."
+    )
+    check(
+        "lab2_s4_q5",
+        "¿Por qué esta curva no predice por sí sola el desempeño completo de un tabique construido?",
+        [
+            "Porque no incorpora montantes, fijaciones, fugas, encuentros ni transmisiones laterales",
+            "Porque solo puede calcularse a 78 Hz",
+            "Porque las masas superficiales no afectan el aislamiento",
+            "Porque un panel doble siempre funciona como una placa simple",
+        ],
+        "Porque no incorpora montantes, fijaciones, fugas, encuentros ni transmisiones laterales",
+        "El ejercicio representa el mecanismo ideal de dos placas y una cámara; la obra agrega caminos estructurales y defectos posibles."
+    )
+
+def lab2_stage5():
+    _lab2_heading(
+        5,
+        "Del panel doble ideal al tabique real",
+        "Distinguir conexiones lineales metálicas y de madera, y reconocer el principio de una conexión puntual.",
+    )
+
+    st.markdown("""
+    En la Etapa 4 estudiamos dos hojas y una cámara como un sistema ideal. Un tabique
+    construido necesita perfiles, fijaciones y encuentros para sostenerse. Cuando un
+    mismo montante une mecánicamente ambas caras aparece un **puente estructural**:
+    parte de la vibración evita el camino puramente aéreo de la cámara y se transmite
+    por una conexión continua.
+    """)
+    _lab2_image(
+        "s5_tabique_real",
+        "Tabique real: placas, cámara absorbente, perfiles y fijaciones forman un solo sistema constructivo.",
+    )
+    _lab2_plain_language_cards(
+        "La cámara no trabaja sola. Los tornillos y montantes pueden funcionar como un camino rígido entre una cara y la otra.",
+        "Sigue la energía ámbar que llega a la primera placa y el camino cian que atraviesa los perfiles.",
+        "Suponer que agregar lana mineral elimina el puente rígido. El absorbente ayuda a la cámara, pero no desacopla las placas.",
+    )
+
+    st.markdown("### 1 · Sistema ideal y sistema conectado")
+    st.markdown("""
+    En un sistema independiente cada hoja pertenece a una estructura diferente y la
+    transmisión está dominada por las dos masas, la cámara y su amortiguamiento. En
+    una conexión lineal, un montante o pie derecho continuo acopla ambas caras a lo
+    largo de una línea. Esa unión cambia el mecanismo y limita el beneficio del
+    desacoplamiento.
+    """)
+    _lab2_image(
+        "s5_ideal_vs_conectado",
+        "Comparación conceptual: doble estructura independiente y estructura conectada mediante montantes continuos.",
+    )
+    _lab2_plain_language_cards(
+        "Dos hojas separadas pueden vibrar con mayor independencia. Si las amarramos con el mismo perfil, la vibración encuentra un atajo.",
+        "Compara la intensidad de la onda transmitida y la concentración de energía en las uniones.",
+        "Comparar ambos sistemas solo por su masa total. La forma en que las hojas están conectadas también controla el resultado.",
+    )
+
+    st.markdown("### 2 · Conexión lineal con perfilería metálica")
+    st.markdown("""
+    En un tabique de yeso-cartón, los tornillos fijan ambas caras a montantes metálicos
+    compartidos. Cada montante forma una **línea vertical continua de conexión
+    estructural**. La vibración de la primera hoja puede entrar al perfil y volver a
+    radiarse desde la segunda hoja a lo largo de esa línea.
+    """)
+    _lab2_image(
+        "s5_conexion_lineal_metal",
+        "Conexión lineal metálica: las dos caras quedan vinculadas por montantes continuos de acero galvanizado.",
+    )
+    _lab2_plain_language_cards(
+        "El perfil metálico funciona como un puente largo y continuo entre las dos caras del tabique.",
+        "Sigue el recorrido placa → tornillos → montante metálico → tornillos → placa opuesta.",
+        "Creer que cada tornillo constituye por sí solo una conexión puntual. Aquí los tornillos descargan sobre un mismo perfil continuo: el conjunto se modela como conexión lineal.",
+    )
+
+    st.markdown("### 3 · Conexión lineal con pies derechos de madera")
+    st.markdown("""
+    El principio es el mismo cuando ambas caras se fijan a un **pie derecho continuo
+    de madera**. Cambia el material y su rigidez, pero la geometría de la unión sigue
+    siendo lineal: el elemento estructural se prolonga verticalmente y conecta las
+    hojas a lo largo de toda su altura.
+    """)
+    _lab2_image(
+        "s5_conexion_lineal_madera",
+        "Conexión lineal de madera: ambas caras se fijan a pies derechos continuos compartidos.",
+    )
+    _lab2_plain_language_cards(
+        "Aunque sea madera, el pie derecho también crea un camino estructural continuo entre ambas caras.",
+        "Observa que la energía se distribuye a lo largo de cada elemento vertical y no solo en un punto aislado.",
+        "Clasificar la unión por el material. Lo que define que sea lineal es la continuidad geométrica del contacto, no que el montante sea metálico o de madera.",
+    )
+
+    st.markdown("### 4 · Conexión puntual")
+    st.markdown("""
+    Una materialización constructiva real del apoyo puntual es el sistema de
+    **clips acústicos resilientes**. Cada clip se fija al montante en una posición
+    discreta y sostiene un canal metálico horizontal. Las dos placas de esa cara se
+    atornillan al canal, no directamente al montante.
+
+    El contacto con la estructura primaria queda concentrado en los clips separados.
+    El canal es continuo porque debe sostener las placas, pero su vínculo con los
+    montantes ocurre solo en esos puntos resilientes. El resultado depende del tipo,
+    rigidez, separación y carga admisible de los clips, además de la configuración
+    completa del tabique.
+    """)
+    _lab2_image(
+        "s5_conexion_puntual",
+        "Apoyo puntual real: clips resilientes separados fijan canales horizontales que reciben las dos placas de una cara.",
+    )
+    _lab2_plain_language_cards(
+        "Las placas descansan sobre canales; los canales se conectan a los montantes mediante clips separados que reducen el puente rígido directo.",
+        "Sigue el montaje real: montante → clip resiliente → canal horizontal → dos placas de yeso-cartón.",
+        "Confundir el canal horizontal con una conexión lineal rígida al montante. El canal es continuo, pero se apoya en clips discretos y resilientes.",
+    )
+
+    st.markdown("### 5 · Comparación constructiva")
+    st.markdown("""
+    | Tipo de conexión | Cómo se reconoce | Camino estructural |
+    |---|---|---|
+    | Lineal metálica | Ambas caras fijadas a un perfil metálico continuo compartido | A lo largo del montante |
+    | Lineal de madera | Ambas caras fijadas a un pie derecho continuo compartido | A lo largo del pie derecho |
+    | Puntual resiliente | Clips separados fijados a montantes sostienen canales horizontales | Concentrado en cada clip antes de distribuirse por el canal |
+
+    **Idea clave:** metal y madera corresponden a dos materializaciones de una
+    conexión lineal rígida. El sistema de clips introduce apoyos puntuales
+    resilientes reales; no debe calcularse con la ecuación de conexión lineal sin
+    disponer del modelo o de datos de ensayo del sistema específico.
+    """)
+
+    st.markdown("### 6 · Cómo se obtiene el TL total del tabique")
+    st.markdown("""
+    El tabique transmite energía simultáneamente por dos caminos: el campo
+    acústico de la cámara y las conexiones rígidas. Por ello, sus pérdidas por
+    transmisión no se suman ni se restan directamente en decibeles. Primero se
+    calcula cada camino, luego se transforma cada TL en coeficiente de transmisión
+    y finalmente se suman las energías transmitidas.
+    """)
+
+    st.markdown("#### 6.1 · Camino aéreo: TL base con cámara vacía")
+    st.markdown("""
+    Es la pérdida por transmisión de las dos hojas separadas por una **cámara de
+    aire vacía**, antes de incorporar montantes o material absorbente. Se calcula
+    por bandas de frecuencia y cambia según la región en que se encuentre el
+    sistema.
+    """)
+    st.latex(r"""
+    TL_{\mathrm{base}}(f)=
+    \begin{cases}
+    TL_{m'_1+m'_2}(f), & f<f_0 \\[4pt]
+    TL_1(f)+TL_2(f)+20\log_{10}(f\,d)-29, & f_0\leq f<f_l \\[4pt]
+    TL_1(f)+TL_2(f)+6, & f\geq f_l
+    \end{cases}
+    """)
+    st.latex(
+        r"f_0=\frac{1}{2\pi}\sqrt{\rho_0c^2"
+        r"\left(\frac{m'_1+m'_2}{m'_1m'_2d}\right)}"
+    )
+    st.latex(r"f_l=\frac{c}{2\pi d}")
+    st.markdown(r"""
+- $TL_1(f)$ y $TL_2(f)$: pérdida por transmisión de cada hoja.
+- $TL_{m'_1+m'_2}(f)$: pérdida por transmisión de una hoja equivalente con la masa superficial total.
+- $d$: profundidad de la cámara, en metros.
+- $f_0$: frecuencia de resonancia masa–aire–masa.
+- $f_l$: frecuencia límite utilizada para separar las regiones del modelo.
+    """)
+
+    st.markdown("#### 6.2 · Camino estructural: TL de la conexión lineal")
+    st.markdown("""
+    Cuando ambas caras se vinculan mediante montantes continuos, el modelo
+    simplificado representa el sistema conectado a partir de una hoja equivalente
+    y una corrección asociada a la geometría de las líneas de unión.
+    """)
+    st.latex(r"TL_{\mathrm{línea}}(f)=TL_{m'_1+m'_2}(f)+\Delta TL_{m'}")
+    st.latex(
+        r"\Delta TL_{m'}="
+        r"10\log_{10}(b\,f_c)+"
+        r"20\log_{10}\left(\frac{m'_1}{m'_1+m'_2}\right)-18"
+    )
+    st.markdown(r"""
+- $b$: separación entre líneas de conexión o montantes, en metros.
+- $f_c$: frecuencia crítica más alta de las dos hojas, en Hz.
+- $m'_1$ y $m'_2$: masas superficiales de las hojas 1 y 2, en $\mathrm{kg/m^2}$.
+- $TL_{m'_1+m'_2}(f)$: pérdida por transmisión de una hoja equivalente cuya masa superficial es $m'_1+m'_2$.
+- $\Delta TL_{m'}$: corrección, en decibeles, asociada a la conexión lineal.
+    """)
+
+    st.markdown("#### 6.3 · TL total con cámara vacía")
+    st.markdown("""
+    El camino aéreo y el camino estructural actúan **en paralelo**. Para
+    combinarlos, cada pérdida por transmisión se convierte primero en su
+    coeficiente de transmisión:
+    """)
+    st.latex(r"\tau_{\mathrm{base}}(f)=10^{-TL_{\mathrm{base}}(f)/10}")
+    st.latex(r"\tau_{\mathrm{línea}}(f)=10^{-TL_{\mathrm{línea}}(f)/10}")
+    st.latex(
+        r"\boxed{TL_{\mathrm{total}}(f)=-10\log_{10}\left["
+        r"10^{-TL_{\mathrm{base}}(f)/10}+"
+        r"10^{-TL_{\mathrm{línea}}(f)/10}\right]}"
+    )
+    st.markdown("""
+    El resultado queda siempre controlado por el camino que transmite más
+    energía, es decir, por el que posee el TL más bajo. Si ambos caminos tienen
+    exactamente el mismo TL, su combinación entrega 3 dB menos que cada camino
+    por separado.
+    """)
+
+    st.markdown("#### 6.4 · Camino aéreo con material absorbente")
+    st.markdown("""
+    El material poroso incorporado dentro de la cámara disipa energía mediante
+    pérdidas viscosas y térmicas, reduce las reflexiones internas y amortigua el
+    acoplamiento acústico entre las hojas. Su aporte modifica únicamente el
+    camino aéreo de la cámara:
+    """)
+    st.latex(
+        r"TL_{\mathrm{abs}}(f)="
+        r"TL_{\mathrm{base}}(f)+\Delta TL_{\mathrm{abs}}(f)"
+    )
+    st.markdown(r"""
+- $\Delta TL_{\mathrm{abs}}(f)$: mejora por banda asociada al amortiguamiento de la cámara.
+- El absorbente **no elimina** el camino mecánico formado por montantes y fijaciones.
+- Su efecto real depende de la frecuencia, resistividad al flujo, espesor, profundidad de cámara y porcentaje de llenado; no solamente de la densidad nominal.
+    """)
+
+    st.markdown("#### 6.5 · TL total con conexión lineal y absorbente")
+    st.markdown("""
+    El resultado final se obtiene combinando el camino aéreo ya amortiguado con
+    el camino estructural, que permanece activo:
+    """)
+    st.latex(r"\tau_{\mathrm{abs}}(f)=10^{-TL_{\mathrm{abs}}(f)/10}")
+    st.latex(r"\tau_{\mathrm{total,abs}}(f)=\tau_{\mathrm{abs}}(f)+\tau_{\mathrm{línea}}(f)")
+    st.latex(
+        r"\boxed{TL_{\mathrm{total,abs}}(f)=-10\log_{10}\left["
+        r"10^{-TL_{\mathrm{abs}}(f)/10}+"
+        r"10^{-TL_{\mathrm{línea}}(f)/10}\right]}"
+    )
+    st.markdown(r"""
+    **Lectura física:** el absorbente reduce la energía transmitida por la cámara,
+    pero no interrumpe la transmisión por perfiles y fijaciones. Cuando
+    $TL_{\mathrm{abs}}$ supera ampliamente a $TL_{\mathrm{línea}}$, el camino
+    estructural domina y el resultado final se aproxima a
+    $TL_{\mathrm{línea}}$. Por eso la mejora del TL total puede ser menor que
+    $\Delta TL_{\mathrm{abs}}$.
+    """)
+
+    st.markdown("#### 6.6 · Resultado completo por frecuencia")
+    st.markdown(r"""
+    En cada banda se deben informar los cinco valores siguientes:
+
+    | Resultado | Significado |
+    |---|---|
+    | $TL_{\mathrm{base}}(f)$ | Camino aéreo del panel doble con cámara vacía |
+    | $TL_{\mathrm{línea}}(f)$ | Camino mecánico asociado a la conexión lineal |
+    | $TL_{\mathrm{total}}(f)$ | Resultado de cámara vacía + conexión lineal |
+    | $TL_{\mathrm{abs}}(f)$ | Camino aéreo con material absorbente |
+    | $TL_{\mathrm{total,abs}}(f)$ | Resultado final de absorbente + conexión lineal |
+
+    **Secuencia correcta:** se calcula el TL de cada camino, se convierte a
+    $\tau$, se suman los coeficientes de transmisión y se vuelve a decibeles.
+    """)
+    st.warning("""
+    **Alcance del cálculo:** la descomposición permite comprender por separado la
+    cámara, la conexión y el absorbente. Es un modelo pedagógico y no reemplaza
+    un ensayo de laboratorio ni incorpora automáticamente fugas, cajas eléctricas,
+    encuentros, transmisiones laterales o errores de montaje.
+    """)
+
+    st.markdown("### 7 · Laboratorio interactivo: construye el tabique")
+    st.info(
+        "Modifica las propiedades de las hojas y la cámara. El laboratorio calcula "
+        "el comportamiento acústico del tabique y lo compara con una hoja equivalente "
+        "de igual masa superficial total."
+    )
+    _lab2_image(
+        "s5_geometria_camara_montantes",
+        "Geometría utilizada por el modelo: d es la profundidad libre de la cámara, "
+        "medida perpendicularmente entre las caras interiores de las hojas; b es la "
+        "separación eje a eje entre dos montantes consecutivos.",
+    )
+    st.markdown("""
+    **Cómo leer las dos dimensiones del render**
+
+    - **d · Profundidad de la cámara:** distancia perpendicular entre las caras
+      interiores de las dos hojas. Se ingresa en milímetros y se convierte a metros
+      para calcular las frecuencias **f₀** y **fₗ**.
+
+    - **b · Separación de montantes:** distancia horizontal **eje a eje** entre
+      dos perfiles consecutivos. No corresponde al ancho libre del paño. Interviene
+      en la corrección del camino de transmisión por conexión lineal, **ΔTLₘ′**.
+    """)
+    support_type=st.radio(
+        "Tipo de conexión lineal que deseas representar",
+        ["Perfilería metálica", "Pies derechos de madera"],
+        horizontal=True,
+        key="s5_real_support_type",
+    )
+    if support_type=="Perfilería metálica":
+        st.info(
+            "Perfilería metálica liviana · Sus alas y alma delgada son más flexibles "
+            "que un pie derecho macizo. Esa resiliencia suele reducir el acoplamiento "
+            "mecánico entre las dos hojas y entregar mayor aislamiento que una "
+            "estructura de madera equivalente. Un perfil metálico más grueso y rígido "
+            "puede perder parte de esa ventaja."
+        )
+    else:
+        st.warning(
+            "Pies derechos de madera · Su sección maciza presenta mayor rigidez y "
+            "normalmente forma un puente mecánico más eficaz entre ambas hojas. Por "
+            "ello, una solución equivalente suele aislar menos que con perfilería "
+            "metálica liviana, especialmente cuando las placas están fijadas "
+            "directamente a ambos lados del mismo pie derecho."
+        )
+    st.caption(
+        "Alcance del cálculo: la ecuación simplificada disponible representa una "
+        "conexión lineal genérica y todavía entrega el mismo valor para metal y "
+        "madera. La diferencia real depende de la rigidez y geometría del montante, "
+        "su espesor o sección, la separación, las fijaciones y las capas de placa. "
+        "Por rigor técnico no se aplica una corrección arbitraria sin datos mecánicos "
+        "o resultados de ensayo de la solución constructiva."
+    )
+    c1,c2,c3,c4=st.columns(4)
+    m1=c1.number_input("Masa hoja 1 · m′₁ (kg/m²)",5.0,80.0,10.0,1.0,key="s5_real_m1")
+    m2=c2.number_input("Masa hoja 2 · m′₂ (kg/m²)",5.0,80.0,10.0,1.0,key="s5_real_m2")
+    depth=c3.number_input("Profundidad de cámara · d (mm)",30,300,70,10,key="s5_real_d")
+    spacing=c4.select_slider(
+        "Separación de montantes · b (m)",
+        options=[0.30,0.40,0.45,0.60,0.80,1.00],
+        value=0.60,
+        key="s5_real_b",
+    )
+    c5,c6,c7=st.columns(3)
+    fc1=c5.number_input("Frecuencia crítica hoja 1 (Hz)",100,5000,2500,50,key="s5_real_fc1")
+    fc2=c6.number_input("Frecuencia crítica hoja 2 (Hz)",100,5000,2500,50,key="s5_real_fc2")
+    selected_f=c7.selectbox(
+        "Banda que deseas inspeccionar (Hz)",
+        LAB2_FREQS.tolist(),
+        index=9,
+        key="s5_real_f",
+    )
+
+    c8,c9,c10=st.columns(3)
+    eta1=c8.number_input(
+        "Factor de pérdidas hoja 1 · η₁",
+        min_value=0.005,max_value=0.200,value=0.030,step=0.005,
+        format="%.3f",key="s5_real_eta1",
+    )
+    eta2=c9.number_input(
+        "Factor de pérdidas hoja 2 · η₂",
+        min_value=0.005,max_value=0.200,value=0.030,step=0.005,
+        format="%.3f",key="s5_real_eta2",
+    )
+    absorbent_type=c10.selectbox(
+        "Absorbente en la cámara",
+        ["Sin absorbente","Lana mineral 40 kg/m³","Lana mineral 60 kg/m³","Lana mineral 80 kg/m³"],
+        index=2,key="s5_real_absorbent",
+    )
+
+    def _angular_transmission_integral(surface_mass,rigidity,loss_factor,frequencies):
+        rho_air=1.18
+        sound_speed=343.0
+        theta=np.linspace(0.0,(4.0/9.0)*np.pi,720)
+        sin_theta=np.sin(theta)
+        cos_theta=np.cos(theta)
+        values=[]
+        for frequency in np.asarray(frequencies,dtype=float):
+            omega=2.0*np.pi*frequency
+            mass_term=(omega*surface_mass*cos_theta)/(2.0*rho_air*sound_speed)
+            bending_term=((omega**2)*rigidity*(sin_theta**4))/(surface_mass*sound_speed**4)
+            denominator=(1.0+loss_factor*mass_term*bending_term)**2+(mass_term*(1.0-bending_term))**2
+            angular_integrand=(1.0/denominator)*cos_theta*sin_theta
+            angular_integral=float(np.trapezoid(angular_integrand,theta))
+            transmission=max(angular_integral*2.0904,1e-12)
+            values.append(10.0*np.log10(1.0/transmission))
+        return np.asarray(values,dtype=float)
+
+    rho_air=1.18
+    sound_speed=343.0
+    cavity_depth=max(float(depth)*1e-3,1e-4)
+    fc1_value=float(fc1)
+    fc2_value=float(fc2)
+    rigidity1=float(m1)*(sound_speed**2/(2.0*np.pi*fc1_value))**2
+    rigidity2=float(m2)*(sound_speed**2/(2.0*np.pi*fc2_value))**2
+    tl_leaf1=_angular_transmission_integral(float(m1),rigidity1,float(eta1),LAB2_FREQS)
+    tl_leaf2=_angular_transmission_integral(float(m2),rigidity2,float(eta2),LAB2_FREQS)
+    equivalent=_angular_transmission_integral(
+        float(m1+m2),rigidity1+rigidity2,float(eta1+eta2),LAB2_FREQS,
+    )
+    f0=(
+        (1.0/(2.0*np.pi))*np.sqrt(rho_air*sound_speed**2)
+        *np.sqrt((float(m1)+float(m2))/(float(m1)*float(m2)*cavity_depth))
+    )
+    fl=sound_speed/(2.0*np.pi*cavity_depth)
+    absorbent_gain={
+        "Sin absorbente":0.0,
+        "Lana mineral 40 kg/m³":1.5,
+        "Lana mineral 60 kg/m³":3.0,
+        "Lana mineral 80 kg/m³":4.5,
+    }[absorbent_type]
+    absorbent_gain_curve=np.where(
+        LAB2_FREQS < fl,
+        absorbent_gain,
+        absorbent_gain*0.35,
+    )
+    base=np.zeros_like(LAB2_FREQS,dtype=float)
+    for band_index,frequency in enumerate(LAB2_FREQS):
+        if frequency<f0:
+            base[band_index]=equivalent[band_index]
+        elif frequency<fl:
+            base[band_index]=(
+                tl_leaf1[band_index]+tl_leaf2[band_index]
+                +20.0*np.log10(max(float(frequency)*cavity_depth,1e-12))-29.0
+            )
+        else:
+            base[band_index]=(
+                tl_leaf1[band_index]+tl_leaf2[band_index]+6.0
+            )
+
+    fc_high=max(fc1_value,fc2_value)
+    line_correction=(
+        10.0*np.log10(max(float(spacing)*fc_high,1e-12))
+        +20.0*np.log10(float(m1)/(float(m1)+float(m2)))
+        -18.0
+    )
+    line_path=equivalent+line_correction
+    air_abs=base+absorbent_gain_curve
+    tau_base=np.power(10.0,-base/10.0)
+    tau_line=np.power(10.0,-line_path/10.0)
+    tau_air_abs=np.power(10.0,-air_abs/10.0)
+    total_empty=-10.0*np.log10(np.maximum(tau_base+tau_line,1e-12))
+    total_abs=-10.0*np.log10(np.maximum(tau_air_abs+tau_line,1e-12))
+    total_abs_improvement=total_abs-total_empty
+    idx=int(np.where(LAB2_FREQS==selected_f)[0][0])
+    has_absorbent=absorbent_type!="Sin absorbente"
+    absorbent_card_title=(
+        "2 · Cámara absorbente · sin conexión"
+        if has_absorbent else
+        "2 · Cámara vacía · sin conexión (sin absorbente seleccionado)"
+    )
+    real_card_title=(
+        "🟢 4 · TL REAL · absorbente + conexión"
+        if has_absorbent else
+        "🟢 4 · TL REAL · cámara vacía + conexión"
+    )
+
+    st.markdown("#### Comparación de las cuatro configuraciones")
+    st.caption(
+        f"Resultados en la banda de {selected_f} Hz · "
+        f"f₀ = {f0:.0f} Hz · fₗ = {fl:.0f} Hz"
+    )
+    a,b,c,d=st.columns(4)
+    a.metric(
+        f"1 · Cámara vacía · sin conexión · {selected_f} Hz",
+        f"{base[idx]:.1f} dB",
+        help="TL del camino aéreo ideal: dos hojas separadas por una cámara vacía, sin montantes que unan ambas caras.",
+    )
+    b.metric(
+        f"{absorbent_card_title} · {selected_f} Hz",
+        f"{air_abs[idx]:.1f} dB",
+        delta=f"{absorbent_gain_curve[idx]:+.1f} dB por absorbente",
+        help="TL del camino aéreo después de incorporar el aporte por banda del material absorbente, todavía sin conexión lineal.",
+    )
+    c.metric(
+        f"3 · Cámara vacía · con conexión · {selected_f} Hz",
+        f"{total_empty[idx]:.1f} dB",
+        delta=f"{total_empty[idx]-base[idx]:+.1f} dB por conexión",
+        delta_color="normal",
+        help="Resultado de combinar energéticamente el camino aéreo de la cámara vacía con el camino mecánico de la conexión lineal.",
+    )
+    d.metric(
+        f"{real_card_title} · {selected_f} Hz",
+        f"{total_abs[idx]:.1f} dB",
+        delta=f"{total_abs_improvement[idx]:+.1f} dB de mejora real",
+        help="Resultado constructivo final: camino aéreo con absorbente combinado energéticamente con la conexión lineal.",
+    )
+
+    st.info(
+        f"**Lectura comparativa a {selected_f} Hz:** sin conexión, la cámara vacía "
+        f"entrega {base[idx]:.1f} dB y la cámara con {absorbent_type.lower()} "
+        f"entrega {air_abs[idx]:.1f} dB. Al incorporar la conexión lineal, la "
+        f"cámara vacía queda en {total_empty[idx]:.1f} dB. La configuración "
+        f"completa —absorbente más conexión— entrega un **TL real de "
+        f"{total_abs[idx]:.1f} dB**, equivalente a una mejora real de "
+        f"{total_abs_improvement[idx]:+.1f} dB respecto de la misma conexión "
+        f"con cámara vacía."
+    )
+
+    with st.expander("Ver resultados numéricos en todas las bandas", expanded=True):
+        results_by_band=pd.DataFrame({
+            "Frecuencia (Hz)":LAB2_FREQS.astype(int),
+            "1 · Cámara vacía, sin conexión (dB)":np.round(base,1),
+            "2 · Cámara absorbente, sin conexión (dB)":np.round(air_abs,1),
+            "3 · Cámara vacía, con conexión (dB)":np.round(total_empty,1),
+            "4 · TL real: absorbente + conexión (dB)":np.round(total_abs,1),
+            "TL del camino lineal usado en el cálculo (dB)":np.round(line_path,1),
+            "Aporte del absorbente al camino aéreo (dB)":np.round(absorbent_gain_curve,1),
+            "Mejora real entre configuraciones 3 y 4 (dB)":np.round(total_abs_improvement,1),
+        })
+        st.dataframe(
+            results_by_band,
+            use_container_width=True,
+            hide_index=True,
+        )
+        st.caption(
+            "Las configuraciones 3 y 4 incluyen la conexión. Se obtienen sumando "
+            "los coeficientes de transmisión del camino aéreo y del camino lineal; "
+            "no mediante suma o resta directa de decibeles."
+        )
+
+    fig=go.Figure()
+    fig.add_trace(go.Scatter(
+        x=LAB2_FREQS,y=base,mode="lines+markers",
+        name="1 · Cámara vacía · sin conexión",
+        line=dict(color="#08a9d8",width=4),marker=dict(size=6),
+    ))
+    fig.add_trace(go.Scatter(
+        x=LAB2_FREQS,y=air_abs,mode="lines+markers",
+        name=absorbent_card_title,
+        line=dict(color="#65a30d",width=4,dash="dot"),marker=dict(size=6),
+    ))
+    fig.add_trace(go.Scatter(
+        x=LAB2_FREQS,y=total_empty,mode="lines+markers",
+        name="3 · Cámara vacía · con conexión",
+        line=dict(color="#9b59b6",width=4),marker=dict(size=6,symbol="triangle-up"),
+    ))
+    fig.add_trace(go.Scatter(
+        x=LAB2_FREQS,y=total_abs,mode="lines+markers",
+        name=real_card_title.replace("🟢 ",""),
+        line=dict(color="#1b9e77",width=5),marker=dict(size=7,symbol="square"),
+    ))
+    fig.add_vline(x=selected_f,line_color="#1d3557",line_dash="dot",line_width=2)
+    fig.add_annotation(
+        x=selected_f,y=max(
+            float(base[idx]),float(air_abs[idx]),
+            float(total_empty[idx]),float(total_abs[idx]),
+        ),
+        text=f"{selected_f} Hz",showarrow=True,arrowhead=2,ay=-42,
+        font=dict(color="#17324d"),
+    )
+    fig.update_layout(
+        title="Comparación de las cuatro configuraciones del tabique",
+        xaxis_title="Frecuencia central (Hz)",yaxis_title="Pérdida por transmisión TL (dB)",
+        xaxis_type="log",hovermode="x unified",height=520,
+        margin=dict(l=45,r=25,t=75,b=115),
+        legend=dict(
+            orientation="h",yanchor="top",y=-0.23,xanchor="center",x=.5,
+            bgcolor="rgba(255,255,255,.92)",
+        ),
+    )
+    fig.update_xaxes(
+        tickvals=[63,125,250,500,1000,2000,4000],
+        ticktext=["63","125","250","500","1k","2k","4k"],
+        range=[math.log10(50),math.log10(5000)],autorange=False,
+    )
+    st.plotly_chart(fig,use_container_width=True,key="lab2_s5_real_wall_curve")
+
+    st.markdown("### 8 · Interpretación automática del diseño")
+    if spacing <= .40:
+        spacing_reading="La modulación es cerrada: existen muchas líneas de conexión por metro de tabique."
+    elif spacing <= .60:
+        spacing_reading="La modulación es habitual: el efecto de los montantes sigue siendo parte central del sistema."
+    else:
+        spacing_reading="La modulación es más abierta: hay menos líneas de conexión, pero debe verificarse la estabilidad constructiva."
+    symmetry=abs(m1-m2)/(m1+m2)
+    if symmetry < .10:
+        mass_reading="Las hojas son casi simétricas; sus respuestas críticas pueden concentrarse en zonas similares."
+    else:
+        mass_reading="Las hojas son asimétricas; esto puede separar parcialmente sus respuestas críticas."
+    if st.session_state.get("role")=="Docente":
+        with st.container(border=True):
+            st.markdown("#### 🔐 Lectura docente · ¿En qué frecuencias actúa mejor el absorbente?")
+            st.markdown(
+                "Para la configuración seleccionada, las frecuencias que delimitan "
+                "las regiones de análisis son:"
+            )
+            freq_col_1, freq_col_2 = st.columns(2)
+            with freq_col_1:
+                st.caption("Resonancia masa–aire–masa")
+                st.latex(rf"f_0 \approx {f0:.0f}\ \mathrm{{Hz}}")
+            with freq_col_2:
+                st.caption("Frecuencia límite del modelo")
+                st.latex(rf"f_l \approx {fl:.0f}\ \mathrm{{Hz}}")
+            st.markdown(
+                """
+                Estos valores permiten interpretar el aporte del material poroso por regiones:
+
+                1. **Bajo f₀: aporte generalmente limitado.** Las longitudes de onda
+                   son grandes y el comportamiento está controlado principalmente por las
+                   masas de las hojas y la rigidez del aire encerrado. La lana puede
+                   introducir amortiguamiento, pero no reemplaza masa, mayor separación ni
+                   desacoplamiento. En esta zona no debe esperarse una ganancia uniforme
+                   importante de TL.
+
+                2. **En torno a f₀: aporte especialmente valioso.** El material poroso
+                   disipa energía por pérdidas viscosas y térmicas y reduce el factor de
+                   calidad de la resonancia masa–aire–masa. Su principal beneficio es
+                   hacer menos profundo y menos abrupto el valle de TL. Normalmente
+                   amortigua la resonancia más de lo que desplaza su frecuencia central.
+
+                3. **Entre f₀ y fₗ: región de mejor eficacia de banda ancha.**
+                   Aquí disminuyen las reflexiones múltiples, las ondas estacionarias y el
+                   acoplamiento acústico entre hojas. El efecto aumenta cuando el material
+                   ocupa una fracción importante de la cámara sin quedar excesivamente
+                   comprimido y posee una resistividad al flujo adecuada.
+
+                4. **Sobre fₗ: el absorbente todavía controla el campo de la cámara,
+                   pero la mejora adicional del TL total puede estabilizarse.** En esta
+                   región pueden dominar la coincidencia de las placas, los montantes,
+                   tornillos, encuentros y otros puentes estructurales. Si el **TL de la
+                   conexión lineal** es menor que el TL del camino aéreo, agregar
+                   más absorbente producirá poca mejora en el **TL real**.
+                """
+            )
+            st.markdown(
+                fr"""
+                **Lectura de este diseño:** se seleccionó **{absorbent_type}** y una cámara
+                de **{depth:.0f} mm**. {spacing_reading} {mass_reading} La frecuencia
+                crítica dominante es **{fc_high:.0f} Hz** y la corrección del modelo
+                lineal es **{line_correction:+.1f} dB**. El resultado final se obtiene
+                combinando energéticamente el camino aéreo absorbido con el camino por
+                {support_type.lower()}; el absorbente no se suma directamente al TL de
+                los montantes.
+
+                **Criterio profesional:** no debe elegirse una lana solamente por su
+                densidad nominal. El comportamiento depende de la **resistividad al
+                flujo**, espesor instalado, porcentaje de llenado, compresión, posición,
+                profundidad de la cámara y frecuencia. Este laboratorio representa esas
+                tendencias mediante una ganancia pedagógica por bandas; no constituye la
+                predicción certificada de un producto ni reemplaza un ensayo.
+                """
+            )
+
+    with st.expander("Ver procedimiento matemático paso a paso"):
+        st.markdown("**1. Masa superficial total**")
+        st.latex(
+            rf"m'_1+m'_2={m1:.1f}+{m2:.1f}={m1+m2:.1f}\ \mathrm{{kg/m^2}}"
+        )
+
+        st.markdown("**2. Rigidez de cada hoja**")
+        st.latex(r"B_i=m'_i\left(\frac{c^2}{2\pi f_{c,i}}\right)^2")
+        st.latex(
+            rf"B_1={rigidity1:.2f}\ \mathrm{{N\,m}},"
+            rf"\qquad B_2={rigidity2:.2f}\ \mathrm{{N\,m}}"
+        )
+
+        st.markdown(
+            "**3. Transmisión angular:** el modelo integra la transmisión de cada "
+            "hoja para ángulos de incidencia entre 0° y 80°."
+        )
+
+        st.markdown("**4. Frecuencia de resonancia masa–aire–masa**")
+        st.latex(rf"f_0={f0:.1f}\ \mathrm{{Hz}}")
+
+        st.markdown("**5. Frecuencia límite de la cámara**")
+        st.latex(rf"f_l={fl:.1f}\ \mathrm{{Hz}}")
+
+        st.markdown("**6. Corrección del modelo de conexión lineal**")
+        st.latex(
+            rf"\Delta TL_{{m'}}="
+            rf"10\log_{{10}}({float(spacing):.2f}\cdot {fc_high:.0f})+"
+            rf"20\log_{{10}}\left(\frac{{{float(m1):.1f}}}"
+            rf"{{{float(m1):.1f}+{float(m2):.1f}}}\right)-18"
+            rf"={line_correction:.2f}\ \mathrm{{dB}}"
+        )
+        st.latex(
+            rf"TL_\mathrm{{línea}}({selected_f})="
+            rf"TL_{{m'_1+m'_2}}({selected_f})+\Delta TL_{{m'}}="
+            rf"{equivalent[idx]:.1f}+({line_correction:.2f})="
+            rf"{line_path[idx]:.1f}\ \mathrm{{dB}}"
+        )
+
+        st.markdown("**7. TL total con cámara vacía**")
+        st.latex(
+            rf"TL_\mathrm{{total}}({selected_f})=-10\log_{{10}}\left("
+            rf"10^{{-{base[idx]:.1f}/10}}+10^{{-{line_path[idx]:.1f}/10}}\right)"
+            rf"={total_empty[idx]:.1f}\ \mathrm{{dB}}"
+        )
+
+        st.markdown("**8. Camino aéreo con absorbente**")
+        st.latex(
+            rf"\Delta TL_\mathrm{{abs}}({selected_f})="
+            rf"{absorbent_gain_curve[idx]:.1f}\ \mathrm{{dB}}"
+        )
+        st.latex(
+            rf"TL_\mathrm{{abs}}({selected_f})="
+            rf"{base[idx]:.1f}+{absorbent_gain_curve[idx]:.1f}="
+            rf"{air_abs[idx]:.1f}\ \mathrm{{dB}}"
+        )
+
+        st.markdown("**9. TL total final con absorbente y conexión lineal**")
+        st.latex(
+            rf"TL_\mathrm{{total,abs}}({selected_f})=-10\log_{{10}}\left("
+            rf"10^{{-{air_abs[idx]:.1f}/10}}+10^{{-{line_path[idx]:.1f}/10}}\right)"
+            rf"={total_abs[idx]:.1f}\ \mathrm{{dB}}"
+        )
+
+        st.caption(
+            "Las curvas se calculan mediante tres regiones de comportamiento. "
+            "El absorbente modifica el camino aéreo; la conexión lineal permanece como "
+            "un camino mecánico paralelo. Los resultados totales se obtienen sumando "
+            "coeficientes de transmisión y convirtiendo nuevamente a decibeles."
+        )
+
+    st.markdown("### 9 · Comprobación conceptual")
+    check(
+        "lab2_s5_q1",
+        "¿Por qué un montante compartido puede reducir el beneficio de una cámara?",
+        [
+            "Porque crea un camino estructural entre ambas hojas",
+            "Porque elimina la masa de las placas",
+            "Porque convierte la lana mineral en una fuente sonora",
+            "Porque abre necesariamente una fuga de aire",
+        ],
+        "Porque crea un camino estructural entre ambas hojas",
+        "La vibración puede viajar por placas, tornillos y perfil continuo sin depender solo del campo aéreo de la cámara.",
+    )
+    check(
+        "lab2_s5_q2",
+        "¿Qué representa b en el modelo de conexión lineal?",
+        [
+            "La separación entre líneas de conexión o montantes",
+            "El espesor de la lana mineral",
+            "La profundidad total de ambas placas",
+            "La velocidad del sonido",
+        ],
+        "La separación entre líneas de conexión o montantes",
+        "b describe la modulación de las conexiones continuas y se expresa en metros.",
+    )
+    check(
+        "lab2_s5_q3",
+        "¿Agregar absorbente dentro de la cámara elimina por sí solo el puente rígido?",
+        ["No","Sí","Solo sobre 500 Hz","Solo si ambas hojas pesan lo mismo"],
+        "No",
+        "El absorbente amortigua el campo de la cámara, pero no separa mecánicamente las fijaciones y perfiles.",
+    )
+    check(
+        "lab2_s5_q4",
+        "¿La curva calculada garantiza el desempeño final del tabique en obra?",
+        [
+            "No, deben considerarse ensayo, montaje, fugas, encuentros y flancos",
+            "Sí, porque incorpora todos los detalles constructivos",
+            "Sí, pero únicamente si b=0,60 m",
+            "No, porque el aislamiento nunca puede calcularse",
+        ],
+        "No, deben considerarse ensayo, montaje, fugas, encuentros y flancos",
+        "El modelo sirve para comprender tendencias; el desempeño real depende de más caminos de transmisión y de la ejecución.",
+    )
+    check(
+        "lab2_s5_q5",
+        "¿Qué diferencia geométrica principal existe entre una conexión lineal y una puntual?",
+        [
+            "La lineal se prolonga continuamente; la puntual actúa en posiciones discretas",
+            "La lineal siempre es metálica y la puntual siempre es de madera",
+            "La puntual no transmite vibración",
+            "No existe ninguna diferencia",
+        ],
+        "La lineal se prolonga continuamente; la puntual actúa en posiciones discretas",
+        "La clasificación depende de cómo se distribuye el acoplamiento: a lo largo de una línea o en puntos separados.",
+    )
 
 def lab2_stage6():
-    _lab2_heading(
-        6,
-        "Pérdida de transmisión sonora en ventanas dobles",
-        "Calcular cada vidrio con SONARA y aplicar después el modelo de cavidad de Quirt.",
-    )
-    st.markdown("""
-    Una ventana doble tiene dos hojas de vidrio separadas por una cámara de aire.
-    El cálculo se realiza en dos niveles: primero se obtiene el **TL por banda de cada
-    vidrio con el modelo de placa simple SONARA/AKUZOFT**; después esos dos resultados
-    alimentan el modelo de Quirt para representar la interacción con la cavidad.
-    """)
-
-    render_path=ROOT/"assets/lab2/ventana_doble_parametros_d_h_w.png"
-    if render_path.exists():
-        st.image(
-            str(render_path),
-            caption="Geometría del modelo: d = profundidad de la cámara; h = alto; w = ancho.",
-            use_container_width=True,
-        )
-    st.markdown("""
-    - **d** es la distancia perpendicular libre entre ambos vidrios.
-    - **h** es la altura interior de la cavidad.
-    - **w** es el ancho interior de la cavidad.
-
-    Las tres magnitudes se ingresan en metros dentro de las ecuaciones. En el
-    laboratorio, **d** se solicita en milímetros y se convierte automáticamente.
-    """)
-
-    st.markdown("### 1 · Frecuencia que separa los dos regímenes")
-    st.latex(
-        r"f_1=\frac{1}{2\pi}"
-        r"\sqrt{\frac{(m'_1+m'_2)\rho_0c^2}{d\,m'_1m'_2}}"
-    )
-    st.markdown("""
-    En palabras simples, por debajo de **f₁** el aire de la cámara acopla fuertemente
-    ambos vidrios y el conjunto se aproxima a una sola hoja con la masa sumada. Sobre
-    **f₁**, cada vidrio aporta su propia curva de TL y se incorpora la geometría de la
-    cavidad.
-    """)
-
-    st.markdown("### 2 · TL individual de cada vidrio con SONARA")
-    st.latex(
-        r"\tau(\theta,f)=\left\{\left[1+\eta"
-        r"\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)"
-        r"\left(\frac{\omega^2B\sin^4\theta}{c^4m'}\right)\right]^2+"
-        r"\left[\left(\frac{\omega m'\cos\theta}{2\rho_0c}\right)"
-        r"\left(1-\frac{\omega^2B\sin^4\theta}{c^4m'}\right)\right]^2"
-        r"\right\}^{-1}"
-    )
-    st.latex(
-        r"\overline{\tau}(f)=2{,}0904\int_0^{78^\circ}"
-        r"\tau(\theta,f)\sin\theta\cos\theta\,d\theta"
-    )
-    st.latex(r"TL_{\mathrm{SONARA}}(f)=-10\log_{10}\overline{\tau}(f)")
-    st.info(
-        "Este cálculo no es una simple ley de masa: utiliza masa superficial, rigidez "
-        "de flexión y amortiguamiento, por lo que representa la frecuencia crítica y "
-        "el valle de coincidencia de cada vidrio."
-    )
-
-    st.markdown("### 3 · Régimen superior de la ventana doble")
-    st.latex(
-        r"TL_{\mathrm{doble}}=TL_{1,\mathrm{SONARA}}+TL_{2,\mathrm{SONARA}}"
-        r"+10\log_{10}\alpha+10\log_{10}d"
-        r"+10\log_{10}\left(\frac{h+w}{hw}\right)+3"
-    )
-    st.markdown("""
-    Esta expresión se aplica sobre **f₁**. Los dos primeros términos ya contienen la
-    respuesta física de cada vidrio calculada por SONARA. Los términos restantes
-    representan la absorción perimetral, la profundidad y las proporciones de la
-    cavidad. El título se presenta sin la referencia editorial “ecuación 2.29”.
-    """)
-
-    st.markdown("## Laboratorio interactivo")
-    a,b,c=st.columns(3)
-    glass1=a.number_input("Espesor vidrio 1 (mm)",2.0,20.0,4.0,.5,key="s6_window_g1")
-    glass2=b.number_input("Espesor vidrio 2 (mm)",2.0,20.0,6.0,.5,key="s6_window_g2")
-    selected_f=c.selectbox(
-        "Frecuencia a inspeccionar (Hz)",LAB2_FREQS.tolist(),
-        index=9,key="s6_window_frequency")
-    d1,d2,d3=st.columns(3)
-    gap_mm=d1.number_input("Profundidad d (mm)",6.0,500.0,100.0,5.0,key="s6_window_d")
-    height=d2.number_input("Altura h (m)",.30,4.00,1.50,.05,key="s6_window_h")
-    width=d3.number_input("Ancho w (m)",.30,4.00,1.20,.05,key="s6_window_w")
-    e1,e2,e3=st.columns(3)
-    eta1=e1.number_input(
-        "Pérdidas vidrio 1 η₁",.001,.100,.010,.001,
-        format="%.3f",key="s6_window_eta1")
-    eta2=e2.number_input(
-        "Pérdidas vidrio 2 η₂",.001,.100,.010,.001,
-        format="%.3f",key="s6_window_eta2")
-    alpha=e3.slider(
-        "Absorción perimetral α",.02,.30,.10,.01,key="s6_window_alpha")
-
-    curve,tl1,tl2,low,f1,masses,fcs,geometry=_quirt_with_sonara_glass(
-        glass1,glass2,gap_mm/1000.0,height,width,alpha,eta1,eta2)
-    index=int(np.where(LAB2_FREQS==selected_f)[0][0])
-    regime="inferior: masa equivalente" if selected_f<f1 else "superior: SONARA + Quirt"
-
-    r1,r2,r3,r4=st.columns(4)
-    r1.metric("TL vidrio 1 · SONARA",f"{tl1[index]:.1f} dB")
-    r2.metric("TL vidrio 2 · SONARA",f"{tl2[index]:.1f} dB")
-    r3.metric("TL ventana doble",f"{curve[index]:.1f} dB")
-    r4.metric("Frecuencia f₁",f"{f1:.0f} Hz")
-    st.caption(
-        f"A {selected_f} Hz se aplica el régimen {regime}. "
-        f"fᶜ₁={fcs[0]:.0f} Hz y fᶜ₂={fcs[1]:.0f} Hz."
-    )
-
+    _lab2_heading(6, "Comparación aplicada y cierre parcial",
+                  "Contrastar un panel pesado con un tabique liviano de doble estructura.")
+    concrete=_simple_real_curve(240,180,5)
+    double,f0,fl=_sharp_curve(20,20,140,"Independiente")
+    left,right=st.columns(2)
+    with left:
+        st.markdown("#### Panel pesado")
+        _lab2_image("comparador_hormigon")
+        st.caption("Hormigón 100 mm · una hoja · m′≈240 kg/m²")
+    with right:
+        st.markdown("#### Tabique liviano doble")
+        _lab2_image("comparador_tabique")
+        st.caption("Dos hojas · cámara 140 mm · bastidores independientes")
     _plot_curves([
-        ("Vidrio 1 · SONARA",tl1,"dash"),
-        ("Vidrio 2 · SONARA",tl2,"dot"),
-        ("Masa equivalente bajo f₁",low,"dashdot"),
-        ("Ventana doble · resultado",curve,"solid"),
-    ],"Ventana doble calculada con SONARA + Quirt",[(f1,"f₁"),(fcs[0],"fᶜ₁"),(fcs[1],"fᶜ₂")])
-
-    results=pd.DataFrame({
-        "Frecuencia (Hz)":LAB2_FREQS.astype(int),
-        "TL vidrio 1 SONARA (dB)":np.round(tl1,1),
-        "TL vidrio 2 SONARA (dB)":np.round(tl2,1),
-        "Régimen":["Inferior" if f<f1 else "Superior" for f in LAB2_FREQS],
-        "TL ventana doble (dB)":np.round(curve,1),
-    })
-    st.dataframe(results,hide_index=True,use_container_width=True)
-
-    with st.expander(f"Ver desarrollo matemático a {selected_f} Hz"):
-        st.latex(rf"m'_1=2500({glass1/1000:.4f})={masses[0]:.2f}\ \mathrm{{kg/m^2}}")
-        st.latex(rf"m'_2=2500({glass2/1000:.4f})={masses[1]:.2f}\ \mathrm{{kg/m^2}}")
-        st.latex(rf"f_1={f1:.1f}\ \mathrm{{Hz}}")
-        st.latex(rf"TL_{{1,\mathrm{{SONARA}}}}({selected_f})={tl1[index]:.2f}\ \mathrm{{dB}}")
-        st.latex(rf"TL_{{2,\mathrm{{SONARA}}}}({selected_f})={tl2[index]:.2f}\ \mathrm{{dB}}")
-        if selected_f<f1:
-            st.latex(
-                rf"TL_{{\mathrm{{doble}}}}=20\log_{{10}}"
-                rf"\left[({masses[0]+masses[1]:.2f})({selected_f})\right]-47"
-                rf"={curve[index]:.2f}\ \mathrm{{dB}}")
-        else:
-            st.latex(rf"G_{{d,h,w,\alpha}}={geometry:.2f}\ \mathrm{{dB}}")
-            st.latex(
-                rf"TL_{{\mathrm{{doble}}}}={tl1[index]:.2f}+{tl2[index]:.2f}"
-                rf"{geometry:+.2f}={curve[index]:.2f}\ \mathrm{{dB}}")
-
-    st.markdown("""
-    ### Lectura simple del experimento
-
-    - Aumentar el espesor eleva la masa, pero también desplaza la coincidencia.
-    - Usar espesores diferentes separa las frecuencias críticas de los vidrios y evita
-      superponer completamente ambos valles.
-    - Aumentar **d** reduce **f₁** y modifica el término de cámara.
-    - **h** y **w** no son espesores: describen el tamaño frontal de la cavidad.
-    - El cálculo representa el centro vidriado ideal; marcos, sellos, herrajes, juntas y
-      filtraciones pueden reducir fuertemente el desempeño real.
+        ("Hormigón 100 mm",concrete,"solid"),
+        ("Tabique doble liviano",double,"dash"),
+    ],"Dos estrategias distintas de aislamiento",[(f0,"f₀ doble"),(fl,"fₗ doble")])
+    st.success("""
+    **Conclusión:** más masa no garantiza superioridad en todas las bandas. Un sistema
+    liviano correctamente desacoplado puede alcanzar una pendiente mayor sobre su
+    resonancia; el panel pesado suele ser robusto en bajas frecuencias. La decisión exige
+    comparar curvas, espectro, espesor, peso, encuentros, costo y calidad de ejecución.
     """)
-
-    if st.session_state.get("role")=="Docente":
-        with st.expander("🔐 Lectura docente · límites e interpretación"):
-            st.markdown(r"""
-            El laboratorio reutiliza para cada hoja el mismo modelo angular de placa
-            simple de SONARA/AKUZOFT. Por ello, la curva de cada vidrio responde a
-            \(m'\), \(B\), \(\eta\) y \(f_c\), antes de ingresar a Quirt.
-
-            El cambio en \(f_1\) no debe confundirse con la coincidencia \(f_c\):
-            \(f_1\) pertenece al acoplamiento masa–aire–masa de la ventana doble;
-            cada \(f_c\) pertenece a la flexión y radiación eficiente de un vidrio.
-            La formulación es predictiva y debe contrastarse con ensayos del sistema
-            completo, especialmente cuando existen cámaras muy pequeñas, gases,
-            laminados, marcos complejos o filtraciones.
-            """)
-
-    st.markdown("### 5 preguntas de comprensión")
-    check(
-        "lab2_s6_q1","¿Cómo se obtiene el TL de cada vidrio en este laboratorio?",
-        ["Con el modelo angular SONARA/AKUZOFT","Solo con 20 log₁₀(m′f)−47",
-         "Promediando los espesores"],
-        "Con el modelo angular SONARA/AKUZOFT",
-        "Cada hoja se calcula por transmisión angular e integración de campo hasta 78°.")
-    check(
-        "lab2_s6_q2","¿Qué representa d en el modelo?",
-        ["La profundidad entre los vidrios","La altura de la ventana",
-         "El espesor del marco"],
-        "La profundidad entre los vidrios",
-        "d es la separación perpendicular libre de la cámara.")
-    check(
-        "lab2_s6_q3","¿Qué ocurre bajo f₁ en la aproximación de Quirt usada?",
-        ["Los vidrios se aproximan a una hoja con la masa sumada",
-         "Se suman directamente los Rw","La cámara deja de contener aire"],
-        "Los vidrios se aproximan a una hoja con la masa sumada",
-        "Bajo la resonancia, el aire acopla fuertemente ambas hojas.")
-    check(
-        "lab2_s6_q4","¿Por qué conviene usar vidrios de espesores diferentes?",
-        ["Para separar sus frecuencias críticas y no superponer los valles",
-         "Para eliminar completamente el marco","Porque f₁ deja de existir"],
-        "Para separar sus frecuencias críticas y no superponer los valles",
-        "La asimetría distribuye los efectos de coincidencia en bandas diferentes.")
-    check(
-        "lab2_s6_q5","¿El TL calculado representa automáticamente la ventana instalada?",
-        ["No; marco, sellos, juntas y fugas pueden disminuirlo",
-         "Sí, sin importar el montaje","Sí, porque h y w incluyen todas las fugas"],
-        "No; marco, sellos, juntas y fugas pueden disminuirlo",
-        "El modelo describe el centro vidriado y la cavidad idealizada, no todas las pérdidas de obra.")
-    score_counter(6)
+    st.markdown("### Puente hacia la segunda mitad")
+    st.write("En el siguiente bloque se desarrollarán ventanas dobles, bandas de octava y tercio de octava, y los números únicos Rw, C y Ctr.")
 
 def _lab2_pending(stage, title):
     _lab2_heading(stage,title,"Contenido reservado para la segunda mitad de la Clase 1.")
@@ -5362,6 +6592,773 @@ def lab2_stage7(): _lab2_pending(7,"Ventanas dobles y modelo de cavidad")
 def lab2_stage8(): _lab2_pending(8,"Bandas de octava y tercio de octava")
 def lab2_stage9(): _lab2_pending(9,"Números únicos Rw, C y Ctr")
 def lab2_stage10(): _lab2_pending(10,"Aplicación integradora")
+
+def lab2_stage3():
+    """Ejercicio comparativo de tres placas simples homogéneas."""
+    _lab2_heading(
+        3,
+        "Ejercicio aplicado: comparación de tres placas simples",
+        "Predecir el TL de campo de yeso-cartón, madera y hormigón, y justificar una decisión de diseño.",
+    )
+    st.markdown("""
+    ### Encargo profesional
+
+    Debes seleccionar una **placa homogénea simple** para separar un recinto ruidoso
+    de una sala de trabajo. Estudiarás tres alternativas —yeso-cartón, madera y
+    hormigón— entre **50 y 5.000 Hz**.
+
+    El propósito no es limitarse a decir que el hormigón aísla más. Debes explicar
+    cómo la densidad, el espesor, la rigidez y el amortiguamiento modifican la masa
+    superficial, la frecuencia crítica y la curva completa de aislamiento.
+    """)
+    st.success("""
+    **En palabras simples:** probaremos tres “paredes de una sola pieza”. La aplicación
+    enviará sonido contra cada una desde muchas direcciones y calculará cuánto logra
+    atravesarla. Una curva más alta significa que pasa menos sonido.
+    """)
+    _lab2_image(
+        "panel_simple",
+        "Modelo utilizado: una placa homogénea simple, sin cámara, montantes ni una segunda hoja.",
+    )
+    st.info(
+        "**Método común para las tres alternativas:** primero se calcula "
+        "τ(θ,f), después se integran energéticamente todas las incidencias entre "
+        "0° y 78° y, finalmente, el resultado se transforma en TL de campo."
+    )
+
+    st.markdown("### Las tres placas que se compararán")
+    image_col_1,image_col_2,image_col_3=st.columns(3)
+    with image_col_1:
+        st.markdown("#### Yeso-cartón")
+        _lab2_image(
+            "yeso_carton",
+            "Una placa simple de yeso-cartón, sin perfiles, cámara ni segunda hoja.",
+        )
+        st.markdown(
+            "**En palabras simples:** es una hoja liviana. Se mueve con mayor "
+            "facilidad cuando recibe sonido y, por eso, normalmente deja pasar más "
+            "energía que una placa pesada."
+        )
+    with image_col_2:
+        st.markdown("#### Madera")
+        _lab2_image(
+            "madera",
+            "Un panel simple y macizo de madera, sin entramado ni revestimientos.",
+        )
+        st.markdown(
+            "**En palabras simples:** combina un peso moderado con una rigidez "
+            "mayor que la del yeso-cartón. Su respuesta cambia con la frecuencia "
+            "y con la facilidad con que el panel puede flexionarse."
+        )
+    with image_col_3:
+        st.markdown("#### Hormigón")
+        _lab2_image(
+            "hormigon",
+            "Un muro simple y macizo de hormigón, sin cámaras ni capas adicionales.",
+        )
+        st.markdown(
+            "**En palabras simples:** concentra mucha masa en cada metro cuadrado. "
+            "Cuesta más hacerlo vibrar, por lo que generalmente transmite menos "
+            "sonido que las alternativas livianas."
+        )
+    st.caption(
+        "Las imágenes representan una sola hoja homogénea de cada material. "
+        "No corresponden a tabiques dobles ni a sistemas con cámara de aire."
+    )
+
+    st.markdown("### 1 · Modelo físico utilizado")
+    st.markdown("#### Masa superficial")
+    st.latex(r"m'=\rho h")
+    st.caption("Masa por unidad de superficie de la placa, expresada en kg/m².")
+    st.info(
+        "**Explicación para no ingenieros:** indica cuánto pesa un metro cuadrado "
+        "de la placa. No importa cuánto pesa el muro completo, sino cuánto material "
+        "hay en cada m². En general, una placa con mayor masa superficial es más "
+        "difícil de mover y puede aislar mejor."
+    )
+
+    st.markdown("#### Rigidez a flexión")
+    st.latex(r"B=\frac{E h^3}{12}")
+    st.caption("Rigidez a flexión por unidad de ancho, expresada en N·m.")
+    st.info(
+        "**Explicación para no ingenieros:** representa qué tan difícil es doblar "
+        "la placa. Una lámina flexible vibra con facilidad; una muy rígida se opone "
+        "a curvarse. El espesor influye mucho porque aparece elevado al cubo."
+    )
+
+    st.markdown("#### Frecuencia crítica")
+    st.latex(r"f_c=\frac{c^2}{2\pi}\sqrt{\frac{m'}{B}}")
+    st.caption("Frecuencia a partir de la cual puede producirse el fenómeno de coincidencia.")
+    st.info(
+        "**Explicación para no ingenieros:** es una frecuencia especialmente "
+        "desfavorable. Cerca de ella, el sonido del aire logra hacer vibrar la placa "
+        "de manera muy eficiente y el aislamiento puede presentar una caída, aunque "
+        "la placa sea pesada."
+    )
+
+    st.markdown("#### Coeficiente de transmisión para cada frecuencia y ángulo")
+    st.write(
+        "Para evitar una expresión excesivamente larga, se definen primero dos "
+        "términos auxiliares. Esta forma es algebraicamente equivalente a la "
+        "ecuación completa utilizada en el cálculo."
+    )
+    st.latex(
+        r"A(\theta,f)=\frac{\omega m'\cos\theta}{2\rho_0c}"
+    )
+    st.latex(
+        r"C(\theta,f)=\frac{\omega^2 B\sin^4\theta}{c^4m'}"
+    )
+    st.latex(
+        r"\tau(\theta,f)="
+        r"\frac{1}{\left[1+\eta A(\theta,f)C(\theta,f)\right]^2"
+        r"+\left[A(\theta,f)\left(1-C(\theta,f)\right)\right]^2}"
+    )
+    st.info(
+        "**Explicación para no ingenieros:** τ es la fracción de energía sonora que "
+        "consigue atravesar la placa. Si τ es grande, pasa más sonido; si τ es "
+        "pequeño, la placa aísla mejor. Se calcula para distintas frecuencias y "
+        "ángulos porque el sonido no siempre llega de frente."
+    )
+    st.markdown("#### Coeficiente de transmisión de campo")
+    st.latex(
+        r"\overline{\tau}_{campo}(f)=2{,}0904"
+        r"\int_0^{78^\circ}\tau(\theta,f)\cos\theta\sin\theta\,d\theta"
+    )
+    st.info(
+        "**Explicación para no ingenieros:** en un recinto real el sonido llega "
+        "desde muchas direcciones. Esta integración reúne todas esas incidencias "
+        "entre 0° y 78° en un único valor energético representativo del campo sonoro."
+    )
+    st.markdown("#### Pérdida por transmisión de campo")
+    st.latex(
+        r"TL_{campo}(f)=10\log_{10}\left(\frac{1}"
+        r"{\overline{\tau}_{campo}(f)}\right)"
+        r"=-10\log_{10}\left[\overline{\tau}_{campo}(f)\right]"
+    )
+    st.info(
+        "**Explicación para no ingenieros:** TL expresa el aislamiento en decibeles. "
+        "Un TL mayor significa que atraviesa menos energía sonora. Por ejemplo, una "
+        "subida de la curva indica una mejora; un valle señala una frecuencia donde "
+        "la placa está aislando menos."
+    )
+    st.caption(
+        "ω = 2πf; ρ₀ = 1,18 kg/m³; c = 343 m/s. "
+        "78° es el límite superior de integración, no un único rayo."
+    )
+    st.markdown("#### Variables y unidades")
+    st.dataframe(
+        pd.DataFrame([
+            ["ρ", "Densidad del material", "kg/m³"],
+            ["h", "Espesor de la placa", "m"],
+            ["m′", "Masa superficial", "kg/m²"],
+            ["E", "Módulo de Young", "Pa"],
+            ["B", "Rigidez a flexión", "N·m"],
+            ["η", "Factor de pérdidas", "Adimensional"],
+            ["f", "Frecuencia", "Hz"],
+            ["ω = 2πf", "Frecuencia angular", "rad/s"],
+            ["θ", "Ángulo respecto de la normal", "grados o radianes"],
+        ], columns=["Símbolo", "Significado", "Unidad"]),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    presets={
+        "Yeso-cartón":{
+            "rho":800.0,"h":12.5,"e":2.5,"eta":0.030,
+            "color":"#1677d2",
+            "note":"Placa liviana de referencia.",
+        },
+        "Madera":{
+            "rho":600.0,"h":18.0,"e":10.0,"eta":0.020,
+            "color":"#d58b16",
+            "note":"Modelo isotrópico simplificado; la madera real depende de la dirección de las fibras.",
+        },
+        "Hormigón":{
+            "rho":2400.0,"h":100.0,"e":30.0,"eta":0.010,
+            "color":"#d64545",
+            "note":"Elemento pesado homogéneo de referencia.",
+        },
+    }
+    frequencies=np.arange(50.0,5000.0+1,10.0)
+    sample_frequencies=np.array([125.,250.,500.,1000.,2000.,4000.])
+    material_results={}
+
+    st.markdown("### 2 · Analiza cada material")
+    st.markdown("""
+    Recorre las tres pestañas. Puedes modificar los valores de referencia. Para
+    comparar correctamente, la aplicación aplicará el mismo intervalo de frecuencia,
+    campo angular y ecuaciones a todas las alternativas.
+    """)
+    st.markdown("""
+    **Guía rápida de los controles**
+
+    - **Densidad:** qué tan concentrada está la materia; no es el peso total.
+    - **Espesor:** distancia entre las dos caras de esta única placa.
+    - **Módulo de Young:** resistencia del material a deformarse.
+    - **Factor de pérdidas:** capacidad del material para amortiguar su vibración.
+    """)
+    tabs=st.tabs(list(presets.keys()))
+    for tab,(material,preset) in zip(tabs,presets.items()):
+        slug={"Yeso-cartón":"yeso","Madera":"madera","Hormigón":"hormigon"}[material]
+        with tab:
+            st.markdown(f"#### Caso · {material}")
+            st.caption(preset["note"])
+            _lab2_image(
+                {"Yeso-cartón":"yeso_carton","Madera":"madera",
+                 "Hormigón":"hormigon"}[material],
+                {
+                    "Yeso-cartón":(
+                        "Placa simple homogénea de yeso-cartón: una sola hoja, sin "
+                        "montantes, cámara ni segunda placa."
+                    ),
+                    "Madera":(
+                        "Panel simple homogéneo de madera: una sola hoja maciza, sin "
+                        "entramado, cámara ni revestimientos adicionales."
+                    ),
+                    "Hormigón":(
+                        "Muro simple homogéneo de hormigón: una sola hoja maciza."
+                    ),
+                }[material],
+            )
+            st.info(
+                "La imagen y el cálculo representan el mismo modelo idealizado: "
+                "**una única placa simple, homogénea e infinita**. No se incorporan "
+                "montantes, uniones, cavidades, segundas hojas ni transmisiones laterales."
+            )
+            st.markdown({
+                "Yeso-cartón":(
+                    "**Cómo interpretar este caso:** al ser una placa liviana y "
+                    "delgada, tendrá una masa superficial baja. Observa dónde aparece "
+                    "su frecuencia crítica y si la curva presenta allí una pérdida "
+                    "de aislamiento."
+                ),
+                "Madera":(
+                    "**Cómo interpretar este caso:** el mayor espesor aumenta tanto "
+                    "la masa como, con mucha más fuerza, la rigidez. Comprueba si eso "
+                    "hace que su curva y su frecuencia crítica sean distintas de las "
+                    "del yeso-cartón."
+                ),
+                "Hormigón":(
+                    "**Cómo interpretar este caso:** su elevada densidad y espesor "
+                    "producen una masa superficial muy grande. Compara cuánto aumenta "
+                    "el TL y recuerda que aquí se modela solo el material, no sus "
+                    "encuentros ni posibles fugas en obra."
+                ),
+            }[material])
+            c1,c2,c3=st.columns(3)
+            rho=c1.number_input(
+                "Densidad ρ (kg/m³)",300.0,3000.0,preset["rho"],10.0,
+                key=f"lab2_s3_{slug}_rho")
+            h_mm=c2.number_input(
+                "Espesor h (mm)",4.0,300.0,preset["h"],0.5,
+                key=f"lab2_s3_{slug}_h")
+            young_gpa=c3.number_input(
+                "Módulo de Young E (GPa)",0.1,100.0,preset["e"],0.1,
+                key=f"lab2_s3_{slug}_e")
+            eta=st.number_input(
+                "Factor de pérdidas η",0.001,0.200,preset["eta"],0.001,
+                format="%.3f",key=f"lab2_s3_{slug}_eta")
+
+            h=h_mm/1000
+            surface_mass=rho*h
+            stiffness=young_gpa*1e9*h**3/12
+            critical_frequency=343.0**2/(2*math.pi)*math.sqrt(surface_mass/stiffness)
+            tau_field,tl_field,_,_,_=_panel_simple_field_tl(
+                frequencies,surface_mass,stiffness,eta)
+            sample_tau,sample_tl,_,_,_=_panel_simple_field_tl(
+                sample_frequencies,surface_mass,stiffness,eta)
+            material_results[material]={
+                "m":surface_mass,"B":stiffness,"fc":critical_frequency,
+                "tau":tau_field,"tl":tl_field,"sample_tau":sample_tau,
+                "sample_tl":sample_tl,"color":preset["color"],
+            }
+
+            m1,m2,m3=st.columns(3)
+            m1.metric("Masa superficial m′",f"{surface_mass:.2f} kg/m²")
+            m2.metric("Rigidez B",f"{stiffness:,.1f} N·m")
+            m3.metric("Frecuencia crítica fᶜ",f"{critical_frequency:,.0f} Hz")
+            st.caption(
+                "Estos resultados indican cuánto pesa la placa por metro cuadrado, "
+                "cuánto se resiste a curvarse y dónde puede aparecer la coincidencia."
+            )
+            if 50 <= critical_frequency <= 5000:
+                st.warning(
+                    f"fᶜ = {critical_frequency:,.0f} Hz está dentro del intervalo. "
+                    "Busca su efecto en la curva."
+                )
+            else:
+                st.success(
+                    f"fᶜ = {critical_frequency:,.0f} Hz queda fuera del intervalo mostrado."
+                )
+
+            fig_material=go.Figure()
+            fig_material.add_trace(go.Scatter(
+                x=frequencies,y=tl_field,mode="lines",name=material,
+                line=dict(color=preset["color"],width=4)))
+            if 50 <= critical_frequency <= 5000:
+                fig_material.add_vline(
+                    x=critical_frequency,line_dash="dash",
+                    line_color=preset["color"],annotation_text="fᶜ",
+                    annotation_position="top")
+            fig_material.update_layout(
+                title=f"TL de campo · {material}",
+                xaxis_title="Frecuencia (Hz) · escala lineal",
+                yaxis_title="TL de campo (dB)",
+                xaxis=dict(type="linear",range=[50,5000],dtick=500),
+                height=420,hovermode="x unified",
+                margin=dict(l=40,r=20,t=60,b=45),
+                showlegend=False)
+            st.plotly_chart(
+                fig_material,use_container_width=True,
+                key=f"lab2_s3_{slug}_curve")
+            st.info(
+                "**Cómo leer la curva:** de izquierda a derecha se pasa de sonidos "
+                "graves a agudos; cuanto más alta está la línea, mayor es el "
+                "aislamiento. Observa qué ocurre cerca de la línea vertical fᶜ."
+            )
+            st.dataframe(
+                pd.DataFrame({
+                    "Frecuencia (Hz)":sample_frequencies.astype(int),
+                    "τ̄ campo":sample_tau,
+                    "Energía transmitida (%)":100*sample_tau,
+                    "TL campo (dB)":sample_tl,
+                }).style.format({
+                    "τ̄ campo":"{:.6f}",
+                    "Energía transmitida (%)":"{:.4f}",
+                    "TL campo (dB)":"{:.1f}",
+                }),
+                use_container_width=True,hide_index=True)
+            st.caption(
+                "La tabla presenta el mismo fenómeno de dos formas: menor energía "
+                "transmitida equivale a un TL mayor."
+            )
+
+    st.markdown("### 3 · Comparación conjunta")
+    st.markdown(
+        "Aquí se superponen las tres alternativas. En cada frecuencia, la curva que "
+        "queda más arriba entrega el mayor aislamiento según este modelo."
+    )
+    visible=st.multiselect(
+        "Curvas visibles",
+        list(presets.keys()),
+        default=list(presets.keys()),
+        key="lab2_s3_visible_materials",
+    )
+    comparison=go.Figure()
+    for material in visible:
+        result=material_results[material]
+        comparison.add_trace(go.Scatter(
+            x=frequencies,y=result["tl"],mode="lines",name=material,
+            line=dict(color=result["color"],width=3)))
+        if 50 <= result["fc"] <= 5000:
+            comparison.add_vline(
+                x=result["fc"],line_dash="dot",line_color=result["color"],
+                annotation_text=f"fᶜ {material}",annotation_position="top")
+    comparison.update_layout(
+        title="Comparación de TL de campo · mismas ecuaciones y campo hasta 78°",
+        xaxis_title="Frecuencia (Hz) · escala lineal",
+        yaxis_title="TL de campo (dB)",
+        xaxis=dict(type="linear",range=[50,5000],dtick=500),
+        height=500,hovermode="x unified",
+        margin=dict(l=40,r=20,t=75,b=45),
+        legend=dict(orientation="h",y=1.16))
+    st.plotly_chart(
+        comparison,use_container_width=True,key="lab2_s3_comparison")
+    st.info(
+        "**No compares solo el espesor.** También importan la densidad, la masa "
+        "superficial y la rigidez. Por eso el orden de las curvas puede cambiar "
+        "según la frecuencia."
+    )
+
+    comparison_rows=[]
+    for material,result in material_results.items():
+        row={
+            "Material":material,
+            "m′ (kg/m²)":result["m"],
+            "B (N·m)":result["B"],
+            "fᶜ (Hz)":result["fc"],
+        }
+        for i,freq in enumerate(sample_frequencies):
+            row[f"TL {int(freq)} Hz"]=result["sample_tl"][i]
+        comparison_rows.append(row)
+    st.dataframe(
+        pd.DataFrame(comparison_rows).style.format({
+            "m′ (kg/m²)":"{:.2f}","B (N·m)":"{:,.1f}","fᶜ (Hz)":"{:,.0f}",
+            **{f"TL {int(f)} Hz":"{:.1f}" for f in sample_frequencies},
+        }),
+        use_container_width=True,hide_index=True)
+    st.caption(
+        "Para justificar tu decisión, compara una misma columna de frecuencia entre "
+        "los tres materiales y cita sus valores."
+    )
+    st.caption(
+        "Predicción teórica de placas infinitas y homogéneas. No equivale a un ensayo "
+        "normalizado y no incorpora juntas, apoyos, dimensiones finitas, fugas ni flancos."
+    )
+
+    st.markdown("### 4 · Decisión de diseño")
+    st.markdown("""
+    **Restricción del proyecto:** se busca el mayor aislamiento entre **500 y
+    2.000 Hz**, pero primero debes comparar el desempeño técnico de las tres
+    alternativas. Después, considera que el proyecto exige una solución liviana y
+    descarta el hormigón.
+
+    Tu respuesta debe:
+
+    1. Identificar la mayor masa superficial.
+    2. Comparar el TL en 500, 1.000 y 2.000 Hz.
+    3. Ubicar la frecuencia crítica de cada placa.
+    4. Explicar cualquier caída cercana a la coincidencia.
+    5. Elegir entre yeso-cartón y madera bajo la restricción de bajo peso.
+    """)
+    decision=st.text_area(
+        "Conclusión técnica y alternativa seleccionada",
+        key="lab2_s3_design_decision",height=160,
+        placeholder=(
+            "La alternativa con mayor m′ es... Entre 500 y 2.000 Hz se observa... "
+            "Las frecuencias críticas son... Al excluir el hormigón, seleccionaría... porque..."
+        ))
+    if st.button("Comprobar desarrollo",key="lab2_s3_check_decision"):
+        if len(decision.strip()) < 140:
+            st.warning(
+                "La justificación aún es breve. Incluye valores de m′, fᶜ y TL en al "
+                "menos dos frecuencias, y explica la selección liviana.")
+        else:
+            st.success(
+                "La extensión es suficiente. Verifica que tu elección se apoye en los "
+                "resultados calculados y no solamente en el nombre o espesor del material.")
+
+    st.markdown("### 5 · Comprobación conceptual")
+    check(
+        "lab2_s3_compare_q1",
+        "¿Por qué se integran los coeficientes τ antes de calcular el TL de campo?",
+        [
+            "Porque primero debe combinarse la energía transmitida y después convertirse a decibeles",
+            "Porque los valores de TL no dependen del ángulo",
+            "Porque 78° representa una única incidencia real",
+            "Porque así se elimina la frecuencia crítica",
+        ],
+        "Porque primero debe combinarse la energía transmitida y después convertirse a decibeles",
+        "El promedio se realiza en magnitudes energéticas; los TL angulares no se promedian directamente.",
+    )
+    check(
+        "lab2_s3_compare_q2",
+        "¿Qué afirmación interpreta correctamente la comparación?",
+        [
+            "El desempeño depende de masa superficial, rigidez, amortiguamiento y frecuencia",
+            "La placa más gruesa siempre posee la frecuencia crítica más alta",
+            "Todos los materiales de igual espesor producen la misma curva",
+            "La coincidencia se añade dibujando una corrección artificial",
+        ],
+        "El desempeño depende de masa superficial, rigidez, amortiguamiento y frecuencia",
+        "La curva surge del mismo modelo físico para las tres placas; no basta comparar solamente espesores.",
+    )
+    check(
+        "lab2_s3_compare_q3",
+        "Si aumenta el espesor de una placa manteniendo su densidad, ¿qué ocurre directamente con su masa superficial?",
+        [
+            "Aumenta, porque m′ = ρh",
+            "Disminuye, porque la placa se vuelve más rígida",
+            "Permanece constante, porque solo depende del material",
+            "Se hace igual a la densidad del aire",
+        ],
+        "Aumenta, porque m′ = ρh",
+        "La masa superficial es proporcional tanto a la densidad como al espesor de la placa.",
+    )
+    check(
+        "lab2_s3_compare_q4",
+        "¿Qué representa una disminución del TL alrededor de la frecuencia crítica?",
+        [
+            "Una mayor transmisión asociada al fenómeno de coincidencia",
+            "La desaparición completa de la vibración de la placa",
+            "Un aumento automático de la masa superficial",
+            "Un error producido por usar frecuencia lineal",
+        ],
+        "Una mayor transmisión asociada al fenómeno de coincidencia",
+        "Cerca de la frecuencia crítica se favorece el acoplamiento entre el campo sonoro y las ondas de flexión de la placa.",
+    )
+    check(
+        "lab2_s3_compare_q5",
+        "¿Por qué la imagen del sistema constructivo real no debe interpretarse como una predicción completa del tabique?",
+        [
+            "Porque el ejercicio modela una placa homogénea e infinita y no incorpora juntas, apoyos ni flancos",
+            "Porque las imágenes no tienen dimensiones escritas",
+            "Porque el hormigón no puede analizarse mediante masa superficial",
+            "Porque el modelo solo funciona para incidencia normal",
+        ],
+        "Porque el ejercicio modela una placa homogénea e infinita y no incorpora juntas, apoyos ni flancos",
+        "El modelo permite estudiar el material aislado, pero no reemplaza la evaluación del elemento instalado en obra.",
+    )
+
+def lab2_stage6():
+    """Etapa 6 completa: pérdida de transmisión en ventanas dobles (Quirt, 1983)."""
+    _lab2_heading(
+        6,
+        "Pérdida de transmisión sonora en ventanas dobles",
+        "Comprender cómo las masas de los vidrios, la cámara y sus dimensiones "
+        "modifican el TL por bandas.",
+    )
+
+    hero = ROOT / "assets/lab2/etapa6_ventana_doble_quirt_profesional.png"
+    if hero.exists():
+        st.image(str(hero), use_container_width=True)
+    st.caption(
+        "Dos vidrios separados por una cámara de aire: la primera hoja vibra, "
+        "excita el campo de la cavidad y este pone en movimiento la segunda hoja."
+    )
+
+    st.markdown("### 1 · ¿Qué es una ventana doble desde el punto de vista acústico?")
+    st.markdown("""
+    Una ventana doble es un sistema **masa–aire–masa**. Cada vidrio funciona como una
+    masa y el aire encerrado entre ambos actúa como un resorte. El sonido no atraviesa
+    simplemente dos obstáculos independientes: las hojas quedan acopladas por la cámara.
+
+    Por eso su respuesta presenta dos regiones:
+
+    - **Bajo la frecuencia f₁:** las dos hojas se mueven fuertemente acopladas y el
+      conjunto se aproxima a una placa cuya masa superficial es la suma de ambos vidrios.
+    - **Sobre f₁:** las hojas responden de manera más independiente y la cavidad puede
+      tratarse aproximadamente como un espacio reverberante. Intervienen el TL de cada
+      vidrio, la separación, el perímetro y las dimensiones de la ventana.
+
+    **En palabras simples:** antes de f₁, los dos vidrios tienden a “viajar juntos”.
+    Después de f₁, la cámara ayuda a separarlos acústicamente y el aislamiento puede
+    crecer con mayor rapidez.
+    """)
+
+    st.markdown("### 2 · Frecuencia que separa ambos comportamientos")
+    formula_card(
+        "Frecuencia f₁ de la ventana doble · Quirt (1983)",
+        r"f_1=\frac{1}{2\pi}\sqrt{\frac{(\rho_{s1}+\rho_{s2})\rho_0c^2}"
+        r"{d\,\rho_{s1}\rho_{s2}}}",
+        "<b>ρs₁, ρs₂</b>: masas superficiales de los vidrios (kg/m²)<br>"
+        "<b>ρ₀</b>: densidad del aire (kg/m³)<br>"
+        "<b>c</b>: velocidad del sonido (m/s)<br>"
+        "<b>d</b>: separación libre entre vidrios (m)<br>"
+        "<b>f₁</b>: frecuencia límite del modelo (Hz)",
+        "Para saber en qué banda deja de utilizarse la placa equivalente y comienza "
+        "el régimen superior de la cavidad.",
+    )
+    st.info(
+        "Aumentar la profundidad d reduce f₁. Esto desplaza la zona desfavorable hacia "
+        "frecuencias más bajas. Aumentar la masa de los vidrios también tiende a reducirla."
+    )
+
+    st.markdown("### 3 · Pérdida de transmisión bajo f₁")
+    st.latex(r"f<f_1")
+    st.latex(r"TL(f)\approx TL_{\rho_{s1}+\rho_{s2}}(f)")
+    st.markdown("""
+    En esta región se estima el TL como el de una placa infinita cuya masa superficial
+    equivale a la suma:
+    """)
+    st.latex(r"\rho_{s,\mathrm{eq}}=\rho_{s1}+\rho_{s2}")
+    st.markdown(
+        "**Lectura sencilla:** la cámara todavía no entrega toda la ventaja esperada; "
+        "ambas hojas se comportan aproximadamente como una masa equivalente."
+    )
+
+    st.markdown("### 4 · Pérdida de transmisión sobre f₁")
+    st.latex(r"f\geq f_1")
+    formula_card(
+        "Régimen superior de la ventana doble · ecuación 2.29",
+        r"TL=TL_{\rho_{s1}}+TL_{\rho_{s2}}+10\log_{10}(\alpha)"
+        r"+10\log_{10}(d)+10\log_{10}\left(\frac{h+w}{hw}\right)+3",
+        "<b>TLρs₁, TLρs₂</b>: TL individual de cada vidrio por banda<br>"
+        "<b>α</b>: absorción a incidencia aleatoria del perímetro interior<br>"
+        "<b>d</b>: profundidad de la cámara (m)<br>"
+        "<b>h, w</b>: alto y ancho interiores de la cavidad (m)",
+        "Para estimar el TL cuando la cavidad se considera un espacio reverberante.",
+    )
+    st.markdown("""
+    La ecuación no significa que cualquier aumento de cámara entregue siempre la misma
+    mejora. El resultado depende simultáneamente de las masas, la frecuencia, el tamaño
+    de la cavidad y las pérdidas en el perímetro.
+
+    **α no representa un absorbente que rellena la cámara.** Corresponde a la absorción
+    efectiva del perímetro y de las superficies interiores. En una ventana estándar la
+    cavidad permanece libre; por eso no debe aplicarse sin cambios el modelo de un tabique
+    relleno con lana mineral.
+    """)
+
+    st.markdown("### 5 · Lo que el modelo ideal todavía no incluye")
+    c1, c2, c3 = st.columns(3)
+    c1.markdown(
+        "**Marco y sellos**\n\nUna pequeña fuga puede dominar la transmisión y reducir "
+        "fuertemente el aislamiento medido."
+    )
+    c2.markdown(
+        "**Coincidencia del vidrio**\n\nCada hoja puede presentar un valle propio. "
+        "Vidrios iguales tienden a superponer sus debilidades."
+    )
+    c3.markdown(
+        "**Transmisiones laterales**\n\nEncuentros, cajones de persiana y la fachada "
+        "pueden limitar el resultado instalado."
+    )
+    st.warning(
+        "Una cámara pequeña con dos vidrios iguales puede ser excelente térmicamente, "
+        "pero no necesariamente es la solución acústica óptima. La asimetría desplaza "
+        "las coincidencias y una cámara mayor reduce el acoplamiento masa–aire–masa."
+    )
+
+    st.markdown("## Laboratorio interactivo · construye y analiza una ventana doble")
+    st.caption(
+        "Modifica una variable a la vez y observa f₁, la región activa y la curva de TL."
+    )
+    a, b, c = st.columns(3)
+    g1 = a.slider("Espesor vidrio 1 (mm)", 3.0, 12.0, 4.0, 0.5, key="l2s6_g1")
+    g2 = b.slider("Espesor vidrio 2 (mm)", 3.0, 12.0, 6.0, 0.5, key="l2s6_g2")
+    gap_mm = c.slider("Profundidad de cámara d (mm)", 6, 200, 40, 2, key="l2s6_gap")
+    d1, d2, d3 = st.columns(3)
+    height = d1.slider("Alto interior h (m)", 0.5, 3.0, 1.5, 0.1, key="l2s6_h")
+    width = d2.slider("Ancho interior w (m)", 0.5, 3.0, 1.2, 0.1, key="l2s6_w")
+    alpha = d3.slider("Absorción perimetral α", 0.02, 0.30, 0.10, 0.01, key="l2s6_alpha")
+
+    rho_glass = 2500.0
+    rho0 = 1.21
+    sound_speed = 343.0
+    m1 = rho_glass * g1 / 1000.0
+    m2 = rho_glass * g2 / 1000.0
+    gap = gap_mm / 1000.0
+    f1 = (1 / (2 * math.pi)) * math.sqrt(
+        ((m1 + m2) * rho0 * sound_speed**2) / (gap * m1 * m2)
+    )
+    tl1 = mass_r(m1, FREQS)
+    tl2 = mass_r(m2, FREQS)
+    equivalent = mass_r(m1 + m2, FREQS)
+    upper = (
+        tl1 + tl2 + 10 * np.log10(alpha) + 10 * np.log10(gap)
+        + 10 * np.log10((height + width) / (height * width)) + 3
+    )
+    window_tl = np.where(FREQS < f1, equivalent, upper)
+
+    e1, e2, e3, e4 = st.columns(4)
+    e1.metric("Masa vidrio 1", f"{m1:.1f} kg/m²")
+    e2.metric("Masa vidrio 2", f"{m2:.1f} kg/m²")
+    e3.metric("Masa equivalente", f"{m1 + m2:.1f} kg/m²")
+    e4.metric("Frecuencia f₁", f"{f1:.0f} Hz")
+
+    selected_f = st.select_slider(
+        "Frecuencia que deseas inspeccionar (Hz)",
+        options=[int(v) for v in FREQS],
+        value=500,
+        key="l2s6_selected_f",
+    )
+    idx = int(np.argmin(np.abs(FREQS - selected_f)))
+    regime = "Bajo f₁ · placa equivalente" if selected_f < f1 else "Sobre f₁ · cavidad reverberante"
+    r1, r2, r3 = st.columns(3)
+    r1.metric("Régimen activo", regime)
+    r2.metric(f"TL a {selected_f} Hz", f"{window_tl[idx]:.1f} dB")
+    r3.metric("Configuración", f"{g1:g}–{gap_mm}–{g2:g} mm")
+
+    _plot_curves(
+        [
+            ("Ventana doble · Quirt", window_tl, "solid"),
+            ("Placa equivalente", equivalent, "dash"),
+            ("Vidrio 1 individual", tl1, "dot"),
+            ("Vidrio 2 individual", tl2, "dot"),
+        ],
+        "Pérdida de transmisión sonora por bandas",
+        [(f1, "f₁")],
+    )
+
+    table = pd.DataFrame({
+        "Frecuencia (Hz)": FREQS.astype(int),
+        "Régimen": np.where(FREQS < f1, "Bajo f₁", "Sobre f₁"),
+        "TL vidrio 1 (dB)": np.round(tl1, 1),
+        "TL vidrio 2 (dB)": np.round(tl2, 1),
+        "TL placa equivalente (dB)": np.round(equivalent, 1),
+        "TL ventana doble (dB)": np.round(window_tl, 1),
+    })
+    st.dataframe(table, use_container_width=True, hide_index=True)
+
+    with st.expander("Ver cálculo matemático en la frecuencia seleccionada"):
+        st.markdown("**1 · Masas superficiales de los vidrios**")
+        st.latex(
+            rf"\rho_{{s1}}=2500\cdot {g1/1000:.4f}={m1:.2f}\ \mathrm{{kg/m^2}}"
+        )
+        st.latex(
+            rf"\rho_{{s2}}=2500\cdot {g2/1000:.4f}={m2:.2f}\ \mathrm{{kg/m^2}}"
+        )
+        st.markdown("**2 · Frecuencia de cambio de régimen**")
+        st.latex(rf"f_1={f1:.1f}\ \mathrm{{Hz}}")
+        if selected_f < f1:
+            st.markdown("**3 · La frecuencia seleccionada está bajo f₁**")
+            st.latex(
+                rf"TL({selected_f})=TL_{{\rho_{{s1}}+\rho_{{s2}}}}"
+                rf"={equivalent[idx]:.1f}\ \mathrm{{dB}}"
+            )
+        else:
+            st.markdown("**3 · La frecuencia seleccionada está sobre f₁**")
+            st.latex(
+                rf"TL({selected_f})={tl1[idx]:.1f}+{tl2[idx]:.1f}"
+                rf"+10\log_{{10}}({alpha:.2f})+10\log_{{10}}({gap:.3f})"
+                rf"+10\log_{{10}}\left(\frac{{{height:.1f}+{width:.1f}}}"
+                rf"{{{height:.1f}\cdot {width:.1f}}}\right)+3"
+            )
+            st.latex(rf"TL({selected_f})={window_tl[idx]:.1f}\ \mathrm{{dB}}")
+        st.caption(
+            "El cálculo es una aproximación didáctica del modelo de Quirt. No incorpora "
+            "fugas, marco, herrajes, coincidencia detallada ni transmisión lateral."
+        )
+
+    if st.session_state.get("role") == "Docente":
+        with st.expander("🔐 Lectura docente · interpretación y límites"):
+            st.markdown("""
+            - **Alrededor de f₁** debe enfatizarse el acoplamiento masa–aire–masa y la
+              transición entre las dos expresiones; no interpretar un salto del modelo
+              como una discontinuidad exacta de una ventana real.
+            - **En bajas frecuencias** domina el acoplamiento y el ruido de tránsito
+              pesado puede revelar la principal debilidad del sistema.
+            - **En medias y altas frecuencias** crece el beneficio de separar las hojas,
+              pero pueden aparecer coincidencias de los vidrios.
+            - **Vidrios asimétricos** no garantizan por sí solos más TL en cada banda,
+              pero evitan que ambas coincidencias se superpongan exactamente.
+            - **El resultado instalado** estará limitado por marco, sellos, encuentros,
+              cajones, ventilaciones y transmisiones laterales. La curva ideal no debe
+              presentarse como un valor certificado de obra.
+            """)
+
+    st.markdown("### Cinco preguntas de comprensión")
+    check(
+        "lab2_s6_q1",
+        "¿Qué representa físicamente el aire encerrado entre los dos vidrios?",
+        ["Un resorte acústico que acopla ambas masas", "Una tercera placa sólida",
+         "Una fuga permanente", "Un absorbente poroso"],
+        "Un resorte acústico que acopla ambas masas",
+        "El sistema se interpreta como masa–aire–masa: vidrio, resorte de aire y vidrio.",
+    )
+    check(
+        "lab2_s6_q2",
+        "¿Cómo se estima el TL bajo f₁ en este modelo?",
+        ["Como una placa equivalente con la suma de masas", "Sumando directamente 20 dB",
+         "Usando solo el vidrio más delgado", "Ignorando ambos vidrios"],
+        "Como una placa equivalente con la suma de masas",
+        "Bajo f₁ ambas hojas se consideran fuertemente acopladas.",
+    )
+    check(
+        "lab2_s6_q3",
+        "¿Qué suele ocurrir con f₁ al aumentar la profundidad d de la cámara?",
+        ["Disminuye", "Aumenta", "Permanece siempre fija", "Se transforma en Rw"],
+        "Disminuye",
+        "En la ecuación, d está en el denominador dentro de la raíz.",
+    )
+    check(
+        "lab2_s6_q4",
+        "¿Por qué dos vidrios distintos pueden ser preferibles acústicamente?",
+        ["Porque separan sus debilidades de coincidencia", "Porque eliminan el marco",
+         "Porque llenan la cámara con absorbente", "Porque hacen innecesarios los sellos"],
+        "Porque separan sus debilidades de coincidencia",
+        "La asimetría ayuda a que los valles propios de ambas hojas no coincidan exactamente.",
+    )
+    check(
+        "lab2_s6_q5",
+        "¿La curva ideal calculada garantiza el mismo TL en la ventana instalada?",
+        ["No; marco, sellos, fugas y flancos pueden dominar", "Sí, siempre",
+         "Sí, si ambos vidrios son iguales", "Solo depende del color del marco"],
+        "No; marco, sellos, fugas y flancos pueden dominar",
+        "El desempeño real debe verificarse mediante datos de ensayo y una ejecución estanca.",
+    )
+
 
 LAB1_STAGE_TITLES = [
     ("Etapa 0","Introducción y ruta del curso"),
@@ -5380,11 +7377,11 @@ LAB2_STAGE_TITLES = [
     ("Etapa 0","Ruta de las primeras dos horas"),
     ("Etapa 1","Pérdida de transmisión: energía, τ y TL"),
     ("Etapa 2","Panel simple: incidencia y cuatro zonas"),
-    ("Etapa 3","Casos reales de paneles simples"),
-    ("Etapa 4","Panel doble y masa–aire–masa"),
+    ("Etapa 3","Comparación aplicada de placas simples"),
+    ("Etapa 4","Pérdida de transmisión en paneles dobles"),
     ("Etapa 5","Modelo de Sharp: TL por tramos"),
     ("Etapa 6","Pérdida de transmisión en ventanas dobles"),
-    ("Etapa 7","Ventanas dobles · segunda mitad"),
+    ("Etapa 7","Bandas de octava y tercios · segunda mitad"),
     ("Etapa 8","Octavas y tercios · segunda mitad"),
     ("Etapa 9","Rw, C y Ctr · segunda mitad"),
     ("Etapa 10","Aplicación integradora · segunda mitad"),
