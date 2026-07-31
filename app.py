@@ -6077,15 +6077,16 @@ def lab2_stage5():
         "medida perpendicularmente entre las caras interiores de las hojas; b es la "
         "separación eje a eje entre dos montantes consecutivos.",
     )
-    st.markdown(r"""
+    st.markdown("""
     **Cómo leer las dos dimensiones del render**
 
-    - **\(d\) · Profundidad de la cámara:** distancia perpendicular entre las caras
-      interiores de las dos hojas. En el laboratorio se ingresa en milímetros y se
-      convierte a metros para calcular \(f_0\) y \(f_l\).
-    - **\(b\) · Separación de montantes:** distancia horizontal **eje a eje** entre
-      dos perfiles consecutivos. No corresponde al ancho libre del paño. En el modelo
-      de conexión lineal interviene en \(\Delta TL_{m'}\).
+    - **d · Profundidad de la cámara:** distancia perpendicular entre las caras
+      interiores de las dos hojas. Se ingresa en milímetros y se convierte a metros
+      para calcular las frecuencias **f₀** y **fₗ**.
+
+    - **b · Separación de montantes:** distancia horizontal **eje a eje** entre
+      dos perfiles consecutivos. No corresponde al ancho libre del paño. Interviene
+      en la corrección del camino de transmisión por conexión lineal, **ΔTLₘ′**.
     """)
     support_type=st.radio(
         "Tipo de conexión lineal que deseas representar",
@@ -6093,10 +6094,29 @@ def lab2_stage5():
         horizontal=True,
         key="s5_real_support_type",
     )
+    if support_type=="Perfilería metálica":
+        st.info(
+            "Perfilería metálica liviana · Sus alas y alma delgada son más flexibles "
+            "que un pie derecho macizo. Esa resiliencia suele reducir el acoplamiento "
+            "mecánico entre las dos hojas y entregar mayor aislamiento que una "
+            "estructura de madera equivalente. Un perfil metálico más grueso y rígido "
+            "puede perder parte de esa ventaja."
+        )
+    else:
+        st.warning(
+            "Pies derechos de madera · Su sección maciza presenta mayor rigidez y "
+            "normalmente forma un puente mecánico más eficaz entre ambas hojas. Por "
+            "ello, una solución equivalente suele aislar menos que con perfilería "
+            "metálica liviana, especialmente cuando las placas están fijadas "
+            "directamente a ambos lados del mismo pie derecho."
+        )
     st.caption(
-        "Ambas alternativas usan el mismo modelo de conexión lineal simple. La selección "
-        "cambia la lectura constructiva; no asigna automáticamente propiedades "
-        "mecánicas diferentes al acero y a la madera."
+        "Alcance del cálculo: la ecuación simplificada disponible representa una "
+        "conexión lineal genérica y todavía entrega el mismo valor para metal y "
+        "madera. La diferencia real depende de la rigidez y geometría del montante, "
+        "su espesor o sección, la separación, las fijaciones y las capas de placa. "
+        "Por rigor técnico no se aplica una corrección arbitraria sin datos mecánicos "
+        "o resultados de ensayo de la solución constructiva."
     )
     c1,c2,c3,c4=st.columns(4)
     m1=c1.number_input("Masa hoja 1 · m′₁ (kg/m²)",5.0,80.0,10.0,1.0,key="s5_real_m1")
