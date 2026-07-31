@@ -145,6 +145,8 @@ padding:.85rem .9rem;grid-template-columns:minmax(0,1fr) auto;gap:.55rem}
 [data-testid="stSidebar"] .sidebar-score b,[data-testid="stSidebar"] .sidebar-score .score-number{color:#fff!important}
 [data-testid="stSidebar"] .sidebar-score small{color:#d9f5ff!important;font-size:.72rem;white-space:normal}
 [data-testid="stSidebar"] .sidebar-score .score-number{font-size:1.25rem;text-align:right}
+[data-testid="stSidebar"] [data-baseweb="select"] *{color:#14243a!important}
+[data-testid="stSidebar"] [data-baseweb="select"] input{color:#14243a!important;-webkit-text-fill-color:#14243a!important}
 [data-testid="stSidebar"] [data-testid="stLinkButton"] a,
 [data-testid="stSidebar"] .stButton>button,
 [data-testid="stSidebar"] [data-testid="stExpander"] summary{
@@ -1203,11 +1205,10 @@ def score_counter(stage=None,compact=False):
         maximum=sum(LAB_POINT_SCHEMAS.get(ACTIVE_LAB,{}).get(stage,{}).values())
         title=f"Puntaje de la Etapa {stage}"
     else:
-        activity_stages=LAB_ACTIVITY_STAGES[ACTIVE_LAB]+(
-            [FINAL_EXAM_STAGE] if ACTIVE_LAB==2 else [])
+        activity_stages=LAB_ACTIVITY_STAGES[ACTIVE_LAB]
         rows=[row for row in rows if row[0] in activity_stages]
         maximum=sum(sum(LAB_POINT_SCHEMAS[ACTIVE_LAB][s].values()) for s in activity_stages)
-        title=f"Puntaje Laboratorio {ACTIVE_LAB}"
+        title=f"Actividades formativas · Lab. {ACTIVE_LAB}"
     earned=sum((row[4] if row[4] is not None else row[2]) or 0 for row in rows)
     completed=len({row[1] for row in rows})
     expected=(len(LAB_POINT_SCHEMAS.get(ACTIVE_LAB,{}).get(stage,{})) if stage is not None else
@@ -9330,7 +9331,6 @@ with st.sidebar:
     )
     st.caption("DIPLOMADO EN ACÚSTICA EN LA EDIFICACIÓN")
     st.markdown(f"**{st.session_state.name}**  \n{st.session_state.role}")
-    score_counter(compact=True)
     view_options=[
         "🏠 Mis clases",
         "📊 Mis resultados",
@@ -9344,23 +9344,40 @@ with st.sidebar:
         key="main_view",
         help="Selecciona Mis clases o la ruta del laboratorio.",
     )
+    # El alumno ve la escala de la etapa abierta (por ejemplo, 100 puntos en
+    # la evaluación final), no una suma de escalas diferentes. El docente
+    # consulta puntajes exclusivamente en el Centro de resultados.
+    if st.session_state.role=="Alumno":
+        sidebar_stage=None
+        if view==view_options[2]:
+            saved_stage=st.session_state.get(f"selected_stage_lab_{ACTIVE_LAB}","")
+            for stage_number,(stage_prefix,stage_title) in enumerate(LAB_STAGE_TITLES[ACTIVE_LAB]):
+                if str(saved_stage).startswith(f"{stage_prefix} · {stage_title}"):
+                    sidebar_stage=stage_number
+                    break
+        score_counter(stage=sidebar_stage,compact=True)
     formula_popup_button()
     if st.session_state.role=="Docente":
         st.link_button(
             "🖥️ Abrir vista para Zoom",
-            "?projection=1",
+            f"?projection=1&lab={ACTIVE_LAB}",
             use_container_width=True,
             help="Ábrela en otra ventana y comparte solo esa ventana en Zoom.",
         )
-        projection_stage=st.selectbox(
+        projection_options={
+            f"{prefix} · {title}":stage_number
+            for stage_number,(prefix,title) in enumerate(LAB_STAGE_TITLES[ACTIVE_LAB])
+            if stage_number in LABORATORIES[ACTIVE_LAB]["stages"]
+        }
+        projection_label=st.selectbox(
             "Contenido visible en Zoom",
-            LABORATORIES[ACTIVE_LAB]["stages"],
-            format_func=lambda i:f"{LAB_STAGE_TITLES[ACTIVE_LAB][i][0]} · {LAB_STAGE_TITLES[ACTIVE_LAB][i][1]}",
-            key="projection_stage_selector",
+            list(projection_options),
+            key=f"projection_stage_selector_lab_{ACTIVE_LAB}",
         )
+        projection_stage=projection_options[projection_label]
         if st.button("Mostrar etapa en Zoom",use_container_width=True):
             _set_projection(stage=projection_stage)
-            st.success(f"{LAB_STAGE_TITLES[ACTIVE_LAB][projection_stage][0]} del Laboratorio {ACTIVE_LAB} enviada a Zoom.")
+            st.success(f"{projection_label} del Laboratorio {ACTIVE_LAB} enviada a Zoom. Pulsa ‘Actualizar pantalla’ en la ventana de Zoom.")
         with st.expander("⚙️ Gestión de alumnos"):
             teacher_student_management()
         with st.expander("🔒 Publicación de laboratorios"):
