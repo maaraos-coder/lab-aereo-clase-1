@@ -3730,11 +3730,115 @@ def lab1_stage9():
 
 LAB1_QUESTIONS = [('La trayectoria incluye principalmente:', ['La partición y sus fugas', 'Solo el oído', 'Solo la fuente'], 0), ('La absorción reduce principalmente:', ['La reverberación interior', 'La masa del muro', 'El ruido emitido'], 0), ('A = Σ(S·α) representa:', ['Absorción equivalente', 'Masa superficial', 'Costo del ciclo'], 0), ('Sabine relaciona:', ['V, A y T₆₀', 'R, STC y OITC', 'Costo, ROI y vida útil'], 0), ('Si A aumenta con V constante, T₆₀:', ['Disminuye', 'Aumenta', 'No cambia'], 0), ('Antes de comparar ROI se debe:', ['Verificar suficiencia acústica', 'Elegir lo más barato', 'Promediar dB'], 0), ('ROI compara:', ['Beneficio neto con costo total', 'R con frecuencia', 'Área con volumen'], 0), ('Payback expresa:', ['Tiempo de recuperación', 'Vida útil acústica', 'Frecuencia crítica'], 0), ('El punto de equilibrio es:', ['Donde el beneficio adicional deja de justificar el costo', 'El mayor R posible', 'El menor precio siempre'], 0), ('Una solución que no cumple la meta:', ['Se descarta o rediseña', 'Gana si tiene buen ROI', 'Se aprueba por vida útil'], 0), ('τ es:', ['Energía transmitida/incidente', 'R promedio', 'Absorción total'], 0), ('R se expresa en:', ['dB', 'sabin', 'segundos'], 0), ('Duplicar masa en ley de masa aporta cerca de:', ['6 dB', '1 dB', '20 dB'], 0), ('La coincidencia puede producir:', ['Una caída de R', 'Aislamiento infinito', 'Mayor absorción Sabine'], 0), ('La lana en una cámara ayuda a:', ['Amortiguar resonancias', 'Crear puentes rígidos', 'Eliminar sellos'], 0), ('Una rendija puede:', ['Dominar la transmisión', 'Mejorar R', 'Aumentar masa'], 0), ('Los R de elementos compuestos se combinan mediante:', ['τ ponderado por área', 'Promedio aritmético', 'Suma directa'], 0), ('Transmisión flanqueante significa:', ['Vía indirecta alrededor del separador', 'Reflexión interior', 'Medición a 2 m'], 0), ('R(f) es:', ['Resultado por banda', 'Un único índice', 'Costo por dB'], 0), ('Rw corresponde principalmente a:', ['Laboratorio ISO', 'Terreno ASTM', 'Absorción'], 0), ('R′w incorpora:', ['Comportamiento aparente en obra', 'Solo el material aislado', 'ROI'], 0), ('DₙT,w corrige mediante:', ['Tiempo de reverberación', 'Costo de montaje', 'Masa'], 0), ('D₂m,nT,w se usa en:', ['Fachadas', 'Cielos plenums', 'ROI'], 0), ('OITC es especialmente útil para:', ['Ruido exterior de transporte', 'Eco interior', 'Impactos exclusivamente'], 0), ('Cₜᵣ se asocia a:', ['Tránsito y contenido grave', 'Solo agudos', 'Reverberación'], 0), ('STC y Rw:', ['No tienen conversión fija universal', 'Siempre difieren en 2', 'Son idénticos'], 0), ('CAC evalúa:', ['Paso por cielos y plenums', 'Fachada a 2 m', 'Tiempo de recuperación'], 0), ('Para una fuente tonal debe priorizarse:', ['Curva por bandas', 'Solo el índice mayor', 'Solo el costo'], 0), ('Rw es:', ['Valor de referencia ajustada en 500 Hz', 'Promedio de R', 'R medido siempre en 500 Hz'], 0)]
 
+def _lab1_final_submission():
+    """Return the student's definitive Lab 1 submission, if it exists."""
+    client=_supabase()
+    user_key=st.session_state.get('user_key')
+    if client is None or not user_key:
+        return None
+    try:
+        rows=(client.table('responses').select('*')
+              .eq('class_id',CLASS_ID).eq('user_key',user_key)
+              .eq('stage',10).eq('question_key','final_exam')
+              .limit(1).execute().data or [])
+    except Exception:
+        return None
+    if not rows:
+        return None
+    row=rows[0]
+    payload=_stage9_answer_payload(row)
+    return {'row':row,'payload':payload if isinstance(payload,dict) else {}}
+
+def _lab1_case_score(calc,diff,pct,bands,choice,justification):
+    practical=0
+    practical += 3 if abs(float(calc)-0.4025)<=0.03 else 0
+    practical += 2 if set(bands or [])=={125,250,500} else 0
+    practical += 3 if choice=='Solución B' else 0
+    practical += 2 if abs(float(diff)-300000)<=10000 else 0
+    practical += 2 if abs(float(pct)-16.7)<=0.5 else 0
+    words=str(justification or '').lower()
+    practical += 4 if all(k in words for k in ['costo','125']) else 2 if words.strip() else 0
+    practical += 4 if any(k in words for k in ['vida útil','cumple','objetivo','grave','250']) else 0
+    return min(20,practical)
+
+def _finish_lab1_final(reason='submitted'):
+    answers={str(i):st.session_state.get(f'q{i}') for i in range(29)}
+    answer_indexes={}
+    hits=0
+    for i,(_,options,correct) in enumerate(LAB1_QUESTIONS):
+        selected=answers[str(i)]
+        answer_indexes[str(i)]=options.index(selected) if selected in options else None
+        hits += int(selected==options[correct])
+    practical=_lab1_case_score(
+        st.session_state.get('case_calc',0),st.session_state.get('case_diff',0),
+        st.session_state.get('case_pct',0),st.session_state.get('case_bands',[]),
+        st.session_state.get('case_choice'),st.session_state.get('case_justification',''),
+    )
+    theory_score=hits/29*80
+    total=theory_score+practical
+    payload={
+        'respuestas_teoricas':answer_indexes,'respuestas_texto':answers,
+        'aciertos_teoricos':hits,'puntaje_teorico':theory_score,
+        'puntaje_caso':practical,'reason':reason,'finished_at':_now(),
+        'caso_integrador':{
+            'volumen':st.session_state.get('case_V',50.0),
+            'absorcion':st.session_state.get('case_A',20.0),
+            't60':st.session_state.get('case_calc',0),
+            'diferencia_costo':st.session_state.get('case_diff',0),
+            'incremento_porcentual':st.session_state.get('case_pct',0),
+            'bandas_criticas':st.session_state.get('case_bands',[]),
+            'recomendacion':st.session_state.get('case_choice'),
+            'justificacion':st.session_state.get('case_justification',''),
+        },
+    }
+    _save_formative(
+        10,'final_exam','Evaluación final del Curso 1',
+        json.dumps(payload,ensure_ascii=False),
+        'Correcta' if total>=60 else 'Incorrecta',
+        f'Teoría: {hits}/29 aciertos ({theory_score:.1f}/80). Caso práctico: {practical}/20 puntos.',
+        score=total,max_score=100,
+        correct_answer=('Pauta: T₆₀≈0,40 s; diferencia $300.000; incremento 16,7%; '
+                        'bandas 125, 250 y 500 Hz; Solución B.'),
+    )
+    st.session_state['lab1_exam_submitted']=True
+    st.session_state['exam_result']=(hits,practical,total)
+    save_user_progress()
+
 def lab1_stage10():
     header('ETAPA 10 · EVALUACIÓN FINAL', 'Evaluación práctica final · Aislamiento a Ruido Aéreo', '30 preguntas: 29 teórico-aplicadas y un caso integrador con costo-beneficio.')
     full_matter(10)
-    if 'exam_answers' not in st.session_state:
-        st.session_state.exam_answers = {}
+    if st.session_state.get('role')=='Docente':
+        st.info('Vista docente: pauta de consulta. El docente no desarrolla esta evaluación.')
+        for i,(question,options,correct) in enumerate(LAB1_QUESTIONS):
+            with st.expander(f'Pregunta {i+1} · {question}',expanded=i==0):
+                for option_index,option in enumerate(options):
+                    st.write(f"{'✅' if option_index==correct else '○'} {chr(65+option_index)}. {option}")
+        st.markdown('### Respuestas y rúbrica de alumnos')
+        _teacher_lab1_final_results()
+        return
+
+    remote=_lab1_final_submission()
+    if remote or st.session_state.get('lab1_exam_submitted'):
+        payload=(remote or {}).get('payload',{})
+        row=(remote or {}).get('row',{})
+        answers=payload.get('respuestas_teoricas',{})
+        hits=int(payload.get('aciertos_teoricos',0) or 0)
+        practical=float(payload.get('puntaje_caso',0) or 0)
+        total=float(row.get('auto_score',hits/29*80+practical) or 0)
+        st.success(f'Evaluación enviada y guardada · Puntaje: {total:.1f}/100')
+        st.caption('El intento está cerrado. Tus respuestas permanecen disponibles al cerrar sesión o volver a ingresar.')
+        with st.expander('Revisar respuestas 1 a 29'):
+            for i,(question,options,correct) in enumerate(LAB1_QUESTIONS):
+                raw=answers.get(str(i),answers.get(i)) if isinstance(answers,dict) else None
+                try: selected=int(raw) if raw is not None else None
+                except (TypeError,ValueError): selected=None
+                chosen=options[selected] if selected is not None and 0<=selected<len(options) else 'Sin respuesta'
+                st.markdown(f"**{'✅' if selected==correct else '❌'} {i+1}. {question}**")
+                st.write(f'Tu respuesta: {chosen}')
+                st.caption(f'Respuesta correcta: {options[correct]}')
+        st.info('Pauta del caso: T₆₀≈0,40 s; diferencia $300.000; incremento 16,7%; bandas 125, 250 y 500 Hz; Solución B.')
+        return
+
     tab1, tab2 = st.tabs(['Preguntas 1 a 29', 'Pregunta 30 · Caso práctico'])
     with tab1:
         qn = st.selectbox('Pregunta', range(29), format_func=lambda i: f'Pregunta {i + 1}')
@@ -3745,9 +3849,13 @@ def lab1_stage10():
             if ans is None:
                 st.warning('Selecciona una alternativa.')
             else:
-                st.session_state.exam_answers[qn] = opts.index(ans)
+                save_user_progress()
                 st.success('Respuesta guardada.')
-        st.progress(len(st.session_state.exam_answers) / 29)
+        answered=sum(st.session_state.get(f'q{i}') is not None for i in range(29))
+        hits=sum(st.session_state.get(f'q{i}')==LAB1_QUESTIONS[i][1][LAB1_QUESTIONS[i][2]] for i in range(29))
+        theory_score=hits/29*80
+        st.progress(answered/29)
+        st.caption(f'{answered} de 29 respuestas registradas · Puntaje teórico acumulado: {theory_score:.1f}/80')
     with tab2:
         st.markdown('<div class="question-box"><div class="question-label">PREGUNTA 30 · CASO PROFESIONAL INTEGRADOR</div><div class="question-text">¿Qué solución recomendarías para proteger un dormitorio contiguo a una sala de máquinas?</div><p>La fuente domina en 125, 250 y 500 Hz. Calcula, compara y justifica tu decisión técnico-económica.</p></div>', unsafe_allow_html=True)
         df = pd.DataFrame({'Indicador': ['Rw', 'Cₜᵣ', 'Rw+Cₜᵣ', 'R en 125 Hz', 'R en 250 Hz', 'R en 500 Hz', 'Costo instalado', 'Vida útil'], 'Solución A': ['52 dB', '−9 dB', '43 dB', '27 dB', '34 dB', '47 dB', '$1.800.000', '20 años'], 'Solución B': ['49 dB', '−4 dB', '45 dB', '34 dB', '39 dB', '45 dB', '$2.100.000', '25 años']})
@@ -3761,37 +3869,28 @@ def lab1_stage10():
         bands = st.multiselect('Bandas críticas', [125, 250, 500, 1000], key='case_bands')
         choice = st.radio('Recomendación', ['Solución A', 'Solución B'], index=None, key='case_choice')
         justification = st.text_area('Justificación técnico-económica', key='case_justification')
-        if st.button('Finalizar y corregir evaluación', type='primary'):
-            theory = sum((st.session_state.exam_answers.get(i) == LAB1_QUESTIONS[i][2] for i in range(29)))
-            practical = 0
-            practical += 3 if abs(calc - 0.4025) <= 0.03 else 0
-            practical += 2 if set(bands) == {125, 250, 500} else 0
-            practical += 3 if choice == 'Solución B' else 0
-            practical += 2 if abs(diff - 300000) <= 10000 else 0
-            practical += 2 if abs(pct - 16.7) <= 0.5 else 0
-            words = justification.lower()
-            practical += 4 if all((k in words for k in ['costo', '125'])) else 2 if justification.strip() else 0
-            practical += 4 if any((k in words for k in ['vida útil', 'cumple', 'objetivo', 'grave', '250'])) else 0
-            total = theory / 29 * 80 + practical
-            st.session_state.exam_result = (theory, practical, total)
-            level = 'Correcta' if total >= 60 else 'Incorrecta'
-            final_payload={
-                'respuestas_teoricas':st.session_state.exam_answers,
-                'aciertos_teoricos':theory,
-                'puntaje_caso':practical,
-                'caso_integrador':{
-                    't60':calc,'diferencia_costo':diff,
-                    'incremento_porcentual':pct,'bandas_criticas':bands,
-                    'recomendacion':choice,'justificacion':justification,
-                },
-            }
-            _save_formative(10, 'final_exam', 'Evaluación final del Curso 1', json.dumps(final_payload, ensure_ascii=False), level, f'Teoría: {theory}/29 aciertos. Caso práctico: {practical}/20 puntos.', score=total, max_score=100)
-    if 'exam_result' in st.session_state:
-        theory, practical, total = st.session_state.exam_result
-        st.markdown(f"""<div class="good"><b>Resultado: {total:.1f}/100</b><br>Teoría: {theory}/29 aciertos, ponderados a 80 puntos. Caso práctico: {practical}/20 puntos.<br>{('APROBADO' if total >= 60 else 'REQUIERE REFORZAMIENTO')}</div>""", unsafe_allow_html=True)
-        st.info('Respuesta esperada: T₆₀≈0,40 s; diferencia $300.000; incremento 16,7%; bandas 125, 250 y 500 Hz; Solución B por mejor respuesta grave, mejor Rw+Cₜᵣ y mayor vida útil. Si ambas cumplieran holgadamente la meta, A podría ser suficiente.')
-    score_counter(10)
-    teacher_group_review(10, {'final_exam': 'La evaluación suma 80 puntos teóricos y 20 puntos del caso integrador. La aprobación interna se alcanza con 60/100; el docente puede revisar y ajustar el puntaje con fundamento.'})
+        practical_live=_lab1_case_score(calc,diff,pct,bands,choice,justification)
+        theory_hits=sum(st.session_state.get(f'q{i}')==LAB1_QUESTIONS[i][1][LAB1_QUESTIONS[i][2]] for i in range(29))
+        theory_live=theory_hits/29*80
+        st.markdown(f'<div class="good"><b>Puntaje acumulado: {theory_live+practical_live:.1f}/100</b><br>Teoría: {theory_live:.1f}/80 · Caso práctico: {practical_live}/20.</div>',unsafe_allow_html=True)
+        answered=sum(st.session_state.get(f'q{i}') is not None for i in range(29))
+        if st.button('Enviar evaluación definitiva',type='primary',use_container_width=True,key='lab1_final_submit'):
+            if answered<29 or choice is None or not justification.strip():
+                st.session_state['lab1_confirm_incomplete']=True
+                st.warning('La evaluación tiene respuestas pendientes. Revísalas antes del envío definitivo.')
+            else:
+                try:
+                    _finish_lab1_final('submitted')
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f'No fue posible enviar la evaluación. Tus respuestas continúan guardadas como avance. Detalle: {exc}')
+        if st.session_state.get('lab1_confirm_incomplete'):
+            if st.button('Confirmar envío con respuestas pendientes',key='lab1_final_submit_incomplete'):
+                try:
+                    _finish_lab1_final('submitted_incomplete')
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f'No fue posible enviar la evaluación. Tus respuestas continúan guardadas como avance. Detalle: {exc}')
 
 # ---------------------------------------------------------------------------
 # Laboratorio 2 · ruta profesional MINVU / CES / ISO 12354
