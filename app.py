@@ -7295,23 +7295,15 @@ def lab2_stage8():
         unsafe_allow_html=True,
     )
 
-    st.markdown("#### Aplicación integrada · calcula Rw, C y Ctr con la misma curva")
+    st.markdown("#### 6.1 · Punto de partida: conservar el Rw ya construido")
     st.write(
-        "Modifica la forma de la curva por tercios. El laboratorio ajustará la "
-        "referencia, mostrará las desviaciones desfavorables y calculará los tres "
-        "descriptores sin promediar decibeles."
+        "Para obtener **C** y **Ctr** no se construye otra curva ni se vuelve a "
+        "calcular Rw. Se conserva la misma curva R(f) del procedimiento anterior "
+        "y la posición final de la curva de referencia. Sobre ese resultado se "
+        "aplican, uno después del otro, los dos espectros normalizados."
     )
 
-    frequencies = np.array(
-        [100, 125, 160, 200, 250, 315, 400, 500,
-         630, 800, 1000, 1250, 1600, 2000, 2500, 3150],
-        dtype=float,
-    )
-    reference_shape = np.array(
-        [33, 36, 39, 42, 45, 48, 51, 52,
-         53, 54, 55, 56, 56, 56, 56, 56],
-        dtype=float,
-    )
+    frequencies = demo_freq.astype(float)
     spectrum_c = np.array(
         [-29, -26, -23, -21, -19, -17, -15, -13,
          -12, -11, -10, -9, -9, -9, -9, -9],
@@ -7322,114 +7314,106 @@ def lab2_stage8():
          -11, -9, -8, -9, -10, -11, -13, -15],
         dtype=float,
     )
-
-    p1, p2, p3 = st.columns(3)
-    with p1:
-        base_rating = st.slider(
-            "Nivel general de la solución",
-            35, 65, 52, 1,
-            key="lab2_s8_base_rating",
-        )
-    with p2:
-        low_frequency_weakness = st.slider(
-            "Debilidad en bajas frecuencias",
-            0, 15, 7, 1,
-            key="lab2_s8_low_weakness",
-        )
-    with p3:
-        coincidence_depth = st.slider(
-            "Profundidad del valle de coincidencia",
-            0, 15, 6, 1,
-            key="lab2_s8_coincidence_depth",
-        )
-    coincidence_band = st.select_slider(
-        "Centro del valle de coincidencia",
-        [500, 630, 800, 1000, 1250, 1600, 2000, 2500],
-        value=1250,
-        format_func=lambda x: f"{x:,} Hz".replace(",", "."),
-        key="lab2_s8_coincidence_band",
-    )
-
-    logf = np.log2(frequencies / 500.0)
-    r_curve = base_rating + 4.6 * logf
-    low_shape = np.exp(-0.5 * (np.log2(frequencies / 125.0) / 1.05) ** 2)
-    coincidence_shape = np.exp(
-        -0.5 * (np.log2(frequencies / float(coincidence_band)) / 0.34) ** 2
-    )
-    r_curve = np.round(
-        r_curve - low_frequency_weakness * low_shape
-        - coincidence_depth * coincidence_shape,
-        1,
-    )
-
-    best_shift = None
-    best_deviations = None
+    r_curve = demo_r.copy()
+    best_shift = -60
     for shift in range(-60, 61):
-        shifted = reference_shape + shift
+        shifted = demo_ref_shape + shift
         deviations = np.maximum(0.0, shifted - r_curve)
         if float(np.sum(deviations)) <= 32.0 + 1e-9:
             best_shift = shift
-            best_deviations = deviations
-    shifted_reference = reference_shape + best_shift
-    deviations = best_deviations
+    shifted_reference = demo_ref_shape + best_shift
+    deviations = np.maximum(0.0, shifted_reference - r_curve)
     rw_value = int(round(52 + best_shift))
     x_c = -10.0 * np.log10(np.sum(10.0 ** ((spectrum_c - r_curve) / 10.0)))
     x_ctr = -10.0 * np.log10(np.sum(10.0 ** ((spectrum_ctr - r_curve) / 10.0)))
     c_value = int(round(x_c - rw_value))
     ctr_value = int(round(x_ctr - rw_value))
     total_deviation = float(np.sum(deviations))
+    transmitted_c = spectrum_c - r_curve
+    transmitted_ctr = spectrum_ctr - r_curve
 
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=frequencies, y=r_curve, mode="lines+markers",
-        name="Curva R(f)", line=dict(color="#25d6b2", width=4),
-        marker=dict(size=8),
-    ))
-    fig.add_trace(go.Scatter(
-        x=frequencies, y=shifted_reference, mode="lines+markers",
-        name="Referencia ajustada", line=dict(color="#ff9f43", width=3, shape="hv"),
-        marker=dict(size=6),
-    ))
-    unfavorable = deviations > 0
-    for idx in np.where(unfavorable)[0]:
-        fig.add_trace(go.Scatter(
-            x=[frequencies[idx], frequencies[idx]],
-            y=[r_curve[idx], shifted_reference[idx]],
-            mode="lines",
-            line=dict(color="#ff4d6d", width=5),
-            showlegend=False,
-            hovertemplate=(
-                f"{int(frequencies[idx])} Hz<br>"
-                f"Desviación: {deviations[idx]:.1f} dB<extra></extra>"
-            ),
-        ))
-    fig.add_trace(go.Scatter(
-        x=[None], y=[None], mode="lines",
-        name="Desviación desfavorable",
-        line=dict(color="#ff4d6d", width=5),
-    ))
-    fig.update_layout(
-        title="Ajuste de la curva de referencia",
-        xaxis_title="Frecuencia central (Hz)",
-        yaxis_title="Reducción sonora R (dB)",
-        xaxis_type="log", hovermode="x unified", height=500,
-        margin=dict(l=35, r=20, t=65, b=40),
-        legend=dict(orientation="h", y=1.14),
-    )
-    fig.update_xaxes(
-        tickvals=frequencies,
-        ticktext=[str(int(v)) if v < 1000 else f"{v/1000:g}k" for v in frequencies],
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    r1, r2, r3, r4 = st.columns(4)
-    r1.metric("Rw", f"{rw_value} dB")
-    r2.metric("C", f"{c_value:+d} dB")
-    r3.metric("Ctr", f"{ctr_value:+d} dB")
-    r4.metric("Σ desviaciones", f"{total_deviation:.1f} / 32 dB")
     st.markdown(
-        f'<div class="good"><b>Resultado:</b> R<sub>w</sub>'
-        f'({c_value:+d}; {ctr_value:+d}) = {rw_value} '
+        f'<div class="good"><b>Resultado que continúa desde el punto anterior:</b> '
+        f'R<sub>w</sub> = {rw_value} dB · Σd<sub>i</sub> = {total_deviation:.1f} dB</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("#### 6.2 · Construcción paso a paso de C")
+    c_step = st.select_slider(
+        "Recorre la construcción de C",
+        options=[1, 2, 3, 4], value=1,
+        format_func=lambda n: {
+            1: "1 · Aplicar espectro 1", 2: "2 · Restar R(f)",
+            3: "3 · Sumar la transmisión", 4: "4 · Obtener C",
+        }[n], key="lab2_s8_c_step",
+    )
+    c_fig = go.Figure()
+    c_fig.add_trace(go.Bar(x=frequencies, y=spectrum_c, name="Espectro 1",
+                           marker_color="#56a8ff"))
+    if c_step >= 2:
+        c_fig.add_trace(go.Scatter(x=frequencies, y=transmitted_c,
+                                   mode="lines+markers", name="Lᵢ − Rᵢ",
+                                   line=dict(color="#ff9f43", width=4)))
+    c_fig.update_layout(height=390, barmode="overlay", xaxis_type="log",
+                        xaxis_title="Frecuencia central (Hz)",
+                        yaxis_title="Nivel relativo (dB)",
+                        margin=dict(l=30, r=20, t=25, b=35))
+    c_fig.update_xaxes(tickvals=frequencies,
+                       ticktext=[str(int(v)) if v < 1000 else f"{v/1000:g}k" for v in frequencies])
+    st.plotly_chart(c_fig, use_container_width=True)
+    c_explanation = {
+        1: "El espectro 1 fija cuánta energía relativa aporta cada tercio de octava.",
+        2: "Se resta Rᵢ en cada banda. El resultado Lᵢ−Rᵢ representa la energía relativa que logra transmitirse.",
+        3: f"Las 16 contribuciones se suman energéticamente, no aritméticamente: X₁ = {x_c:.1f} dB.",
+        4: f"Finalmente, C = X₁ − Rw = {x_c:.1f} − {rw_value} = {c_value:+d} dB.",
+    }[c_step]
+    st.info(c_explanation)
+    if c_step >= 3:
+        st.latex(rf"X_1=-10\log_{{10}}\left(\sum_i10^{{(L_{{1,i}}-R_i)/10}}\right)={x_c:.1f}\ \mathrm{{dB}}")
+    if c_step == 4:
+        st.latex(rf"C=X_1-R_w={x_c:.1f}-{rw_value}={c_value:+d}\ \mathrm{{dB}}")
+        st.success(f"Para el espectro 1: Rw + C = {rw_value + c_value} dB.")
+
+    st.markdown("#### 6.3 · Construcción paso a paso de Ctr")
+    ctr_step = st.select_slider(
+        "Recorre la construcción de Ctr",
+        options=[1, 2, 3, 4], value=1,
+        format_func=lambda n: {
+            1: "1 · Aplicar espectro 2", 2: "2 · Restar R(f)",
+            3: "3 · Sumar la transmisión", 4: "4 · Obtener Ctr",
+        }[n], key="lab2_s8_ctr_step",
+    )
+    ctr_fig = go.Figure()
+    ctr_fig.add_trace(go.Bar(x=frequencies, y=spectrum_ctr, name="Espectro 2",
+                             marker_color="#b06cff"))
+    if ctr_step >= 2:
+        ctr_fig.add_trace(go.Scatter(x=frequencies, y=transmitted_ctr,
+                                     mode="lines+markers", name="Lᵢ − Rᵢ",
+                                     line=dict(color="#ff4d6d", width=4)))
+    ctr_fig.update_layout(height=390, barmode="overlay", xaxis_type="log",
+                          xaxis_title="Frecuencia central (Hz)",
+                          yaxis_title="Nivel relativo (dB)",
+                          margin=dict(l=30, r=20, t=25, b=35))
+    ctr_fig.update_xaxes(tickvals=frequencies,
+                         ticktext=[str(int(v)) if v < 1000 else f"{v/1000:g}k" for v in frequencies])
+    st.plotly_chart(ctr_fig, use_container_width=True)
+    ctr_explanation = {
+        1: "El espectro 2 asigna mayor importancia relativa a las bajas frecuencias, características del tránsito urbano.",
+        2: "Se resta la misma curva Rᵢ. Los valores L₂,ᵢ−Rᵢ muestran qué bandas graves dominan la transmisión.",
+        3: f"Se realiza nuevamente una suma energética de las 16 bandas: X₂ = {x_ctr:.1f} dB.",
+        4: f"Finalmente, Ctr = X₂ − Rw = {x_ctr:.1f} − {rw_value} = {ctr_value:+d} dB.",
+    }[ctr_step]
+    st.info(ctr_explanation)
+    if ctr_step >= 3:
+        st.latex(rf"X_2=-10\log_{{10}}\left(\sum_i10^{{(L_{{2,i}}-R_i)/10}}\right)={x_ctr:.1f}\ \mathrm{{dB}}")
+    if ctr_step == 4:
+        st.latex(rf"C_{{tr}}=X_2-R_w={x_ctr:.1f}-{rw_value}={ctr_value:+d}\ \mathrm{{dB}}")
+        st.success(f"Para el espectro de tránsito: Rw + Ctr = {rw_value + ctr_value} dB.")
+
+    st.markdown("#### 6.4 · Resultado completo")
+    st.markdown(
+        f'<div class="good"><b>Forma normalizada de informar:</b> '
+        f'R<sub>w</sub>(C; C<sub>tr</sub>) = {rw_value} '
         f'({c_value:+d}; {ctr_value:+d}) dB<br>'
         f'<span>Rw+C = {rw_value+c_value} dB · '
         f'Rw+Ctr = {rw_value+ctr_value} dB</span></div>',
@@ -7439,46 +7423,13 @@ def lab2_stage8():
     table = pd.DataFrame({
         "Frecuencia (Hz)": frequencies.astype(int),
         "R(f) (dB)": r_curve,
-        "Referencia ajustada (dB)": shifted_reference.astype(int),
-        "Desviación desfavorable (dB)": np.round(deviations, 1),
-        "Espectro C (dB)": spectrum_c.astype(int),
-        "Espectro Ctr (dB)": spectrum_ctr.astype(int),
+        "Espectro 1 (dB)": spectrum_c.astype(int),
+        "L1-R (dB)": transmitted_c,
+        "Espectro 2 (dB)": spectrum_ctr.astype(int),
+        "L2-R (dB)": transmitted_ctr,
     })
-    with st.expander("Ver tabla completa de las 16 bandas"):
-        st.dataframe(table, hide_index=True, use_container_width=True)
-
-    selected_frequency = st.select_slider(
-        "Revisar una banda paso a paso",
-        frequencies.astype(int).tolist(),
-        value=500,
-        format_func=lambda x: f"{x:,} Hz".replace(",", "."),
-        key="lab2_s8_selected_frequency",
-    )
-    selected_idx = int(np.where(frequencies == selected_frequency)[0][0])
-    with st.expander("Ver procedimiento matemático del resultado"):
-        st.markdown("**1. Desviación en la banda seleccionada**")
-        st.latex(
-            rf"d_{{{selected_frequency}}}=\max\left(0,"
-            rf"{shifted_reference[selected_idx]:.0f}-{r_curve[selected_idx]:.1f}\right)"
-            rf"={deviations[selected_idx]:.1f}\ \mathrm{{dB}}"
-        )
-        st.markdown("**2. Suma de desviaciones desfavorables**")
-        st.latex(
-            rf"\sum_{{i=1}}^{{16}}d_i={total_deviation:.1f}\ \mathrm{{dB}}"
-            rf"\leq 32\ \mathrm{{dB}}"
-        )
-        st.markdown("**3. Lectura del índice en 500 Hz**")
-        st.latex(
-            rf"R_w=R_{{\mathrm{{ref,ajustada}}}}(500\ \mathrm{{Hz}})"
-            rf"={rw_value}\ \mathrm{{dB}}"
-        )
-        st.markdown("**4. Adaptaciones espectrales**")
-        st.latex(
-            rf"C=X_1-R_w={x_c:.1f}-{rw_value}={c_value:+d}\ \mathrm{{dB}}"
-        )
-        st.latex(
-            rf"C_{{tr}}=X_2-R_w={x_ctr:.1f}-{rw_value}={ctr_value:+d}\ \mathrm{{dB}}"
-        )
+    with st.expander("Ver cálculo banda por banda de C y Ctr"):
+        st.dataframe(table.round(1), hide_index=True, use_container_width=True)
 
     st.markdown("### 7 · Cómo interpretar el resultado")
     source_type = st.radio(
