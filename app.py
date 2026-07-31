@@ -8347,6 +8347,7 @@ def teacher_lab2_stage10_answer_key():
         "en cada tercio de octava; con la curva combinada construir Rw y calcular C y Ctr. "
         "El diseño cumple cuando Rw ≥ 40 dB. El valor numérico depende de la solución seleccionada por cada alumno."
     )
+    _lab2_s10_teacher_solved_examples()
     st.markdown("### Pauta · Preguntas de comprensión")
     for i,(question,options,correct) in enumerate(LAB2_S10_QUESTIONS):
         with st.expander(f"Pregunta {i+1}",expanded=i==0):
@@ -8391,6 +8392,95 @@ def _lab2_s10_door_curve(target):
     base=REF.astype(float)+shape*.18
     current=_lab2_s10_indices(base)[0]
     return base+(float(target)-current)
+
+def _lab2_s10_teacher_solved_examples():
+    """Ejemplos numéricos resueltos, visibles únicamente en la pauta docente."""
+    examples=[]
+
+    wall_a=_lab2_s10_single("Ladrillo cerámico",120)
+    window_a,*_=_glass_panel_tl(6,.010,LAB2_S10_FREQS)
+    door_a=_lab2_s10_door_curve(32)
+    examples.append({
+        "title":"Ejemplo 1 · Solución que no cumple",
+        "purpose":"Permite explicar por qué un muro razonable no compensa una ventana simple y una puerta de prestación limitada.",
+        "wall":"Ladrillo cerámico de 120 mm",
+        "window":"Vidrio simple de 6 mm",
+        "door":"P3 · Madera maciza de 45 mm, con sellos",
+        "curves":[wall_a,np.asarray(window_a,dtype=float),door_a],
+    })
+
+    wall_b=_lab2_s10_double(
+        "Yeso-cartón alta densidad",15,2,
+        "Yeso-cartón alta densidad",15,2,
+        100,"Lana mineral 40 kg/m³",
+    )
+    window_b,*_=_double_window_model(6,10,.020,1.2,2.0,.10,.010,.010,LAB2_S10_FREQS)
+    door_b=_lab2_s10_door_curve(48)
+    examples.append({
+        "title":"Ejemplo 2 · Solución que cumple",
+        "purpose":"Ejemplo de pauta con tabique desacoplado, vidrios asimétricos y una puerta reforzada.",
+        "wall":"2× yeso-cartón alta densidad 15 mm / cámara 100 mm con lana mineral 40 kg/m³ / 2× yeso-cartón alta densidad 15 mm",
+        "window":"Ventana doble 6/20/10 mm",
+        "door":"P6 · Puerta acústica reforzada",
+        "curves":[wall_b,np.asarray(window_b,dtype=float),door_b],
+    })
+
+    st.markdown("### Ejemplos resueltos del cálculo integrador")
+    st.caption(
+        "Estas son pautas de referencia, no las únicas soluciones posibles. Todos los valores "
+        "se obtienen con las mismas funciones de cálculo utilizadas por el alumno."
+    )
+    for example_index,example in enumerate(examples):
+        wall_curve,window_curve,door_curve=example["curves"]
+        combined=-10*np.log10((
+            19.71*10**(-wall_curve/10)
+            +2.40*10**(-window_curve/10)
+            +1.89*10**(-door_curve/10)
+        )/24.0)
+        wr,wc,wctr=_lab2_s10_indices(wall_curve)
+        vr,vc,vctr=_lab2_s10_indices(window_curve)
+        dr,dc,dctr=_lab2_s10_indices(door_curve)
+        rw,c,ctr=_lab2_s10_indices(combined)
+        weakest=min([(wr,"muro/tabique"),(vr,"ventana"),(dr,"puerta")])[1]
+        with st.expander(example["title"],expanded=example_index==0):
+            st.write(example["purpose"])
+            st.markdown(
+                f"**Muro/tabique:** {example['wall']}  \n"
+                f"**Ventana:** {example['window']}  \n"
+                f"**Puerta:** {example['door']}"
+            )
+            summary=pd.DataFrame([
+                ["Muro/tabique",19.71,example["wall"],f"{wr} ({wc:+d}; {wctr:+d})"],
+                ["Ventana",2.40,example["window"],f"{vr} ({vc:+d}; {vctr:+d})"],
+                ["Puerta",1.89,example["door"],f"{dr} ({dc:+d}; {dctr:+d})"],
+            ],columns=["Elemento","Superficie (m²)","Solución","Rw (C; Ctr) dB"])
+            st.dataframe(summary,hide_index=True,use_container_width=True)
+            a,b,c1,c2=st.columns(4)
+            a.metric("Rw combinado",f"{rw} dB")
+            b.metric("C",f"{c:+d} dB")
+            c1.metric("Ctr",f"{ctr:+d} dB")
+            c2.metric("Rw + C",f"{rw+c} dB")
+            (st.success if rw>=40 else st.error)(
+                f"{'Cumple' if rw>=40 else 'No cumple'}: Rw = {rw} dB "
+                f"{'≥' if rw>=40 else '<'} 40 dB. Elemento de menor Rw: {weakest}."
+            )
+            _lab2_s10_plot(
+                f"{example['title']} · curvas por tercios de octava",
+                [("Muro/tabique",wall_curve),("Ventana",window_curve),
+                 ("Puerta",door_curve),("Paramento combinado",combined)],
+            )
+            st.markdown("**Desarrollo espectral correcto**")
+            st.dataframe(pd.DataFrame({
+                "Frecuencia (Hz)":LAB2_S10_FREQS.astype(int),
+                "Muro/tabique Rm (dB)":np.round(wall_curve,1),
+                "Ventana Rv (dB)":np.round(window_curve,1),
+                "Puerta Rp (dB)":np.round(door_curve,1),
+                "R combinado (dB)":np.round(combined,1),
+            }),hide_index=True,use_container_width=True)
+            st.info(
+                f"Resultado de pauta: Rw(C; Ctr) = {rw} ({c:+d}; {ctr:+d}) dB; "
+                f"Rw+C = {rw+c} dB y Rw+Ctr = {rw+ctr} dB."
+            )
 
 def _lab2_s10_plot(title,curves):
     fig=go.Figure()
