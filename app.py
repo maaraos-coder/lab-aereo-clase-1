@@ -50,7 +50,7 @@ ACADEMIC_COURSES = [
         "title": "Aislamiento acústico al ruido aéreo",
         "labs": [
             {"number": 1, "opens_at": "2026-07-25T00:00:00-04:00", "implemented": True},
-            {"number": 2, "opens_at": "2026-08-01T00:00:00-04:00", "implemented": True},
+            {"number": 2, "opens_at": "2026-07-31T00:00:00-04:00", "implemented": True},
         ],
     },
     {
