@@ -3898,6 +3898,51 @@ def lab2_stage5():
     st.latex(r"R'=-10\log_{10}\left(\tau_d+\sum \tau_{flanco}\right)")
     st.info("La contribución total se suma en energía. Una vía lateral débil puede limitar el desempeño aunque el tabique directo sea excelente.")
 
+def _sonara_glass_tl(thickness_mm, loss_factor, frequencies=FREQS):
+    """TL por bandas de un vidrio monolítico con el motor angular SONARA."""
+    density = 2500.0
+    young = 70.0e9
+    poisson = 0.23
+    thickness = float(thickness_mm) / 1000.0
+    surface_mass = density * thickness
+    stiffness = young * thickness**3 / (12 * (1 - poisson**2))
+    critical = (
+        343.0**2 / (2 * math.pi)
+        * math.sqrt(surface_mass / stiffness)
+    )
+    _, tl, _, _, _ = _panel_simple_field_tl(
+        np.asarray(frequencies, dtype=float),
+        surface_mass,
+        stiffness,
+        float(loss_factor),
+    )
+    return np.asarray(tl), surface_mass, stiffness, critical
+
+
+def _double_window_sonara(
+    g1_mm, g2_mm, gap_m, height, width, alpha, eta1, eta2,
+    frequencies=FREQS,
+):
+    """Vidrios con SONARA y acoplamiento de la ventana doble con Quirt."""
+    tl1, m1, b1, fc1 = _sonara_glass_tl(g1_mm, eta1, frequencies)
+    tl2, m2, b2, fc2 = _sonara_glass_tl(g2_mm, eta2, frequencies)
+    rho0 = 1.21
+    sound_speed = 343.0
+    f1 = (1 / (2 * math.pi)) * math.sqrt(
+        ((m1 + m2) * rho0 * sound_speed**2) / (gap_m * m1 * m2)
+    )
+    equivalent = mass_r(m1 + m2, np.asarray(frequencies, dtype=float))
+    geometry = (
+        10 * math.log10(max(alpha, 1e-9))
+        + 10 * math.log10(max(gap_m, 1e-9))
+        + 10 * math.log10((height + width) / (height * width))
+        + 3
+    )
+    upper = tl1 + tl2 + geometry
+    total = np.where(np.asarray(frequencies, dtype=float) < f1, equivalent, upper)
+    return total, tl1, tl2, equivalent, f1, (m1, m2), (fc1, fc2), geometry
+
+
 def lab2_stage6():
     _lab2_heading(6, "Ejercicio guiado · Sala de Reuniones Dirección",
                   "Resolver el caso junto al docente y documentar cada decisión.")
@@ -7214,34 +7259,36 @@ def lab2_stage6():
     a, b, c = st.columns(3)
     g1 = a.slider("Espesor vidrio 1 (mm)", 3.0, 12.0, 4.0, 0.5, key="l2s6_g1")
     g2 = b.slider("Espesor vidrio 2 (mm)", 3.0, 12.0, 6.0, 0.5, key="l2s6_g2")
-    gap_mm = c.slider("Profundidad de cámara d (mm)", 6, 200, 40, 2, key="l2s6_gap")
+    gap_mm = c.slider("Separación entre placas d (mm)", 6, 200, 40, 2, key="l2s6_gap")
     d1, d2, d3 = st.columns(3)
-    height = d1.slider("Alto interior h (m)", 0.5, 3.0, 1.5, 0.1, key="l2s6_h")
-    width = d2.slider("Ancho interior w (m)", 0.5, 3.0, 1.2, 0.1, key="l2s6_w")
+    height = d1.slider("Altura de la cavidad h (m)", 0.5, 3.0, 1.5, 0.1, key="l2s6_h")
+    width = d2.slider("Ancho de la cavidad w (m)", 0.5, 3.0, 1.2, 0.1, key="l2s6_w")
     alpha = d3.slider("Absorción perimetral α", 0.02, 0.30, 0.10, 0.01, key="l2s6_alpha")
 
-    rho_glass = 2500.0
-    rho0 = 1.21
-    sound_speed = 343.0
-    m1 = rho_glass * g1 / 1000.0
-    m2 = rho_glass * g2 / 1000.0
+    p1, p2 = st.columns(2)
+    eta1 = p1.slider(
+        "Factor de pérdidas del vidrio 1 η₁",
+        0.001, 0.100, 0.010, 0.001,
+        format="%.3f", key="l2s6_eta1",
+    )
+    eta2 = p2.slider(
+        "Factor de pérdidas del vidrio 2 η₂",
+        0.001, 0.100, 0.010, 0.001,
+        format="%.3f", key="l2s6_eta2",
+    )
+
     gap = gap_mm / 1000.0
-    f1 = (1 / (2 * math.pi)) * math.sqrt(
-        ((m1 + m2) * rho0 * sound_speed**2) / (gap * m1 * m2)
+    window_tl, tl1, tl2, equivalent, f1, masses, fcs, geometry = (
+        _double_window_sonara(
+            g1, g2, gap, height, width, alpha, eta1, eta2, FREQS
+        )
     )
-    tl1 = mass_r(m1, FREQS)
-    tl2 = mass_r(m2, FREQS)
-    equivalent = mass_r(m1 + m2, FREQS)
-    upper = (
-        tl1 + tl2 + 10 * np.log10(alpha) + 10 * np.log10(gap)
-        + 10 * np.log10((height + width) / (height * width)) + 3
-    )
-    window_tl = np.where(FREQS < f1, equivalent, upper)
+    m1, m2 = masses
 
     e1, e2, e3, e4 = st.columns(4)
     e1.metric("Masa vidrio 1", f"{m1:.1f} kg/m²")
     e2.metric("Masa vidrio 2", f"{m2:.1f} kg/m²")
-    e3.metric("Masa equivalente", f"{m1 + m2:.1f} kg/m²")
+    e3.metric("Frecuencias críticas", f"{fcs[0]:.0f} / {fcs[1]:.0f} Hz")
     e4.metric("Frecuencia f₁", f"{f1:.0f} Hz")
 
     selected_f = st.select_slider(
@@ -7252,27 +7299,32 @@ def lab2_stage6():
     )
     idx = int(np.argmin(np.abs(FREQS - selected_f)))
     regime = "Bajo f₁ · placa equivalente" if selected_f < f1 else "Sobre f₁ · cavidad reverberante"
-    r1, r2, r3 = st.columns(3)
+    r1, r2, r3, r4 = st.columns(4)
     r1.metric("Régimen activo", regime)
-    r2.metric(f"TL a {selected_f} Hz", f"{window_tl[idx]:.1f} dB")
-    r3.metric("Configuración", f"{g1:g}–{gap_mm}–{g2:g} mm")
+    r2.metric("TL vidrio 1 · SONARA", f"{tl1[idx]:.1f} dB")
+    r3.metric("TL vidrio 2 · SONARA", f"{tl2[idx]:.1f} dB")
+    r4.metric("TL ventana doble", f"{window_tl[idx]:.1f} dB")
+    st.caption(
+        f"Configuración {g1:g}–{gap_mm}–{g2:g} mm. "
+        f"A {selected_f} Hz se aplica: {regime}."
+    )
 
     _plot_curves(
         [
-            ("Ventana doble · Quirt", window_tl, "solid"),
-            ("Placa equivalente", equivalent, "dash"),
-            ("Vidrio 1 individual", tl1, "dot"),
-            ("Vidrio 2 individual", tl2, "dot"),
+            ("Ventana doble · SONARA + Quirt", window_tl, "solid"),
+            ("Masa equivalente bajo f₁", equivalent, "dash"),
+            ("Vidrio 1 · SONARA", tl1, "dot"),
+            ("Vidrio 2 · SONARA", tl2, "dot"),
         ],
-        "Pérdida de transmisión sonora por bandas",
-        [(f1, "f₁")],
+        "Pérdida de transmisión sonora por bandas · motor SONARA",
+        [(f1, "f₁"), (fcs[0], "fᶜ₁"), (fcs[1], "fᶜ₂")],
     )
 
     table = pd.DataFrame({
         "Frecuencia (Hz)": FREQS.astype(int),
         "Régimen": np.where(FREQS < f1, "Bajo f₁", "Sobre f₁"),
-        "TL vidrio 1 (dB)": np.round(tl1, 1),
-        "TL vidrio 2 (dB)": np.round(tl2, 1),
+        "TL vidrio 1 SONARA (dB)": np.round(tl1, 1),
+        "TL vidrio 2 SONARA (dB)": np.round(tl2, 1),
         "TL placa equivalente (dB)": np.round(equivalent, 1),
         "TL ventana doble (dB)": np.round(window_tl, 1),
     })
@@ -7288,14 +7340,26 @@ def lab2_stage6():
         )
         st.markdown("**2 · Frecuencia de cambio de régimen**")
         st.latex(rf"f_1={f1:.1f}\ \mathrm{{Hz}}")
+        st.markdown("**3 · Cada vidrio se calcula primero con SONARA**")
+        st.latex(r"TL_{\mathrm{SONARA}}(f)=-10\log_{10}\overline{\tau}(f)")
+        st.latex(
+            rf"TL_{{1,\mathrm{{SONARA}}}}({selected_f})"
+            rf"={tl1[idx]:.2f}\ \mathrm{{dB}},\quad "
+            rf"f_{{c1}}={fcs[0]:.0f}\ \mathrm{{Hz}}"
+        )
+        st.latex(
+            rf"TL_{{2,\mathrm{{SONARA}}}}({selected_f})"
+            rf"={tl2[idx]:.2f}\ \mathrm{{dB}},\quad "
+            rf"f_{{c2}}={fcs[1]:.0f}\ \mathrm{{Hz}}"
+        )
         if selected_f < f1:
-            st.markdown("**3 · La frecuencia seleccionada está bajo f₁**")
+            st.markdown("**4 · La frecuencia seleccionada está bajo f₁**")
             st.latex(
                 rf"TL({selected_f})=TL_{{\rho_{{s1}}+\rho_{{s2}}}}"
                 rf"={equivalent[idx]:.1f}\ \mathrm{{dB}}"
             )
         else:
-            st.markdown("**3 · La frecuencia seleccionada está sobre f₁**")
+            st.markdown("**4 · La frecuencia seleccionada está sobre f₁**")
             st.latex(
                 rf"TL({selected_f})={tl1[idx]:.1f}+{tl2[idx]:.1f}"
                 rf"+10\log_{{10}}({alpha:.2f})+10\log_{{10}}({gap:.3f})"
@@ -7304,8 +7368,9 @@ def lab2_stage6():
             )
             st.latex(rf"TL({selected_f})={window_tl[idx]:.1f}\ \mathrm{{dB}}")
         st.caption(
-            "El cálculo es una aproximación didáctica del modelo de Quirt. No incorpora "
-            "fugas, marco, herrajes, coincidencia detallada ni transmisión lateral."
+            "Los TL de los vidrios incluyen masa, rigidez, amortiguamiento, incidencia "
+            "angular y coincidencia mediante el motor SONARA. Quirt representa después "
+            "la cavidad ideal; no incorpora fugas, marco, herrajes ni transmisión lateral."
         )
 
     if st.session_state.get("role") == "Docente":
