@@ -7090,6 +7090,276 @@ def lab2_stage3():
         "El modelo permite estudiar el material aislado, pero no reemplaza la evaluación del elemento instalado en obra.",
     )
 
+def lab2_stage6():
+    """Etapa 6 completa: pérdida de transmisión en ventanas dobles (Quirt, 1983)."""
+    _lab2_heading(
+        6,
+        "Pérdida de transmisión sonora en ventanas dobles",
+        "Comprender cómo las masas de los vidrios, la cámara y sus dimensiones "
+        "modifican el TL por bandas.",
+    )
+
+    hero = ROOT / "assets/lab2/etapa6_ventana_doble_quirt_profesional.png"
+    if hero.exists():
+        st.image(str(hero), use_container_width=True)
+    st.caption(
+        "Dos vidrios separados por una cámara de aire: la primera hoja vibra, "
+        "excita el campo de la cavidad y este pone en movimiento la segunda hoja."
+    )
+
+    st.markdown("### 1 · ¿Qué es una ventana doble desde el punto de vista acústico?")
+    st.markdown("""
+    Una ventana doble es un sistema **masa–aire–masa**. Cada vidrio funciona como una
+    masa y el aire encerrado entre ambos actúa como un resorte. El sonido no atraviesa
+    simplemente dos obstáculos independientes: las hojas quedan acopladas por la cámara.
+
+    Por eso su respuesta presenta dos regiones:
+
+    - **Bajo la frecuencia f₁:** las dos hojas se mueven fuertemente acopladas y el
+      conjunto se aproxima a una placa cuya masa superficial es la suma de ambos vidrios.
+    - **Sobre f₁:** las hojas responden de manera más independiente y la cavidad puede
+      tratarse aproximadamente como un espacio reverberante. Intervienen el TL de cada
+      vidrio, la separación, el perímetro y las dimensiones de la ventana.
+
+    **En palabras simples:** antes de f₁, los dos vidrios tienden a “viajar juntos”.
+    Después de f₁, la cámara ayuda a separarlos acústicamente y el aislamiento puede
+    crecer con mayor rapidez.
+    """)
+
+    st.markdown("### 2 · Frecuencia que separa ambos comportamientos")
+    formula_card(
+        "Frecuencia f₁ de la ventana doble · Quirt (1983)",
+        r"f_1=\frac{1}{2\pi}\sqrt{\frac{(\rho_{s1}+\rho_{s2})\rho_0c^2}"
+        r"{d\,\rho_{s1}\rho_{s2}}}",
+        "<b>ρs₁, ρs₂</b>: masas superficiales de los vidrios (kg/m²)<br>"
+        "<b>ρ₀</b>: densidad del aire (kg/m³)<br>"
+        "<b>c</b>: velocidad del sonido (m/s)<br>"
+        "<b>d</b>: separación libre entre vidrios (m)<br>"
+        "<b>f₁</b>: frecuencia límite del modelo (Hz)",
+        "Para saber en qué banda deja de utilizarse la placa equivalente y comienza "
+        "el régimen superior de la cavidad.",
+    )
+    st.info(
+        "Aumentar la profundidad d reduce f₁. Esto desplaza la zona desfavorable hacia "
+        "frecuencias más bajas. Aumentar la masa de los vidrios también tiende a reducirla."
+    )
+
+    st.markdown("### 3 · Pérdida de transmisión bajo f₁")
+    st.latex(r"f<f_1")
+    st.latex(r"TL(f)\approx TL_{\rho_{s1}+\rho_{s2}}(f)")
+    st.markdown("""
+    En esta región se estima el TL como el de una placa infinita cuya masa superficial
+    equivale a la suma:
+    """)
+    st.latex(r"\rho_{s,\mathrm{eq}}=\rho_{s1}+\rho_{s2}")
+    st.markdown(
+        "**Lectura sencilla:** la cámara todavía no entrega toda la ventaja esperada; "
+        "ambas hojas se comportan aproximadamente como una masa equivalente."
+    )
+
+    st.markdown("### 4 · Pérdida de transmisión sobre f₁")
+    st.latex(r"f\geq f_1")
+    formula_card(
+        "Régimen superior de la ventana doble · ecuación 2.29",
+        r"TL=TL_{\rho_{s1}}+TL_{\rho_{s2}}+10\log_{10}(\alpha)"
+        r"+10\log_{10}(d)+10\log_{10}\left(\frac{h+w}{hw}\right)+3",
+        "<b>TLρs₁, TLρs₂</b>: TL individual de cada vidrio por banda<br>"
+        "<b>α</b>: absorción a incidencia aleatoria del perímetro interior<br>"
+        "<b>d</b>: profundidad de la cámara (m)<br>"
+        "<b>h, w</b>: alto y ancho interiores de la cavidad (m)",
+        "Para estimar el TL cuando la cavidad se considera un espacio reverberante.",
+    )
+    st.markdown("""
+    La ecuación no significa que cualquier aumento de cámara entregue siempre la misma
+    mejora. El resultado depende simultáneamente de las masas, la frecuencia, el tamaño
+    de la cavidad y las pérdidas en el perímetro.
+
+    **α no representa un absorbente que rellena la cámara.** Corresponde a la absorción
+    efectiva del perímetro y de las superficies interiores. En una ventana estándar la
+    cavidad permanece libre; por eso no debe aplicarse sin cambios el modelo de un tabique
+    relleno con lana mineral.
+    """)
+
+    st.markdown("### 5 · Lo que el modelo ideal todavía no incluye")
+    c1, c2, c3 = st.columns(3)
+    c1.markdown(
+        "**Marco y sellos**\n\nUna pequeña fuga puede dominar la transmisión y reducir "
+        "fuertemente el aislamiento medido."
+    )
+    c2.markdown(
+        "**Coincidencia del vidrio**\n\nCada hoja puede presentar un valle propio. "
+        "Vidrios iguales tienden a superponer sus debilidades."
+    )
+    c3.markdown(
+        "**Transmisiones laterales**\n\nEncuentros, cajones de persiana y la fachada "
+        "pueden limitar el resultado instalado."
+    )
+    st.warning(
+        "Una cámara pequeña con dos vidrios iguales puede ser excelente térmicamente, "
+        "pero no necesariamente es la solución acústica óptima. La asimetría desplaza "
+        "las coincidencias y una cámara mayor reduce el acoplamiento masa–aire–masa."
+    )
+
+    st.markdown("## Laboratorio interactivo · construye y analiza una ventana doble")
+    st.caption(
+        "Modifica una variable a la vez y observa f₁, la región activa y la curva de TL."
+    )
+    a, b, c = st.columns(3)
+    g1 = a.slider("Espesor vidrio 1 (mm)", 3.0, 12.0, 4.0, 0.5, key="l2s6_g1")
+    g2 = b.slider("Espesor vidrio 2 (mm)", 3.0, 12.0, 6.0, 0.5, key="l2s6_g2")
+    gap_mm = c.slider("Profundidad de cámara d (mm)", 6, 200, 40, 2, key="l2s6_gap")
+    d1, d2, d3 = st.columns(3)
+    height = d1.slider("Alto interior h (m)", 0.5, 3.0, 1.5, 0.1, key="l2s6_h")
+    width = d2.slider("Ancho interior w (m)", 0.5, 3.0, 1.2, 0.1, key="l2s6_w")
+    alpha = d3.slider("Absorción perimetral α", 0.02, 0.30, 0.10, 0.01, key="l2s6_alpha")
+
+    rho_glass = 2500.0
+    rho0 = 1.21
+    sound_speed = 343.0
+    m1 = rho_glass * g1 / 1000.0
+    m2 = rho_glass * g2 / 1000.0
+    gap = gap_mm / 1000.0
+    f1 = (1 / (2 * math.pi)) * math.sqrt(
+        ((m1 + m2) * rho0 * sound_speed**2) / (gap * m1 * m2)
+    )
+    tl1 = mass_r(m1, FREQS)
+    tl2 = mass_r(m2, FREQS)
+    equivalent = mass_r(m1 + m2, FREQS)
+    upper = (
+        tl1 + tl2 + 10 * np.log10(alpha) + 10 * np.log10(gap)
+        + 10 * np.log10((height + width) / (height * width)) + 3
+    )
+    window_tl = np.where(FREQS < f1, equivalent, upper)
+
+    e1, e2, e3, e4 = st.columns(4)
+    e1.metric("Masa vidrio 1", f"{m1:.1f} kg/m²")
+    e2.metric("Masa vidrio 2", f"{m2:.1f} kg/m²")
+    e3.metric("Masa equivalente", f"{m1 + m2:.1f} kg/m²")
+    e4.metric("Frecuencia f₁", f"{f1:.0f} Hz")
+
+    selected_f = st.select_slider(
+        "Frecuencia que deseas inspeccionar (Hz)",
+        options=[int(v) for v in FREQS],
+        value=500,
+        key="l2s6_selected_f",
+    )
+    idx = int(np.argmin(np.abs(FREQS - selected_f)))
+    regime = "Bajo f₁ · placa equivalente" if selected_f < f1 else "Sobre f₁ · cavidad reverberante"
+    r1, r2, r3 = st.columns(3)
+    r1.metric("Régimen activo", regime)
+    r2.metric(f"TL a {selected_f} Hz", f"{window_tl[idx]:.1f} dB")
+    r3.metric("Configuración", f"{g1:g}–{gap_mm}–{g2:g} mm")
+
+    _plot_curves(
+        [
+            ("Ventana doble · Quirt", window_tl, "solid"),
+            ("Placa equivalente", equivalent, "dash"),
+            ("Vidrio 1 individual", tl1, "dot"),
+            ("Vidrio 2 individual", tl2, "dot"),
+        ],
+        "Pérdida de transmisión sonora por bandas",
+        [(f1, "f₁")],
+    )
+
+    table = pd.DataFrame({
+        "Frecuencia (Hz)": FREQS.astype(int),
+        "Régimen": np.where(FREQS < f1, "Bajo f₁", "Sobre f₁"),
+        "TL vidrio 1 (dB)": np.round(tl1, 1),
+        "TL vidrio 2 (dB)": np.round(tl2, 1),
+        "TL placa equivalente (dB)": np.round(equivalent, 1),
+        "TL ventana doble (dB)": np.round(window_tl, 1),
+    })
+    st.dataframe(table, use_container_width=True, hide_index=True)
+
+    with st.expander("Ver cálculo matemático en la frecuencia seleccionada"):
+        st.markdown("**1 · Masas superficiales de los vidrios**")
+        st.latex(
+            rf"\rho_{{s1}}=2500\cdot {g1/1000:.4f}={m1:.2f}\ \mathrm{{kg/m^2}}"
+        )
+        st.latex(
+            rf"\rho_{{s2}}=2500\cdot {g2/1000:.4f}={m2:.2f}\ \mathrm{{kg/m^2}}"
+        )
+        st.markdown("**2 · Frecuencia de cambio de régimen**")
+        st.latex(rf"f_1={f1:.1f}\ \mathrm{{Hz}}")
+        if selected_f < f1:
+            st.markdown("**3 · La frecuencia seleccionada está bajo f₁**")
+            st.latex(
+                rf"TL({selected_f})=TL_{{\rho_{{s1}}+\rho_{{s2}}}}"
+                rf"={equivalent[idx]:.1f}\ \mathrm{{dB}}"
+            )
+        else:
+            st.markdown("**3 · La frecuencia seleccionada está sobre f₁**")
+            st.latex(
+                rf"TL({selected_f})={tl1[idx]:.1f}+{tl2[idx]:.1f}"
+                rf"+10\log_{{10}}({alpha:.2f})+10\log_{{10}}({gap:.3f})"
+                rf"+10\log_{{10}}\left(\frac{{{height:.1f}+{width:.1f}}}"
+                rf"{{{height:.1f}\cdot {width:.1f}}}\right)+3"
+            )
+            st.latex(rf"TL({selected_f})={window_tl[idx]:.1f}\ \mathrm{{dB}}")
+        st.caption(
+            "El cálculo es una aproximación didáctica del modelo de Quirt. No incorpora "
+            "fugas, marco, herrajes, coincidencia detallada ni transmisión lateral."
+        )
+
+    if st.session_state.get("role") == "Docente":
+        with st.expander("🔐 Lectura docente · interpretación y límites"):
+            st.markdown("""
+            - **Alrededor de f₁** debe enfatizarse el acoplamiento masa–aire–masa y la
+              transición entre las dos expresiones; no interpretar un salto del modelo
+              como una discontinuidad exacta de una ventana real.
+            - **En bajas frecuencias** domina el acoplamiento y el ruido de tránsito
+              pesado puede revelar la principal debilidad del sistema.
+            - **En medias y altas frecuencias** crece el beneficio de separar las hojas,
+              pero pueden aparecer coincidencias de los vidrios.
+            - **Vidrios asimétricos** no garantizan por sí solos más TL en cada banda,
+              pero evitan que ambas coincidencias se superpongan exactamente.
+            - **El resultado instalado** estará limitado por marco, sellos, encuentros,
+              cajones, ventilaciones y transmisiones laterales. La curva ideal no debe
+              presentarse como un valor certificado de obra.
+            """)
+
+    st.markdown("### Cinco preguntas de comprensión")
+    check(
+        "lab2_s6_q1",
+        "¿Qué representa físicamente el aire encerrado entre los dos vidrios?",
+        ["Un resorte acústico que acopla ambas masas", "Una tercera placa sólida",
+         "Una fuga permanente", "Un absorbente poroso"],
+        "Un resorte acústico que acopla ambas masas",
+        "El sistema se interpreta como masa–aire–masa: vidrio, resorte de aire y vidrio.",
+    )
+    check(
+        "lab2_s6_q2",
+        "¿Cómo se estima el TL bajo f₁ en este modelo?",
+        ["Como una placa equivalente con la suma de masas", "Sumando directamente 20 dB",
+         "Usando solo el vidrio más delgado", "Ignorando ambos vidrios"],
+        "Como una placa equivalente con la suma de masas",
+        "Bajo f₁ ambas hojas se consideran fuertemente acopladas.",
+    )
+    check(
+        "lab2_s6_q3",
+        "¿Qué suele ocurrir con f₁ al aumentar la profundidad d de la cámara?",
+        ["Disminuye", "Aumenta", "Permanece siempre fija", "Se transforma en Rw"],
+        "Disminuye",
+        "En la ecuación, d está en el denominador dentro de la raíz.",
+    )
+    check(
+        "lab2_s6_q4",
+        "¿Por qué dos vidrios distintos pueden ser preferibles acústicamente?",
+        ["Porque separan sus debilidades de coincidencia", "Porque eliminan el marco",
+         "Porque llenan la cámara con absorbente", "Porque hacen innecesarios los sellos"],
+        "Porque separan sus debilidades de coincidencia",
+        "La asimetría ayuda a que los valles propios de ambas hojas no coincidan exactamente.",
+    )
+    check(
+        "lab2_s6_q5",
+        "¿La curva ideal calculada garantiza el mismo TL en la ventana instalada?",
+        ["No; marco, sellos, fugas y flancos pueden dominar", "Sí, siempre",
+         "Sí, si ambos vidrios son iguales", "Solo depende del color del marco"],
+        "No; marco, sellos, fugas y flancos pueden dominar",
+        "El desempeño real debe verificarse mediante datos de ensayo y una ejecución estanca.",
+    )
+
+
 LAB1_STAGE_TITLES = [
     ("Etapa 0","Introducción y ruta del curso"),
     ("Etapa 1","Control del ruido: fuente, trayectoria y receptor"),
@@ -7110,8 +7380,8 @@ LAB2_STAGE_TITLES = [
     ("Etapa 3","Comparación aplicada de placas simples"),
     ("Etapa 4","Pérdida de transmisión en paneles dobles"),
     ("Etapa 5","Modelo de Sharp: TL por tramos"),
-    ("Etapa 6","Comparación aplicada y cierre parcial"),
-    ("Etapa 7","Ventanas dobles · segunda mitad"),
+    ("Etapa 6","Pérdida de transmisión en ventanas dobles"),
+    ("Etapa 7","Bandas de octava y tercios · segunda mitad"),
     ("Etapa 8","Octavas y tercios · segunda mitad"),
     ("Etapa 9","Rw, C y Ctr · segunda mitad"),
     ("Etapa 10","Aplicación integradora · segunda mitad"),
