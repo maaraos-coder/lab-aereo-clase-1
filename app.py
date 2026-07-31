@@ -6173,14 +6173,40 @@ def lab2_stage5():
         value=0.60,
         key="s5_real_b",
     )
+    # Las hojas se representan como placas homogéneas de yeso-cartón. A partir
+    # de la masa superficial seleccionada se obtiene el espesor equivalente,
+    # su rigidez de flexión y, finalmente, la frecuencia crítica. De esta forma
+    # f_c es un resultado físico del modelo y no un dato libre del alumno.
+    leaf_density=800.0
+    leaf_young=2.5e9
+    leaf_poisson=0.30
+    leaf_h1=float(m1)/leaf_density
+    leaf_h2=float(m2)/leaf_density
+    rigidity1=leaf_young*leaf_h1**3/(12.0*(1.0-leaf_poisson**2))
+    rigidity2=leaf_young*leaf_h2**3/(12.0*(1.0-leaf_poisson**2))
+    sound_speed=343.0
+    fc1_value=(
+        sound_speed**2/(2.0*np.pi)
+        *np.sqrt(float(m1)/rigidity1)
+    )
+    fc2_value=(
+        sound_speed**2/(2.0*np.pi)
+        *np.sqrt(float(m2)/rigidity2)
+    )
+
     c5,c6,c7=st.columns(3)
-    fc1=c5.number_input("Frecuencia crítica hoja 1 (Hz)",100,5000,2500,50,key="s5_real_fc1")
-    fc2=c6.number_input("Frecuencia crítica hoja 2 (Hz)",100,5000,2500,50,key="s5_real_fc2")
+    c5.metric("Frecuencia crítica calculada · hoja 1",f"{fc1_value:.0f} Hz")
+    c6.metric("Frecuencia crítica calculada · hoja 2",f"{fc2_value:.0f} Hz")
     selected_f=c7.selectbox(
         "Banda que deseas inspeccionar (Hz)",
         LAB2_FREQS.tolist(),
         index=9,
         key="s5_real_f",
+    )
+    st.caption(
+        "Las frecuencias críticas no son parámetros seleccionables. Se calculan "
+        "automáticamente para hojas homogéneas de yeso-cartón a partir de m′, "
+        "ρ = 800 kg/m³, E = 2,5 GPa y ν = 0,30."
     )
 
     c8,c9,c10=st.columns(3)
@@ -6219,12 +6245,7 @@ def lab2_stage5():
         return np.asarray(values,dtype=float)
 
     rho_air=1.18
-    sound_speed=343.0
     cavity_depth=max(float(depth)*1e-3,1e-4)
-    fc1_value=float(fc1)
-    fc2_value=float(fc2)
-    rigidity1=float(m1)*(sound_speed**2/(2.0*np.pi*fc1_value))**2
-    rigidity2=float(m2)*(sound_speed**2/(2.0*np.pi*fc2_value))**2
     tl_leaf1=_angular_transmission_integral(float(m1),rigidity1,float(eta1),LAB2_FREQS)
     tl_leaf2=_angular_transmission_integral(float(m2),rigidity2,float(eta2),LAB2_FREQS)
     equivalent=_angular_transmission_integral(
