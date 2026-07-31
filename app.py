@@ -7204,6 +7204,13 @@ def lab2_stage6():
     st.caption(
         "Modifica una variable a la vez y observa f₁, la región activa y la curva de TL."
     )
+    dimensions_render = ROOT / "assets/lab2/ventana_doble_parametros_d_h_w.png"
+    if dimensions_render.exists():
+        st.image(str(dimensions_render), use_container_width=True)
+        st.caption(
+            "Geometría utilizada en el laboratorio: d es la separación entre placas; "
+            "h y w corresponden a la altura y al ancho de la cavidad."
+        )
     a, b, c = st.columns(3)
     g1 = a.slider("Espesor vidrio 1 (mm)", 3.0, 12.0, 4.0, 0.5, key="l2s6_g1")
     g2 = b.slider("Espesor vidrio 2 (mm)", 3.0, 12.0, 6.0, 0.5, key="l2s6_g2")
