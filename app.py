@@ -115,6 +115,7 @@ LAB_POINT_SCHEMAS = {
         6: {"direccion_guiada": 10},
         7: {"compare_solutions": 10},
         8: {"compound_door": 10},
+        9: {"final_comprehension": 40},
         10: {"final_exam": 100},
     },
 }
@@ -7542,7 +7543,243 @@ def lab2_stage8():
         "El número único puede ocultar un valle localizado justo en la frecuencia de la fuente.",
     )
 
-def lab2_stage9(): _lab2_pending(9,"Aplicación de Rw, C y Ctr")
+STAGE9_QUESTIONS = [
+    {
+        "title":"Aislamiento y absorción",
+        "question":"Una sala presenta mucha reverberación y, además, el ruido se escucha en el recinto contiguo. ¿Qué solución aborda correctamente ambos problemas?",
+        "options":[
+            "Instalar únicamente espuma absorbente sobre el muro divisorio.",
+            "Aumentar únicamente el volumen del sistema de amplificación.",
+            "Incorporar absorción dentro de la sala y mejorar constructivamente el elemento separador.",
+            "Pintar el muro divisorio con una pintura de mayor espesor.",
+        ],
+        "correct":2,
+        "explanation":"La absorción reduce reflexiones y reverberación dentro del recinto. El aislamiento exige intervenir la solución separadora, su masa, hermeticidad, uniones y configuración.",
+    },
+    {
+        "title":"Influencia de elementos débiles",
+        "question":"Un muro presenta un aislamiento elevado, pero contiene una puerta liviana con separaciones visibles en sus bordes. ¿Qué comportamiento es más probable?",
+        "options":[
+            "El aislamiento total será prácticamente igual al del muro.",
+            "La puerta y sus filtraciones reducirán significativamente el aislamiento del conjunto.",
+            "La puerta solo afectará la absorción interior del recinto.",
+            "Las aberturas mejorarán el aislamiento en frecuencias bajas.",
+        ],
+        "correct":1,
+        "explanation":"El desempeño global puede quedar controlado por el elemento que transmite más energía. Una puerta liviana y sus rendijas pueden degradar fuertemente el aislamiento del conjunto.",
+    },
+    {
+        "title":"Ley de masa",
+        "question":"Si se duplica la masa superficial de un elemento simple y se mantienen las demás condiciones, ¿qué cambio predice aproximadamente la ley de masa en la zona controlada por masa?",
+        "options":["Aumenta 3 dB.","Aumenta 6 dB.","Aumenta 12 dB.","No cambia."],
+        "correct":1,
+        "explanation":"En la región ideal controlada por masa, duplicar la masa superficial aumenta aproximadamente 6 dB la pérdida por transmisión.",
+    },
+    {
+        "title":"Suma energética de niveles",
+        "question":"Dos máquinas independientes e idénticas producen 80 dB cada una en el mismo punto receptor. ¿Cuál es el nivel total aproximado cuando funcionan simultáneamente?",
+        "options":["80 dB.","83 dB.","86 dB.","160 dB."],
+        "correct":1,
+        "explanation":"Dos fuentes independientes de igual nivel agregan aproximadamente 3 dB: 10·log₁₀(10⁸ + 10⁸) ≈ 83 dB. Los decibeles no se suman aritméticamente.",
+    },
+    {
+        "title":"Aislamiento global de muro y puerta",
+        "question":"Un tabique ocupa el 90 % de una separación y tiene R = 55 dB. Una puerta ocupa el 10 % y tiene R = 25 dB. ¿Cuál afirmación describe mejor el resultado?",
+        "options":[
+            "El aislamiento total será cercano a 52 dB por promedio ponderado de R.",
+            "El aislamiento total será exactamente 40 dB por promedio aritmético.",
+            "La puerta puede dominar la transmisión y reducir considerablemente el aislamiento total.",
+            "La puerta no tendrá efecto porque ocupa menos del 50 % de la superficie.",
+        ],
+        "correct":2,
+        "explanation":"Deben combinarse coeficientes de transmisión ponderados por área, no valores de R directamente. Aunque sea pequeña, la puerta transmite mucha más energía y puede controlar el resultado.",
+    },
+    {
+        "title":"Fenómeno de coincidencia",
+        "question":"Una pared simple aumenta progresivamente su aislamiento con la frecuencia, presenta una caída pronunciada alrededor de 2.000 Hz y luego vuelve a aumentar. ¿Cuál es la explicación más probable?",
+        "options":[
+            "La resonancia masa–aire–masa.",
+            "El fenómeno de coincidencia o frecuencia crítica.",
+            "Un aumento repentino de la absorción del recinto receptor.",
+            "La suma energética de dos fuentes iguales.",
+        ],
+        "correct":1,
+        "explanation":"Cerca de la frecuencia crítica, la coincidencia entre la onda incidente y las ondas de flexión del panel aumenta la transmisión y produce una caída de aislamiento.",
+    },
+    {
+        "title":"Sistema masa–aire–masa",
+        "question":"Dos tabiques dobles tienen las mismas placas y cámara. En A, las hojas comparten montantes rígidos; en B, están desacopladas y la cámara contiene absorbente poroso. ¿Cuál comportamiento es más probable?",
+        "options":[
+            "A aislará más porque los montantes transmiten mejor las cargas.",
+            "Ambos tendrán necesariamente el mismo aislamiento por tener igual masa.",
+            "B aislará más porque reduce puentes mecánicos y amortigua resonancias de la cámara.",
+            "El absorbente de B reemplaza completamente la función de las placas.",
+        ],
+        "correct":2,
+        "explanation":"El desacoplamiento reduce la transmisión estructural entre hojas y el absorbente amortigua resonancias en la cámara; no sustituye la masa ni la hermeticidad.",
+    },
+    {
+        "title":"Ajuste de la curva de referencia",
+        "question":"La suma de desviaciones desfavorables es 29 dB. Al subir la referencia 1 dB, aumenta a 35 dB. ¿Qué posición corresponde para determinar Rw?",
+        "options":[
+            "La posición con 29 dB, por ser la más alta que aún cumple el límite de 32 dB.",
+            "La posición con 35 dB, porque está más cerca del límite.",
+            "Una posición intermedia desplazada 0,5 dB.",
+            "La posición más baja posible, aunque la suma sea 0 dB.",
+        ],
+        "correct":0,
+        "explanation":"La referencia se mueve en pasos enteros de 1 dB y se conserva la posición más alta cuya suma de desviaciones desfavorables no supera 32 dB.",
+    },
+    {
+        "title":"Desviaciones desfavorables",
+        "question":"En cuatro bandas, Rmedido − Rreferencia vale −4, +3, −2 y +5 dB. ¿Cuánto aportan estas bandas a la suma de desviaciones desfavorables?",
+        "options":["0 dB.","2 dB.","6 dB.","14 dB."],
+        "correct":2,
+        "explanation":"Solo se contabilizan los déficits: 4 + 2 = 6 dB. Los excedentes favorables no compensan las deficiencias de otras bandas.",
+    },
+    {
+        "title":"Interpretación comparativa de Ctr",
+        "question":"A: Rw(C;Ctr) = 54(−1;−8) dB. B: Rw(C;Ctr) = 52(−1;−3) dB. Para una fachada expuesta principalmente a tránsito urbano, ¿cuál presenta el mayor valor adaptado?",
+        "options":[
+            "A, porque tiene el mayor Rw.",
+            "B, porque 52 − 3 = 49 dB, mientras en A 54 − 8 = 46 dB.",
+            "Ambas, porque sus valores de C son iguales.",
+            "No pueden compararse porque Ctr no se relaciona con ruido de tránsito.",
+        ],
+        "correct":1,
+        "explanation":"Para tránsito se compara Rw + Ctr. B alcanza 49 dB y A 46 dB; un Rw mayor no garantiza mejor respuesta frente a un espectro con contenido grave.",
+    },
+]
+
+def _stage9_submission():
+    """Recover the definitive attempt even if the browser session was closed."""
+    user_key=st.session_state.get("user_key")
+    if not user_key:
+        return None
+    rows=_remote_rows("responses",class_id=CLASS_ID,user_key=user_key)
+    row=next((item for item in (rows or []) if item.get("question_key")=="final_comprehension"),None)
+    if not row:
+        return None
+    answer=row.get("answer") or {}
+    if isinstance(answer,str):
+        try: answer=json.loads(answer)
+        except json.JSONDecodeError: answer={}
+    return {"answers":answer.get("answers",{}),"score":float(row.get("auto_score") or 0)}
+
+def _finish_stage9(reason="submitted"):
+    answers={str(i):st.session_state.get(f"e9_q{i}") for i in range(10)}
+    score=sum(
+        4 for i,item in enumerate(STAGE9_QUESTIONS)
+        if answers.get(str(i))==item["options"][item["correct"]]
+    )
+    payload={"answers":answers,"reason":reason,"finished_at":_now()}
+    _save_formative(
+        9,"final_comprehension","Etapa 9 · Evaluación de comprensión",
+        json.dumps(payload,ensure_ascii=False),
+        "Correcta" if score>=24 else "Incorrecta",
+        f"Resultado automático: {score}/40 puntos.",
+        score=score,max_score=40,
+        correct_answer="Pauta automática de las 10 preguntas disponible después del cierre.",
+    )
+    st.session_state["e9_submitted"]=True
+    st.session_state["e9_score"]=score
+    st.session_state["e9_saved_answers"]=answers
+    save_user_progress()
+
+@st.fragment(run_every=1)
+def _stage9_clock(deadline_iso):
+    deadline=dt.datetime.fromisoformat(str(deadline_iso).replace("Z","+00:00"))
+    remaining=max(0,int((deadline-dt.datetime.now(dt.timezone.utc)).total_seconds()))
+    minutes,seconds=divmod(remaining,60)
+    color="#0f9d78" if remaining>300 else "#d97706" if remaining>60 else "#c62828"
+    st.markdown(
+        f'<div style="border:2px solid {color};border-radius:16px;padding:.8rem 1rem;'
+        f'background:#fff;text-align:center"><b style="color:{color};font-size:1.35rem">'
+        f'⏱️ {minutes:02d}:{seconds:02d}</b><br><span>Tiempo restante</span></div>',
+        unsafe_allow_html=True,
+    )
+    if remaining<=0 and not st.session_state.get("e9_submitted"):
+        _finish_stage9("timeout")
+        st.rerun()
+
+def lab2_stage9():
+    _lab2_heading(
+        9,"Evaluación final · Preguntas de comprensión",
+        "Diez preguntas de selección única · 20 minutos · 40 puntos.",
+    )
+    st.info(
+        "Esta evaluación tiene un solo intento. Tus respuestas se guardan automáticamente. "
+        "Al enviar o agotarse el tiempo, el intento quedará cerrado y podrás revisar la pauta completa."
+    )
+
+    remote=_stage9_submission()
+    submitted=bool(remote or st.session_state.get("e9_submitted"))
+    if submitted:
+        saved=(remote or {}).get("answers") or st.session_state.get("e9_saved_answers",{})
+        score=(remote or {}).get("score",st.session_state.get("e9_score",0))
+        st.success(f"Evaluación finalizada · Puntaje: {score:g}/40")
+        st.caption("El intento está cerrado. Puedes volver a esta etapa cuando quieras para revisar tus respuestas.")
+        for i,item in enumerate(STAGE9_QUESTIONS):
+            student_answer=saved.get(str(i)) if isinstance(saved,dict) else None
+            correct=item["options"][item["correct"]]
+            with st.expander(f"Pregunta {i+1} · {item['title']}",expanded=i==0):
+                st.markdown(f"**{item['question']}**")
+                st.write(f"Tu respuesta: {student_answer or 'Sin respuesta'}")
+                if student_answer==correct:
+                    st.success(f"Respuesta correcta: {correct}")
+                else:
+                    st.error(f"Respuesta correcta: {correct}")
+                st.info(item["explanation"])
+        return
+
+    if not st.session_state.get("e9_started_at"):
+        st.markdown("### Antes de comenzar")
+        st.markdown(
+            "- Dispondrás de **20 minutos continuos**.\n"
+            "- Cada respuesta vale **4 puntos**.\n"
+            "- Puedes cambiar tus respuestas mientras el tiempo esté activo.\n"
+            "- Al finalizar, no podrás responder nuevamente sin un reinicio docente."
+        )
+        if st.button("Comenzar evaluación",type="primary",use_container_width=True,key="e9_start_button"):
+            now=dt.datetime.now(dt.timezone.utc)
+            st.session_state["e9_started_at"]=now.isoformat()
+            st.session_state["e9_deadline"]=(now+dt.timedelta(minutes=20)).isoformat()
+            save_user_progress()
+            st.rerun()
+        return
+
+    deadline=st.session_state.get("e9_deadline")
+    if not deadline:
+        started=dt.datetime.fromisoformat(st.session_state["e9_started_at"].replace("Z","+00:00"))
+        deadline=(started+dt.timedelta(minutes=20)).isoformat()
+        st.session_state["e9_deadline"]=deadline
+    _stage9_clock(deadline)
+
+    for i,item in enumerate(STAGE9_QUESTIONS):
+        st.markdown(
+            f'<div class="question-box"><div class="question-label">PREGUNTA {i+1} DE 10 · 4 PUNTOS</div>'
+            f'<div class="question-text">{item["question"]}</div></div>',
+            unsafe_allow_html=True,
+        )
+        st.radio(
+            "Selecciona una alternativa",item["options"],index=None,
+            key=f"e9_q{i}",label_visibility="collapsed",
+        )
+
+    answered=sum(st.session_state.get(f"e9_q{i}") is not None for i in range(10))
+    st.progress(answered/10)
+    st.caption(f"{answered} de 10 respuestas registradas y guardadas.")
+    if st.button("Enviar evaluación definitiva",type="primary",use_container_width=True,key="e9_submit_button"):
+        if answered<10:
+            st.warning(f"Aún faltan {10-answered} preguntas. Puedes enviarla, pero quedarán sin puntaje.")
+            st.session_state["e9_confirm_incomplete"]=True
+        else:
+            _finish_stage9("submitted")
+            st.rerun()
+    if st.session_state.get("e9_confirm_incomplete") and answered<10:
+        if st.button("Confirmar envío con respuestas pendientes",key="e9_submit_incomplete"):
+            _finish_stage9("submitted_incomplete")
+            st.rerun()
 def lab2_stage10(): _lab2_pending(10,"Aplicación integradora")
 
 def lab2_stage3():
@@ -8362,7 +8599,7 @@ LAB2_STAGE_TITLES = [
     ("Etapa 6","Pérdida de transmisión en ventanas dobles"),
     ("Etapa 7","Bandas de frecuencia: octavas y tercios"),
     ("Etapa 8","Número único Rw, C y Ctr"),
-    ("Etapa 9","Aplicación de Rw, C y Ctr · segunda mitad"),
+    ("Etapa 9","Evaluación final · Preguntas de comprensión"),
     ("Etapa 10","Aplicación integradora · segunda mitad"),
 ]
 LAB_STAGE_TITLES = {1: LAB1_STAGE_TITLES, 2: LAB2_STAGE_TITLES}
