@@ -4043,6 +4043,7 @@ LAB2_IMAGES = {
     "s5_conexion_lineal_metal": "etapa5_conexion_lineal_metal_profesional.png",
     "s5_conexion_lineal_madera": "etapa5_conexion_lineal_madera_profesional.png",
     "s5_conexion_puntual": "etapa5_conexion_puntual_profesional.png",
+    "s5_geometria_camara_montantes": "etapa5_geometria_camara_montantes_profesional.png",
 }
 
 def _lab2_image(image_key, caption=None):
@@ -6070,6 +6071,22 @@ def lab2_stage5():
         "el comportamiento acústico del tabique y lo compara con una hoja equivalente "
         "de igual masa superficial total."
     )
+    _lab2_image(
+        "s5_geometria_camara_montantes",
+        "Geometría utilizada por el modelo: d es la profundidad libre de la cámara, "
+        "medida perpendicularmente entre las caras interiores de las hojas; b es la "
+        "separación eje a eje entre dos montantes consecutivos.",
+    )
+    st.markdown(r"""
+    **Cómo leer las dos dimensiones del render**
+
+    - **\(d\) · Profundidad de la cámara:** distancia perpendicular entre las caras
+      interiores de las dos hojas. En el laboratorio se ingresa en milímetros y se
+      convierte a metros para calcular \(f_0\) y \(f_l\).
+    - **\(b\) · Separación de montantes:** distancia horizontal **eje a eje** entre
+      dos perfiles consecutivos. No corresponde al ancho libre del paño. En el modelo
+      de conexión lineal interviene en \(\Delta TL_{m'}\).
+    """)
     support_type=st.radio(
         "Tipo de conexión lineal que deseas representar",
         ["Perfilería metálica", "Pies derechos de madera"],
@@ -6328,15 +6345,61 @@ def lab2_stage5():
         mass_reading="Las hojas son casi simétricas; sus respuestas críticas pueden concentrarse en zonas similares."
     else:
         mass_reading="Las hojas son asimétricas; esto puede separar parcialmente sus respuestas críticas."
-    st.success(
-        f"**Lectura docente:** La configuración representa una conexión lineal mediante "
-        f"{support_type.lower()}. {spacing_reading} {mass_reading} La frecuencia crítica "
-        f"dominante es {fc_high:.0f} Hz y la corrección del modelo lineal es "
-        f"{line_correction:+.1f} dB. La curva naranja representa el camino por "
-        f"la conexión lineal y la curva verde gruesa representa el TL total final, "
-        f"obtenido combinando energéticamente esa conexión con el camino aéreo absorbido; "
-        f"no debe interpretarse como un resultado certificado de obra."
-    )
+    if st.session_state.get("role")=="Docente":
+        with st.container(border=True):
+            st.markdown("#### 🔐 Lectura docente · ¿En qué frecuencias actúa mejor el absorbente?")
+            st.markdown(
+                fr"""
+                Para la configuración seleccionada, la resonancia masa–aire–masa es
+                **\(f_0 \approx {f0:.0f}\ \mathrm{{Hz}}\)** y la frecuencia límite usada
+                por este modelo es **\(f_l \approx {fl:.0f}\ \mathrm{{Hz}}\)**. Estos
+                valores permiten interpretar el aporte del material poroso por regiones:
+
+                1. **Bajo \(f_0\): aporte generalmente limitado.** Las longitudes de onda
+                   son grandes y el comportamiento está controlado principalmente por las
+                   masas de las hojas y la rigidez del aire encerrado. La lana puede
+                   introducir amortiguamiento, pero no reemplaza masa, mayor separación ni
+                   desacoplamiento. En esta zona no debe esperarse una ganancia uniforme
+                   importante de TL.
+
+                2. **En torno a \(f_0\): aporte especialmente valioso.** El material poroso
+                   disipa energía por pérdidas viscosas y térmicas y reduce el factor de
+                   calidad de la resonancia masa–aire–masa. Su principal beneficio es
+                   hacer menos profundo y menos abrupto el valle de TL. Normalmente
+                   amortigua la resonancia más de lo que desplaza su frecuencia central.
+
+                3. **Entre \(f_0\) y \(f_l\): región de mejor eficacia de banda ancha.**
+                   Aquí disminuyen las reflexiones múltiples, las ondas estacionarias y el
+                   acoplamiento acústico entre hojas. El efecto aumenta cuando el material
+                   ocupa una fracción importante de la cámara sin quedar excesivamente
+                   comprimido y posee una resistividad al flujo adecuada.
+
+                4. **Sobre \(f_l\): el absorbente todavía controla el campo de la cámara,
+                   pero la mejora adicional del TL total puede estabilizarse.** En esta
+                   región pueden dominar la coincidencia de las placas, los montantes,
+                   tornillos, encuentros y otros puentes estructurales. Si
+                   \(TL_{{\\mathrm{{línea}}}}\) es menor que el TL del camino aéreo, agregar
+                   más absorbente producirá poca mejora en el **TL real**.
+                """
+            )
+            st.markdown(
+                fr"""
+                **Lectura de este diseño:** se seleccionó **{absorbent_type}** y una cámara
+                de **{depth:.0f} mm**. {spacing_reading} {mass_reading} La frecuencia
+                crítica dominante es **{fc_high:.0f} Hz** y la corrección del modelo
+                lineal es **{line_correction:+.1f} dB**. El resultado final se obtiene
+                combinando energéticamente el camino aéreo absorbido con el camino por
+                {support_type.lower()}; el absorbente no se suma directamente al TL de
+                los montantes.
+
+                **Criterio profesional:** no debe elegirse una lana solamente por su
+                densidad nominal. El comportamiento depende de la **resistividad al
+                flujo**, espesor instalado, porcentaje de llenado, compresión, posición,
+                profundidad de la cámara y frecuencia. Este laboratorio representa esas
+                tendencias mediante una ganancia pedagógica por bandas; no constituye la
+                predicción certificada de un producto ni reemplaza un ensayo.
+                """
+            )
 
     with st.expander("Ver procedimiento matemático paso a paso"):
         st.markdown("**1. Masa superficial total**")
