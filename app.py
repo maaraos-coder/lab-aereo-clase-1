@@ -8369,6 +8369,78 @@ def _lab2_s10_plot(title,curves):
     fig.update_xaxes(tickvals=LAB2_S10_FREQS,ticktext=[str(int(x)) for x in LAB2_S10_FREQS])
     st.plotly_chart(fig,use_container_width=True)
 
+def _lab2_s10_index_workbench(combined):
+    """Interactive ISO-style workbench using the combined 16-band TL curve."""
+    combined=np.asarray(combined,dtype=float)
+    st.markdown("### Herramientas para construir Rw, C y Ctr")
+    st.caption(
+        "La curva de entrada es la TL combinada que acabas de obtener. Usa las "
+        "herramientas para desarrollar los índices; luego ingresa tus resultados."
+    )
+
+    st.markdown("#### A · Construcción de Rw con la curva de referencia")
+    automatic=_lab2_s10_indices(combined)[0]
+    candidate=st.slider(
+        "Posición de la curva de referencia en 500 Hz (Rw candidato)",
+        min_value=max(0,automatic-15),max_value=min(100,automatic+10),
+        value=max(0,automatic-5),step=1,key="l2s10_rw_candidate",
+    )
+    shifted=REF.astype(float)+(candidate-52)
+    deviations=np.maximum(0.0,shifted-combined)
+    deviation_sum=float(np.sum(deviations))
+    next_deviations=np.maximum(0.0,(shifted+1)-combined)
+    next_sum=float(np.sum(next_deviations))
+    fig=go.Figure()
+    fig.add_trace(go.Scatter(x=LAB2_S10_FREQS,y=combined,mode="lines+markers",name="TL combinada",line=dict(color="#25d6b2",width=4)))
+    fig.add_trace(go.Scatter(x=LAB2_S10_FREQS,y=shifted,mode="lines+markers",name="Referencia desplazada",line=dict(color="#ff9f43",width=3,shape="hv")))
+    for i in np.where(deviations>0)[0]:
+        fig.add_trace(go.Scatter(x=[LAB2_S10_FREQS[i],LAB2_S10_FREQS[i]],y=[combined[i],shifted[i]],mode="lines",line=dict(color="#ff4d6d",width=5),showlegend=False,hovertemplate=f"{int(LAB2_S10_FREQS[i])} Hz<br>Desviación: {deviations[i]:.1f} dB<extra></extra>"))
+    fig.update_layout(height=430,xaxis_type="log",xaxis_title="Frecuencia (Hz)",yaxis_title="TL / R (dB)",hovermode="x unified",margin=dict(l=30,r=20,t=35,b=35))
+    fig.update_xaxes(tickvals=LAB2_S10_FREQS,ticktext=[str(int(v)) for v in LAB2_S10_FREQS])
+    st.plotly_chart(fig,use_container_width=True)
+    a,b,c=st.columns(3)
+    a.metric("Rw candidato",f"{candidate} dB")
+    b.metric("Σ desviaciones",f"{deviation_sum:.1f} dB")
+    c.metric("Referencia +1 dB",f"{next_sum:.1f} dB")
+    if deviation_sum<=32 and next_sum>32:
+        st.success("Posición final encontrada: cumple Σdᵢ ≤ 32 dB y al subir 1 dB deja de cumplir.")
+    elif deviation_sum<=32:
+        st.info("Esta posición cumple, pero todavía debes comprobar si la referencia puede subir 1 dB.")
+    else:
+        st.error("Esta posición no cumple: baja la curva hasta que Σdᵢ sea menor o igual que 32 dB.")
+    with st.expander("Ver desviaciones banda por banda"):
+        st.dataframe(pd.DataFrame({"Frecuencia (Hz)":LAB2_S10_FREQS.astype(int),"TL combinada (dB)":np.round(combined,1),"Referencia (dB)":shifted.astype(int),"dᵢ desfavorable (dB)":np.round(deviations,1)}),hide_index=True,use_container_width=True)
+
+    st.markdown("#### B · Construcción de C y Ctr")
+    spectrum_c=np.array([-29,-26,-23,-21,-19,-17,-15,-13,-12,-11,-10,-9,-9,-9,-9,-9],dtype=float)
+    spectrum_ctr=np.array([-20,-20,-18,-16,-15,-14,-13,-12,-11,-9,-8,-9,-10,-11,-13,-15],dtype=float)
+    x1=float(-10*np.log10(np.sum(10**((spectrum_c-combined)/10))))
+    x2=float(-10*np.log10(np.sum(10**((spectrum_ctr-combined)/10))))
+    st.latex(r"X_1=-10\log_{10}\left(\sum_i10^{(L_{1,i}-R_i)/10}\right),\qquad C=X_1-R_w")
+    st.latex(r"X_2=-10\log_{10}\left(\sum_i10^{(L_{2,i}-R_i)/10}\right),\qquad C_{tr}=X_2-R_w")
+    step=st.select_slider(
+        "Recorre el cálculo espectral",options=[1,2,3,4],value=1,
+        format_func=lambda n:{1:"1 · Curva TL combinada",2:"2 · Aplicar espectros",3:"3 · Suma energética",4:"4 · Obtener C y Ctr"}[n],
+        key="l2s10_adaptation_step",
+    )
+    spectral=go.Figure()
+    spectral.add_trace(go.Scatter(x=LAB2_S10_FREQS,y=combined,mode="lines+markers",name="TL combinada",line=dict(color="#25d6b2",width=4)))
+    if step>=2:
+        spectral.add_trace(go.Bar(x=LAB2_S10_FREQS,y=spectrum_c,name="Espectro 1",marker_color="#56a8ff",opacity=.55))
+        spectral.add_trace(go.Bar(x=LAB2_S10_FREQS,y=spectrum_ctr,name="Espectro 2",marker_color="#b06cff",opacity=.45))
+    if step>=3:
+        spectral.add_trace(go.Scatter(x=LAB2_S10_FREQS,y=spectrum_c-combined,mode="lines+markers",name="L1−R",line=dict(color="#ff9f43",width=3)))
+        spectral.add_trace(go.Scatter(x=LAB2_S10_FREQS,y=spectrum_ctr-combined,mode="lines+markers",name="L2−R",line=dict(color="#ff4d6d",width=3)))
+    spectral.update_layout(height=410,barmode="overlay",xaxis_type="log",xaxis_title="Frecuencia (Hz)",yaxis_title="Nivel relativo / TL (dB)",margin=dict(l=30,r=20,t=25,b=35))
+    spectral.update_xaxes(tickvals=LAB2_S10_FREQS,ticktext=[str(int(v)) for v in LAB2_S10_FREQS])
+    st.plotly_chart(spectral,use_container_width=True)
+    if step>=3:
+        u,v=st.columns(2); u.metric("X₁",f"{x1:.1f} dB"); v.metric("X₂",f"{x2:.1f} dB")
+    if step==4:
+        st.info("Usa el Rw final obtenido en la herramienta A y calcula C = X₁ − Rw y Ctr = X₂ − Rw. Ingresa esos tres resultados abajo.")
+    with st.expander("Ver cálculo espectral banda por banda"):
+        st.dataframe(pd.DataFrame({"Frecuencia (Hz)":LAB2_S10_FREQS.astype(int),"TL combinada Rᵢ (dB)":np.round(combined,1),"L₁ (dB)":spectrum_c.astype(int),"L₁−Rᵢ (dB)":np.round(spectrum_c-combined,1),"L₂ (dB)":spectrum_ctr.astype(int),"L₂−Rᵢ (dB)":np.round(spectrum_ctr-combined,1)}),hide_index=True,use_container_width=True)
+
 def lab2_stage10():
     _lab2_heading(10,"Diseño integrador · paramento sala–pasillo","Diseña muro, ventana y puerta; calcula Rw, C y Ctr; y verifica el requisito Rw ≥ 40 dB.")
     st.info("Duración: 40 minutos · 60 puntos. Las curvas se calculan con las mismas herramientas físicas utilizadas en las etapas anteriores.")
@@ -8424,12 +8496,24 @@ def lab2_stage10():
     cr,cc,cct=_lab2_s10_indices(combined); _lab2_s10_plot("Aislamiento por tercios de octava",[("Muro",wall["curve"]),("Ventana",window["curve"]),("Puerta",door_saved["curve"]),("Paramento combinado",combined)])
     with st.expander("Ver tabla espectral del cálculo compuesto"):
         st.dataframe(pd.DataFrame({"Frecuencia (Hz)":LAB2_S10_FREQS.astype(int),"Muro (dB)":np.round(wall["curve"],1),"Ventana (dB)":np.round(window["curve"],1),"Puerta (dB)":np.round(door_saved["curve"],1),"Combinado (dB)":np.round(combined,1)}),hide_index=True,use_container_width=True)
-    st.markdown("## 5 · Ingresa e interpreta tu resultado")
-    q1,q2,q3=st.columns(3); ans_rw=q1.number_input("Rw combinado (dB)",0,100,0,key="l2s10_ans_rw"); ans_c=q2.number_input("C (dB)",-30,10,0,key="l2s10_ans_c"); ans_ctr=q3.number_input("Ctr (dB)",-30,10,0,key="l2s10_ans_ctr")
-    st.caption("El resultado no se revela hasta verificar tu cálculo.")
-    if st.button("Verificar resultado",key="l2s10_verify"):
-        st.session_state["l2s10_verified"]=True; save_user_progress()
-    if st.session_state.get("l2s10_verified"):
+    st.markdown("## 5 · Calcula, ingresa e interpreta tu resultado")
+    st.markdown("#### Ecuación del aislamiento compuesto")
+    st.latex(r"\tau_{T,f}=\frac{S_m10^{-R_{m,f}/10}+S_v10^{-R_{v,f}/10}+S_p10^{-R_{p,f}/10}}{S_m+S_v+S_p}")
+    st.latex(r"R_{T,f}=-10\log_{10}(\tau_{T,f})")
+    st.caption("Para este ejercicio: Sm = 19,71 m²; Sv = 2,40 m²; Sp = 1,89 m²; ST = 24,00 m². La combinación se realiza en cada banda, no promediando decibeles ni valores Rw.")
+    _lab2_s10_index_workbench(combined)
+    st.markdown("### Ingresa tus resultados")
+    submitted=bool(st.session_state.get("l2s10_submitted"))
+    q1,q2,q3=st.columns(3); ans_rw=q1.number_input("Rw combinado (dB)",0,100,0,key="l2s10_ans_rw",disabled=submitted); ans_c=q2.number_input("C (dB)",-30,10,0,key="l2s10_ans_c",disabled=submitted); ans_ctr=q3.number_input("Ctr (dB)",-30,10,0,key="l2s10_ans_ctr",disabled=submitted)
+    st.caption("Puedes corregir y verificar nuevamente cuantas veces necesites. El intento se bloquea únicamente al enviar el desarrollo definitivo.")
+    current_signature=(int(ans_rw),int(ans_c),int(ans_ctr))
+    if st.button("Verificar resultado",key="l2s10_verify",disabled=submitted):
+        st.session_state["l2s10_verified_signature"]=current_signature; st.session_state["l2s10_verified"]=True; save_user_progress()
+    verified_signature=tuple(st.session_state.get("l2s10_verified_signature",()))
+    verified=verified_signature==current_signature and bool(st.session_state.get("l2s10_verified"))
+    if st.session_state.get("l2s10_verified") and not verified:
+        st.warning("Modificaste uno o más resultados después de verificar. Presiona nuevamente “Verificar resultado”.")
+    if verified:
         numeric=sum([abs(ans_rw-cr)<=1,abs(ans_c-cc)<=1,abs(ans_ctr-cct)<=1]); design_score=20+numeric*(20/3)
         st.success(f"Resultado calculado: Rw(C; Ctr) = {cr} ({cc:+d}; {cct:+d}) dB · Rw+C = {cr+cc} dB")
         (st.success if cr>=40 else st.error)(f"{'Cumple' if cr>=40 else 'No cumple'} el requisito Rw ≥ 40 dB.")
@@ -8444,8 +8528,8 @@ def lab2_stage10():
         if value==options[correct]: correct_count+=1
     comprehension_score=correct_count*4; total=round(design_score+comprehension_score,1)
     st.metric("Puntaje acumulado",f"{total:g}/60")
-    if st.button("Enviar desarrollo definitivo",type="primary",use_container_width=True,key="l2s10_submit"):
-        if not st.session_state.get("l2s10_verified") or any(v is None for v in answers.values()): st.warning("Verifica el resultado y responde las cinco preguntas antes de enviar.")
+    if st.button("Enviar desarrollo definitivo",type="primary",use_container_width=True,key="l2s10_submit",disabled=submitted):
+        if not verified or any(v is None for v in answers.values()): st.warning("Verifica los resultados actualmente ingresados y responde las cinco preguntas antes de enviar.")
         else:
             payload={"geometry":{"room":"8.00×6.00×3.00 m","wall":19.71,"window":2.40,"door":1.89,"total":24.00},"wall":wall,"window":window,"door":door_saved,"combined_curve":combined.tolist(),"student_result":{"rw":ans_rw,"c":ans_c,"ctr":ans_ctr},"calculated_result":{"rw":cr,"c":cc,"ctr":cct},"answers":answers,"design_score":design_score,"comprehension_score":comprehension_score}
             _save_formative(10,"final_integrated_design","Diseño integrador del paramento sala–pasillo",json.dumps(payload,ensure_ascii=False),"Correcta" if total>=36 else "Parcialmente correcta",f"Resultado automático: {total:g}/60 puntos.",score=total,max_score=60,correct_answer=f"Resultado dependiente del diseño; cálculo verificado banda por banda. Selección enviada: Rw(C;Ctr)={cr}({cc:+d};{cct:+d}) dB.")
