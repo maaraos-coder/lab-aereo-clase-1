@@ -1627,12 +1627,12 @@ def formula_popup_button():
     popup=build_formulary_html(visible_labs)
     popup_json=json.dumps(popup,ensure_ascii=False)
     components.html(f"""
-    <button id="open-formulas">📐 Abrir Formulario del Diplomado</button>
+    <button id="open-formulas">📐 Abrir Formulario actualizado · Lab. 1 y 2</button>
     <style>body{{margin:0}}button{{width:100%;height:42px;background:#0b4f83;color:white;
     border:1px solid #59d4ef;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer}}
     button:hover{{background:#0878bd;border-color:#8ee9ff}}</style>
     <script>document.getElementById('open-formulas').onclick=()=>{{
-      const win=window.open('','formulario_diplomado','popup=yes,width=820,height=880,resizable=yes,scrollbars=yes');
+      const win=window.open('','formulario_diplomado_app123','popup=yes,width=820,height=880,resizable=yes,scrollbars=yes');
       win.document.open();win.document.write({popup_json});win.document.close();
     }};</script>""",height=48,scrolling=False)
     return
