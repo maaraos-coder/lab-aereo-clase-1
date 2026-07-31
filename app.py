@@ -6193,34 +6193,70 @@ def lab2_stage5():
     total_abs=-10.0*np.log10(np.maximum(tau_air_abs+tau_line,1e-12))
     total_abs_improvement=total_abs-total_empty
     idx=int(np.where(LAB2_FREQS==selected_f)[0][0])
+    has_absorbent=absorbent_type!="Sin absorbente"
+    absorbent_card_title=(
+        "2 · Cámara absorbente · sin conexión"
+        if has_absorbent else
+        "2 · Cámara vacía · sin conexión (sin absorbente seleccionado)"
+    )
+    real_card_title=(
+        "🟢 4 · TL REAL · absorbente + conexión"
+        if has_absorbent else
+        "🟢 4 · TL REAL · cámara vacía + conexión"
+    )
 
-    a,b,c,d,e=st.columns(5)
-    a.metric("f₀ del sistema ideal",f"{f0:.0f} Hz")
-    b.metric(f"TL base · {selected_f} Hz",f"{base[idx]:.1f} dB")
-    c.metric(f"TL línea · {selected_f} Hz",f"{line_path[idx]:.1f} dB")
-    d.metric(f"TL total · {selected_f} Hz",f"{total_empty[idx]:.1f} dB")
-    e.metric(f"TL total + absorbente · {selected_f} Hz",f"{total_abs[idx]:.1f} dB",
-             delta=f"{total_abs_improvement[idx]:+.1f} dB reales")
+    st.markdown("#### Comparación de las cuatro configuraciones")
+    st.caption(
+        f"Resultados en la banda de {selected_f} Hz · "
+        f"f₀ = {f0:.0f} Hz · fₗ = {fl:.0f} Hz"
+    )
+    a,b,c,d=st.columns(4)
+    a.metric(
+        f"1 · Cámara vacía · sin conexión · {selected_f} Hz",
+        f"{base[idx]:.1f} dB",
+        help="TL del camino aéreo ideal: dos hojas separadas por una cámara vacía, sin montantes que unan ambas caras.",
+    )
+    b.metric(
+        f"{absorbent_card_title} · {selected_f} Hz",
+        f"{air_abs[idx]:.1f} dB",
+        delta=f"{absorbent_gain_curve[idx]:+.1f} dB por absorbente",
+        help="TL del camino aéreo después de incorporar el aporte por banda del material absorbente, todavía sin conexión lineal.",
+    )
+    c.metric(
+        f"3 · Cámara vacía · con conexión · {selected_f} Hz",
+        f"{total_empty[idx]:.1f} dB",
+        delta=f"{total_empty[idx]-base[idx]:+.1f} dB por conexión",
+        delta_color="normal",
+        help="Resultado de combinar energéticamente el camino aéreo de la cámara vacía con el camino mecánico de la conexión lineal.",
+    )
+    d.metric(
+        f"{real_card_title} · {selected_f} Hz",
+        f"{total_abs[idx]:.1f} dB",
+        delta=f"{total_abs_improvement[idx]:+.1f} dB de mejora real",
+        help="Resultado constructivo final: camino aéreo con absorbente combinado energéticamente con la conexión lineal.",
+    )
 
     st.info(
-        f"**Lectura de {selected_f} Hz:** el camino aéreo base entrega "
-        f"{base[idx]:.1f} dB y el camino por la conexión lineal "
-        f"{line_path[idx]:.1f} dB. Combinados energéticamente, el tabique con "
-        f"cámara vacía entrega {total_empty[idx]:.1f} dB. El absorbente eleva "
-        f"el camino aéreo a {air_abs[idx]:.1f} dB; al volver a combinarlo con "
-        f"la conexión, el resultado final es {total_abs[idx]:.1f} dB."
+        f"**Lectura comparativa a {selected_f} Hz:** sin conexión, la cámara vacía "
+        f"entrega {base[idx]:.1f} dB y la cámara con {absorbent_type.lower()} "
+        f"entrega {air_abs[idx]:.1f} dB. Al incorporar la conexión lineal, la "
+        f"cámara vacía queda en {total_empty[idx]:.1f} dB. La configuración "
+        f"completa —absorbente más conexión— entrega un **TL real de "
+        f"{total_abs[idx]:.1f} dB**, equivalente a una mejora real de "
+        f"{total_abs_improvement[idx]:+.1f} dB respecto de la misma conexión "
+        f"con cámara vacía."
     )
 
     with st.expander("Ver resultados numéricos en todas las bandas", expanded=True):
         results_by_band=pd.DataFrame({
             "Frecuencia (Hz)":LAB2_FREQS.astype(int),
-            "TL base (dB)":np.round(base,1),
-            "TL línea (dB)":np.round(line_path,1),
-            "TL total sin absorbente (dB)":np.round(total_empty,1),
-            "ΔTL absorbente camino aéreo (dB)":np.round(absorbent_gain_curve,1),
-            "TL aéreo con absorbente (dB)":np.round(air_abs,1),
-            "TL total con absorbente (dB)":np.round(total_abs,1),
-            "Mejora real del TL total (dB)":np.round(total_abs_improvement,1),
+            "1 · Cámara vacía, sin conexión (dB)":np.round(base,1),
+            "2 · Cámara absorbente, sin conexión (dB)":np.round(air_abs,1),
+            "3 · Cámara vacía, con conexión (dB)":np.round(total_empty,1),
+            "4 · TL real: absorbente + conexión (dB)":np.round(total_abs,1),
+            "TL del camino lineal usado en el cálculo (dB)":np.round(line_path,1),
+            "Aporte del absorbente al camino aéreo (dB)":np.round(absorbent_gain_curve,1),
+            "Mejora real entre configuraciones 3 y 4 (dB)":np.round(total_abs_improvement,1),
         })
         st.dataframe(
             results_by_band,
@@ -6228,44 +6264,43 @@ def lab2_stage5():
             hide_index=True,
         )
         st.caption(
-            "Los TL totales se obtienen sumando los coeficientes de transmisión "
-            "del camino aéreo y de la conexión lineal; no mediante suma directa de dB."
+            "Las configuraciones 3 y 4 incluyen la conexión. Se obtienen sumando "
+            "los coeficientes de transmisión del camino aéreo y del camino lineal; "
+            "no mediante suma o resta directa de decibeles."
         )
 
     fig=go.Figure()
     fig.add_trace(go.Scatter(
         x=LAB2_FREQS,y=base,mode="lines+markers",
-        name="TL base · cámara vacía y sin conexión",
+        name="1 · Cámara vacía · sin conexión",
         line=dict(color="#08a9d8",width=4),marker=dict(size=6),
     ))
     fig.add_trace(go.Scatter(
-        x=LAB2_FREQS,y=line_path,mode="lines+markers",
-        name=f"TL línea · {support_type.lower()}",
-        line=dict(color="#ef8b2c",width=4,dash="dash"),marker=dict(size=7,symbol="diamond"),
+        x=LAB2_FREQS,y=air_abs,mode="lines+markers",
+        name=absorbent_card_title,
+        line=dict(color="#65a30d",width=4,dash="dot"),marker=dict(size=6),
     ))
     fig.add_trace(go.Scatter(
         x=LAB2_FREQS,y=total_empty,mode="lines+markers",
-        name="TL total · cámara vacía + conexión",
+        name="3 · Cámara vacía · con conexión",
         line=dict(color="#9b59b6",width=4),marker=dict(size=6,symbol="triangle-up"),
     ))
     fig.add_trace(go.Scatter(
-        x=LAB2_FREQS,y=air_abs,mode="lines+markers",
-        name=f"TL aéreo · {absorbent_type.lower()}",
-        line=dict(color="#65a30d",width=3,dash="dot"),marker=dict(size=5),
-    ))
-    fig.add_trace(go.Scatter(
         x=LAB2_FREQS,y=total_abs,mode="lines+markers",
-        name="TL total final · absorbente + conexión",
+        name=real_card_title.replace("🟢 ",""),
         line=dict(color="#1b9e77",width=5),marker=dict(size=7,symbol="square"),
     ))
     fig.add_vline(x=selected_f,line_color="#1d3557",line_dash="dot",line_width=2)
     fig.add_annotation(
-        x=selected_f,y=max(float(base[idx]),float(line_path[idx]),float(air_abs[idx])),
+        x=selected_f,y=max(
+            float(base[idx]),float(air_abs[idx]),
+            float(total_empty[idx]),float(total_abs[idx]),
+        ),
         text=f"{selected_f} Hz",showarrow=True,arrowhead=2,ay=-42,
         font=dict(color="#17324d"),
     )
     fig.update_layout(
-        title="Obtención progresiva del TL del tabique",
+        title="Comparación de las cuatro configuraciones del tabique",
         xaxis_title="Frecuencia central (Hz)",yaxis_title="Pérdida por transmisión TL (dB)",
         xaxis_type="log",hovermode="x unified",height=520,
         margin=dict(l=45,r=25,t=75,b=115),
