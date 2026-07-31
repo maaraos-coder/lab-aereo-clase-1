@@ -7664,7 +7664,139 @@ def _stage9_submission():
     if isinstance(answer,str):
         try: answer=json.loads(answer)
         except json.JSONDecodeError: answer={}
-    return {"answers":answer.get("answers",{}),"score":float(row.get("auto_score") or 0)}
+    return {
+        "answers":answer.get("answers",{}),
+        "score":float(row.get("auto_score") or 0),
+        "teacher_score":row.get("teacher_score"),
+        "teacher_note":row.get("teacher_note") or "",
+    }
+
+def _stage9_answer_payload(row):
+    """Decode the single definitive Stage 9 response saved in Supabase."""
+    payload=row.get("answer") or {}
+    if isinstance(payload,str):
+        try:
+            payload=json.loads(payload)
+        except json.JSONDecodeError:
+            payload={}
+    return payload if isinstance(payload,dict) else {}
+
+def teacher_stage9_results(compact=False):
+    """Teacher-only automatic rubric and editable grading for Stage 9."""
+    if st.session_state.get("role")!="Docente":
+        return
+    client=_supabase()
+    if client is None:
+        st.warning("Conecta Supabase para consultar las respuestas de los alumnos.")
+        return
+    try:
+        raw=(client.table("responses").select("*,users(display_name,email)")
+             .eq("class_id",CLASS_ID).eq("stage",9)
+             .eq("question_key","final_comprehension")
+             .order("updated_at",desc=True).execute().data or [])
+    except Exception as exc:
+        st.error(f"No fue posible consultar las respuestas de la Etapa 9: {exc}")
+        return
+    if not raw:
+        st.info("Todavía no hay evaluaciones de la Etapa 9 enviadas por alumnos.")
+        return
+
+    def student_name(row):
+        user=row.get("users") or {}
+        return user.get("display_name") or row.get("user_key","Alumno")
+
+    selected=st.selectbox(
+        "Alumno evaluado",range(len(raw)),
+        format_func=lambda i:f"{student_name(raw[i])} · {float(raw[i].get('auto_score') or 0):g}/40",
+        key=f"stage9_teacher_student_{'compact' if compact else 'full'}",
+    )
+    row=raw[selected]
+    payload=_stage9_answer_payload(row)
+    answers=payload.get("answers",{}) if isinstance(payload,dict) else {}
+    st.caption(
+        f"Respuesta recibida: {str(row.get('updated_at') or '').replace('T',' ')[:19]} · "
+        "guardada en Supabase, tabla responses, clave final_comprehension."
+    )
+
+    automatic=[]
+    for i,item in enumerate(STAGE9_QUESTIONS):
+        chosen=answers.get(str(i)) if isinstance(answers,dict) else None
+        correct=item["options"][item["correct"]]
+        automatic.append(4.0 if chosen==correct else 0.0)
+
+    st.markdown("#### Rúbrica automática editable")
+    st.caption("La pauta asigna 4 puntos por respuesta correcta. El docente puede ajustar cada criterio entre 0 y 4 puntos y dejar la justificación correspondiente.")
+    awarded=[]
+    current_total=row.get("teacher_score")
+    saved_rubric=payload.get("rubric_scores",[]) if isinstance(payload,dict) else []
+    for i,item in enumerate(STAGE9_QUESTIONS):
+        chosen=answers.get(str(i)) if isinstance(answers,dict) else None
+        correct=item["options"][item["correct"]]
+        with st.expander(
+            f"{i+1}. {item['title']} · {'Correcta' if chosen==correct else 'Incorrecta'} · {automatic[i]:g}/4",
+            expanded=(not compact and i==0),
+        ):
+            st.markdown(f"**Pregunta:** {item['question']}")
+            st.write(f"**Respuesta del alumno:** {chosen or 'Sin respuesta'}")
+            st.success(f"**Respuesta correcta:** {correct}")
+            st.info(item["explanation"])
+            default=(float(saved_rubric[i]) if i<len(saved_rubric) else automatic[i])
+            awarded.append(st.number_input(
+                "Puntaje otorgado",0.0,4.0,float(default),0.5,
+                key=f"stage9_rubric_{row['id']}_{i}_{'c' if compact else 'f'}",
+            ))
+    total=float(sum(awarded))
+    note=st.text_area(
+        "Observación general para el alumno",value=row.get("teacher_note") or "",
+        key=f"stage9_note_{row['id']}_{'c' if compact else 'f'}",
+    )
+    c1,c2=st.columns(2)
+    c1.metric("Puntaje automático",f"{sum(automatic):g}/40")
+    c2.metric("Puntaje ajustado",f"{total:g}/40")
+    if st.button("Guardar rúbrica docente",type="primary",use_container_width=True,
+                 key=f"stage9_save_rubric_{row['id']}_{'c' if compact else 'f'}"):
+        updated_payload=dict(payload)
+        updated_payload["rubric_scores"]=awarded
+        client.table("responses").update({
+            "answer":updated_payload,
+            "teacher_level":"Correcta" if total>=24 else "Incorrecta",
+            "teacher_score":total,"teacher_note":note,
+            "status":"reviewed","updated_at":_now(),
+        }).eq("id",row["id"]).execute()
+        st.success("Rúbrica y observación docente guardadas.")
+
+    summary=[]
+    for result in raw:
+        result_payload=_stage9_answer_payload(result)
+        result_answers=result_payload.get("answers",{}) if isinstance(result_payload,dict) else {}
+        answered=sum(bool(result_answers.get(str(i))) for i in range(10))
+        summary.append({
+            "Alumno":student_name(result),"Respondidas":f"{answered}/10",
+            "Puntaje automático":float(result.get("auto_score") or 0),
+            "Puntaje docente":result.get("teacher_score"),
+            "Estado":"Revisada" if result.get("teacher_score") is not None else "Corrección automática",
+        })
+    frame=pd.DataFrame(summary)
+    with st.expander("Resumen y descarga del curso"):
+        st.dataframe(frame,hide_index=True,use_container_width=True)
+        st.download_button(
+            "Descargar resultados CSV",frame.to_csv(index=False).encode("utf-8-sig"),
+            "resultados_etapa_9.csv","text/csv",
+            key=f"stage9_download_{'c' if compact else 'f'}",
+        )
+
+def teacher_stage9_answer_key():
+    """Teacher view of the assessment: alternatives and key, never answer controls."""
+    st.info("Vista docente: esta pantalla es una pauta de consulta. No inicia el temporizador ni permite desarrollar la evaluación.")
+    for i,item in enumerate(STAGE9_QUESTIONS):
+        correct=item["options"][item["correct"]]
+        with st.expander(f"Pregunta {i+1} · {item['title']}",expanded=i==0):
+            st.markdown(f"**{item['question']}**")
+            for option_index,option in enumerate(item["options"]):
+                prefix="✅" if option_index==item["correct"] else "○"
+                st.write(f"{prefix} {chr(65+option_index)}. {option}")
+            st.success(f"Respuesta correcta: {correct}")
+            st.info(item["explanation"])
 
 def _finish_stage9(reason="submitted"):
     answers={str(i):st.session_state.get(f"e9_q{i}") for i in range(10)}
@@ -7711,6 +7843,13 @@ def lab2_stage9():
         "Esta evaluación tiene un solo intento. Tus respuestas se guardan automáticamente. "
         "Al enviar o agotarse el tiempo, el intento quedará cerrado y podrás revisar la pauta completa."
     )
+
+    if st.session_state.get("role")=="Docente":
+        teacher_stage9_answer_key()
+        st.markdown("---")
+        st.markdown("### Respuestas de alumnos y rúbrica")
+        teacher_stage9_results()
+        return
 
     remote=_stage9_submission()
     submitted=bool(remote or st.session_state.get("e9_submitted"))
@@ -9083,11 +9222,9 @@ with st.sidebar:
             teacher_student_management()
         with st.expander("🔒 Publicación de laboratorios"):
             teacher_publication_management()
-        with st.expander("📊 Liberación de resultados"):
-            release_controls(
-                _supabase(), _results_catalog(), _now,
-                st.session_state.get("name", "Docente"),
-            )
+        with st.expander("📊 Resultados y rúbrica · Etapa 9"):
+            st.caption("Las respuestas correctas se muestran automáticamente al alumno cuando cierra su único intento; no requieren liberación manual.")
+            teacher_stage9_results(compact=True)
     active_titles=LAB_STAGE_TITLES[ACTIVE_LAB]
     active_minutes=STAGE_MINUTES if ACTIVE_LAB==1 else dict(enumerate(LAB2_MINUTES))
     labels=[
