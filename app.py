@@ -4093,6 +4093,7 @@ LAB2_IMAGES = {
 LAB2_IMAGES.update({
     "stage7_espectro_a_bandas": "stage7_espectro_a_bandas.png",
     "stage7_octava_vs_tercio": "stage7_octava_vs_tercio.png",
+    "stage8_airborne_rw": "stage8_airborne_rw.png",
 })
 
 def _lab2_image(image_key, caption=None):
