@@ -216,7 +216,7 @@ margin:1.2rem 0 .6rem;box-shadow:0 10px 28px #25164a22;border:1px solid #9d87d75
 div[data-testid="stMetric"]{background:white;border:1px solid var(--line);padding:.7rem 1rem;border-radius:14px}
 .scene{display:grid;grid-template-columns:1fr 80px 1fr;min-height:230px;border:1px solid #bcd0e4;border-radius:18px;overflow:hidden;background:white}
 .room{display:flex;align-items:center;justify-content:center;font-size:3rem;position:relative;background:linear-gradient(#edf7ff,#fff)}
-.wall{background:#25374a;display:flex;align-items:center;justify-content:center;color:white;font-size:.72rem;writing-mode:vertical-rl;font-weight:800}
+.separator{background:#25374a;display:flex;align-items:center;justify-content:center;color:white;font-size:.72rem;writing-mode:vertical-rl;font-weight:800}
 .two-room-lab{display:grid;grid-template-columns:1fr 74px 1fr;min-height:330px;border:1px solid #b8cfe3;
 border-radius:22px;overflow:hidden;background:white;box-shadow:0 12px 30px #17324d16;margin:1rem 0}
 .lab-room{position:relative;overflow:hidden;background:linear-gradient(#eaf7ff 0 72%,#d9c8aa 72%);padding:1rem}
@@ -252,9 +252,9 @@ border:4px solid #087585;border-radius:6px;box-shadow:0 4px 10px #083f4b28}
 .worked-example h3{margin:.1rem 0 .65rem;color:#fff}.worked-step{background:#ffffff12;border:1px solid #ffffff25;border-radius:12px;padding:.72rem .85rem;margin:.55rem 0;line-height:1.5}
 .worked-step strong{color:#82e7ff}.worked-result{background:#eaf9ff;color:#07375d;border-radius:12px;padding:.8rem .9rem;margin-top:.65rem;font-weight:800}
 .mini-scene{width:100%;height:100%;position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(#dff3ff 0 70%,#d9dee3 70%)}
-.mini-source,.mini-receiver,.mini-wall,.mini-wave,.mini-floorwave{position:absolute}.mini-source{left:8%;bottom:17%;font-size:3.3rem}
+.mini-source,.mini-receiver,.mini-separator,.mini-wave,.mini-floorwave{position:absolute}.mini-source{left:8%;bottom:17%;font-size:3.3rem}
 .mini-receiver{right:8%;bottom:17%;font-size:3.2rem}.mini-wave{left:30%;top:39%;color:#0877c5;font-size:1.7rem;font-weight:900}
-.mini-wall{left:48%;bottom:10%;height:70%;width:18px;background:#344b60;border-radius:4px}.mini-floorwave{left:25%;right:23%;bottom:8%;border-bottom:5px dashed #ef8b2c}
+.mini-separator{left:48%;bottom:10%;height:70%;width:18px;background:#344b60;border-radius:4px}.mini-floorwave{left:25%;right:23%;bottom:8%;border-bottom:5px dashed #ef8b2c}
 .teacher-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.teacher-card{background:#fff;color:#2a2141;border-radius:14px;padding:1rem;border:1px solid #d7ccef}
 .teacher-card b{display:block;color:#432675;margin-bottom:.4rem}.teacher-card p,.teacher-card li{font-size:.9rem;line-height:1.48}
 .small{font-size:.85rem}.route{font-size:.8rem;padding:.25rem 0;color:#d7ecff}
@@ -2277,7 +2277,7 @@ def geometry_term(volume, separating_area):
     return 10*math.log10(0.32*float(volume)/float(separating_area))
 
 def quirt_window_curve(m1,m2,gap,height,width,alpha,freqs=FREQS):
-    """Didactic implementation of thesis equations 2.28 and 2.29 (Quirt)."""
+    """Implementación didáctica del modelo de Quirt para ventanas dobles."""
     rho0=1.21
     c=343.0
     f1=(1/(2*math.pi))*math.sqrt(((m1+m2)*rho0*c**2)/(gap*m1*m2))
@@ -2370,7 +2370,7 @@ def stage6():
             "Separa los dos regímenes del modelo de ventana doble.",
         )
         formula_card(
-            "Régimen superior a f₁ · ecuación 2.29",
+            "Régimen superior de la ventana doble",
             r"TL=TL_{\rho s1}+TL_{\rho s2}+10\log_{10}\alpha+10\log_{10}d+"
             r"10\log_{10}\left(\frac{h+w}{hw}\right)+3",
             "<b>α</b>: absorción a incidencia aleatoria del perímetro<br>"
@@ -2405,7 +2405,7 @@ def stage6():
         st.markdown(
             '<div class="good"><b>Lectura del modelo:</b> bajo f₁ las dos hojas se estiman como una placa '
             'con la suma de masas. Sobre f₁ intervienen cada vidrio, la cámara, el perímetro y las dimensiones '
-            'del marco. SONARA debe entregar además Rw, C y Ctr mediante ISO 717-1.</div>',
+            'del marco. El análisis debe entregar además Rw, C y Ctr mediante ISO 717-1.</div>',
             unsafe_allow_html=True,
         )
         check(
@@ -2431,9 +2431,9 @@ def stage6():
         weak_area=2.0
         share=weak_area/total_area
         wall_area=total_area-weak_area
-        wall=55
+        main_partition=55
         door=25
-        tau=(wall_area*10**(-wall/10)+weak_area*10**(-door/10))/total_area
+        tau=(wall_area*10**(-main_partition/10)+weak_area*10**(-door/10))/total_area
         comp=-10*np.log10(tau)
         st.markdown(
             '<div class="worked-example"><h3>Cálculo del porcentaje de área débil</h3>'
@@ -2659,7 +2659,7 @@ def stage7():
     header(
         "ETAPA 7 · EJERCICIO PROFESIONAL GUIADO",
         "MINVU Magallanes · Sala de Reuniones Dirección",
-        "Sigue el proceso completo: requerimiento → geometría → objetivo del elemento → SONARA → DnT,A → decisión de obra.",
+        "Sigue el proceso completo: requerimiento → geometría → objetivo del elemento → cálculo acústico → DnT,A → decisión de obra.",
     )
     st.image(
         str(ROOT/"assets/course_visuals/minvu_direccion_guided.jpg"),
@@ -2743,14 +2743,14 @@ def stage7():
     alternatives["DnT,A estimado"]=alternatives["Rw+C"]+kgeo-work_loss
     alternatives["Margen sobre meta"]=alternatives["DnT,A estimado"]-target
 
-    st.markdown("### Paso 4 · Diseñar y comparar en SONARA")
+    st.markdown("### Paso 4 · Diseñar y comparar soluciones")
     st.dataframe(
         alternatives[["Código","Descripción","Rw","C","Ctr","Rw+C","Espesor (mm)","Costo ref. ($/m²)"]],
         hide_index=True,
         use_container_width=True,
     )
     st.markdown(
-        "En SONARA registra las capas, la cámara, el absorbente y el tipo de conexión. "
+        "En el modelo registra las capas, la cámara, el absorbente y el tipo de conexión. "
         "Revisa la curva R(f), la resonancia masa-aire-masa y las frecuencias críticas antes de aceptar el número único."
     )
     selected=st.radio(
@@ -2772,7 +2772,7 @@ def stage7():
 
     st.markdown("### Paso 5 · Elementos débiles y modelo de ventanas")
     st.markdown(
-        "Si aparece una ventana doble, SONARA debe utilizar el modelo de **Quirt** de tu tesis. "
+        "Si aparece una ventana doble, el cálculo debe utilizar el modelo de **Quirt**. "
         "Si aparece una puerta u otro componente, el paño se combina energéticamente por superficies."
     )
     quirt_choice=st.radio(
@@ -2864,15 +2864,15 @@ def rw_from_curve(curve):
 
 def stage8():
     header("ETAPA 8 · DEL ELEMENTO AL EDIFICIO","ISO 12354 e índices de aislamiento acústico",
-           "Conecta Rw, C y Ctr de SONARA con geometría, pérdidas de obra, flancos y el DnT,A exigido en el caso MINVU.")
+           "Conecta Rw, C y Ctr del elemento con geometría, pérdidas de obra, flancos y el DnT,A exigido en el caso MINVU.")
     full_matter(8)
     st.markdown("### Ruta profesional utilizada en la asesoría")
     st.markdown(
-        '<div class="worked-example"><h3>SONARA no entrega por sí sola el desempeño terminado del recinto</h3>'
-        '<div class="worked-step"><strong>1 · Elemento.</strong> SONARA predice R(f), Rw, C y Ctr.</div>'
+        '<div class="worked-example"><h3>El cálculo del elemento no entrega por sí solo el desempeño terminado del recinto</h3>'
+        '<div class="worked-step"><strong>1 · Elemento.</strong> Se predicen R(f), Rw, C y Ctr.</div>'
         '<div class="worked-step"><strong>2 · Obra.</strong> Se consideran montaje, sellos, encuentros y transmisión lateral para estimar R′.</div>'
         '<div class="worked-step"><strong>3 · Recintos.</strong> La geometría V/S y la normalización permiten estimar DnT,w o DnT,A.</div>'
-        '<div class="worked-result">Flujo: requerimiento → SONARA → pérdida de obra/flancos → geometría → cumplimiento.</div></div>',
+        '<div class="worked-result">Flujo: requerimiento → cálculo del elemento → pérdida de obra/flancos → geometría → cumplimiento.</div></div>',
         unsafe_allow_html=True,
     )
     formula_card(
@@ -3203,11 +3203,11 @@ def stage10():
     sw_ans=g4.number_input("S tabique neto (m²)",0.0,200.0,0.0,.01,key="final_sw")
     k_ans=g5.number_input("Kgeo (dB)",-20.0,20.0,0.0,.01,key="final_kgeo")
 
-    st.markdown("### 3 · Configuración SONARA · 15 puntos")
-    sonara_text=st.text_area(
-        "Describe cómo configurarías y revisarías O-02 en SONARA",
+    st.markdown("### 3 · Configuración del modelo acústico · 15 puntos")
+    model_text=st.text_area(
+        "Describe cómo configurarías y revisarías O-02 en el modelo acústico",
         placeholder="Capas, cámara, absorbente, montantes/conexión, curva R(f), resonancia y frecuencias críticas.",
-        key="final_sonara",
+        key="final_model",
     )
 
     st.markdown("### 4 · Aislamiento compuesto y paso a DnT,A · 35 puntos")
@@ -3253,7 +3253,7 @@ def stage10():
             all(r>0 and d>0 for r,d in pair_answers.values()),
             cost_ans>0,
         ])
-        if descriptor is None or not numeric_complete or choice.startswith("—") or not sonara_text.strip() or not construction.strip() or not conclusion.strip():
+        if descriptor is None or not numeric_complete or choice.startswith("—") or not model_text.strip() or not construction.strip() or not conclusion.strip():
             st.warning("La evaluación está incompleta. Revisa requerimiento, geometría, tres combinaciones, costo y respuestas profesionales.")
         else:
             score=0.0
@@ -3264,12 +3264,12 @@ def stage10():
             ]
             score+=3*sum(geometry_checks)
 
-            sonara_words=sonara_text.lower()
-            sonara_hits=sum(any(term in sonara_words for term in group) for group in [
+            model_words=model_text.lower()
+            model_hits=sum(any(term in model_words for term in group) for group in [
                 ["placa","capa"],["cámara","camara"],["lana","absorb"],["montante","desacopl","conex"],
                 ["curva","r(f)"],["resonan","crítica","critica","coincid"],
             ])
-            score+=15 if sonara_hits>=5 else 10 if sonara_hits>=3 else 5 if sonara_hits>=1 else 0
+            score+=15 if model_hits>=5 else 10 if model_hits>=3 else 5 if model_hits>=1 else 0
 
             expected={}
             for o,p in test_pairs:
@@ -3310,7 +3310,7 @@ def stage10():
                     {
                         "descriptor":descriptor,
                         "geometria":{"V":v_ans,"S":s_ans,"Spuerta":sd_ans,"Stabique":sw_ans,"Kgeo":k_ans},
-                        "sonara":sonara_text,
+                        "modelo_acustico":model_text,
                         "combinaciones":{f"{o}+{p}":{"Rcomp":r,"DnTA":d} for (o,p),(r,d) in pair_answers.items()},
                         "seleccion":choice,"costo":cost_ans,
                         "constructibilidad":construction,"conclusion":conclusion,
@@ -3324,7 +3324,7 @@ def stage10():
             )
             st.session_state.exam_result=score
             st.success(f"Evaluación enviada y cerrada. Puntaje automático inicial: {score:.1f}/100.")
-            st.info("La conclusión, la configuración SONARA y las medidas de obra quedan disponibles para revisión del docente.")
+            st.info("La conclusión, la configuración del modelo y las medidas de obra quedan disponibles para revisión del docente.")
 
     if st.session_state.get("role")=="Docente":
         with st.expander("🔐 Pauta docente · resultados y rúbrica"):
@@ -3342,7 +3342,7 @@ def stage10():
             st.dataframe(pd.DataFrame(rows,columns=["Combinación","Rcomp,A","DnT,A","Costo ($)"]),hide_index=True,use_container_width=True)
             st.success("Respuesta óptima: O-02 + P-02. DnT,A ≈ 38,3 dB; margen ≈ 3,3 dB; costo ≈ $1.244.472.")
             st.markdown(
-                "**Rúbrica:** requerimiento 10; geometría 15; configuración SONARA 15; "
+                "**Rúbrica:** requerimiento 10; geometría 15; configuración del modelo 15; "
                 "aislamiento compuesto 20; paso a DnT,A 15; optimización 10; constructibilidad 10; conclusión 5."
             )
     score_counter(10)
@@ -3567,9 +3567,9 @@ def lab1_stage6():
         weak_area = 2.0
         share = weak_area / total_area
         wall_area = total_area - weak_area
-        wall = 55
+        main_partition = 55
         door = 25
-        tau = (wall_area * 10 ** (-wall / 10) + weak_area * 10 ** (-door / 10)) / total_area
+        tau = (wall_area * 10 ** (-main_partition / 10) + weak_area * 10 ** (-door / 10)) / total_area
         comp = -10 * np.log10(tau)
         st.markdown('<div class="worked-example"><h3>Cálculo del porcentaje de área débil</h3><div class="worked-step"><strong>1 · Área total del cerramiento.</strong> 4,0 × 3,0 = <b>12 m²</b>.</div><div class="worked-step"><strong>2 · Área de la puerta.</strong> 1,0 × 2,0 = <b>2 m²</b>.</div><div class="worked-step"><strong>3 · Porcentaje débil.</strong> (Sdébil/Stotal) × 100 = (2/12) × 100 = <b>16,7 %</b>.</div><div class="worked-result">En la ecuación se usa la fracción 2/12 = 0,1667. El área útil del muro es 12−2 = 10 m²; la puerta no se suma nuevamente al total.</div></div>', unsafe_allow_html=True)
         st.metric('R compuesto', f'{comp:.1f} dB')
@@ -3898,8 +3898,8 @@ def lab2_stage5():
     st.latex(r"R'=-10\log_{10}\left(\tau_d+\sum \tau_{flanco}\right)")
     st.info("La contribución total se suma en energía. Una vía lateral débil puede limitar el desempeño aunque el tabique directo sea excelente.")
 
-def _sonara_glass_tl(thickness_mm, loss_factor, frequencies=FREQS):
-    """TL por bandas de un vidrio monolítico con el motor angular SONARA."""
+def _glass_panel_tl(thickness_mm, loss_factor, frequencies=FREQS):
+    """TL por bandas de un vidrio monolítico mediante integración angular."""
     density = 2500.0
     young = 70.0e9
     poisson = 0.23
@@ -3919,13 +3919,13 @@ def _sonara_glass_tl(thickness_mm, loss_factor, frequencies=FREQS):
     return np.asarray(tl), surface_mass, stiffness, critical
 
 
-def _double_window_sonara(
+def _double_window_model(
     g1_mm, g2_mm, gap_m, height, width, alpha, eta1, eta2,
     frequencies=FREQS,
 ):
-    """Vidrios con SONARA y acoplamiento de la ventana doble con Quirt."""
-    tl1, m1, b1, fc1 = _sonara_glass_tl(g1_mm, eta1, frequencies)
-    tl2, m2, b2, fc2 = _sonara_glass_tl(g2_mm, eta2, frequencies)
+    """Cálculo de cada vidrio y acoplamiento de la ventana doble con Quirt."""
+    tl1, m1, b1, fc1 = _glass_panel_tl(g1_mm, eta1, frequencies)
+    tl2, m2, b2, fc2 = _glass_panel_tl(g2_mm, eta2, frequencies)
     rho0 = 1.21
     sound_speed = 343.0
     f1 = (1 / (2 * math.pi)) * math.sqrt(
@@ -7205,7 +7205,7 @@ def lab2_stage6():
     st.markdown("### 4 · Pérdida de transmisión sobre f₁")
     st.latex(r"f\geq f_1")
     formula_card(
-        "Régimen superior de la ventana doble · ecuación 2.29",
+        "Régimen superior de la ventana doble",
         r"TL=TL_{\rho_{s1}}+TL_{\rho_{s2}}+10\log_{10}(\alpha)"
         r"+10\log_{10}(d)+10\log_{10}\left(\frac{h+w}{hw}\right)+3",
         "<b>TLρs₁, TLρs₂</b>: TL individual de cada vidrio por banda<br>"
@@ -7279,7 +7279,7 @@ def lab2_stage6():
 
     gap = gap_mm / 1000.0
     window_tl, tl1, tl2, equivalent, f1, masses, fcs, geometry = (
-        _double_window_sonara(
+        _double_window_model(
             g1, g2, gap, height, width, alpha, eta1, eta2, FREQS
         )
     )
@@ -7301,8 +7301,8 @@ def lab2_stage6():
     regime = "Bajo f₁ · placa equivalente" if selected_f < f1 else "Sobre f₁ · cavidad reverberante"
     r1, r2, r3, r4 = st.columns(4)
     r1.metric("Régimen activo", regime)
-    r2.metric("TL vidrio 1 · SONARA", f"{tl1[idx]:.1f} dB")
-    r3.metric("TL vidrio 2 · SONARA", f"{tl2[idx]:.1f} dB")
+    r2.metric("TL vidrio 1 · modelo físico", f"{tl1[idx]:.1f} dB")
+    r3.metric("TL vidrio 2 · modelo físico", f"{tl2[idx]:.1f} dB")
     r4.metric("TL ventana doble", f"{window_tl[idx]:.1f} dB")
     st.caption(
         f"Configuración {g1:g}–{gap_mm}–{g2:g} mm. "
@@ -7311,20 +7311,20 @@ def lab2_stage6():
 
     _plot_curves(
         [
-            ("Ventana doble · SONARA + Quirt", window_tl, "solid"),
+            ("Ventana doble · modelo completo", window_tl, "solid"),
             ("Masa equivalente bajo f₁", equivalent, "dash"),
-            ("Vidrio 1 · SONARA", tl1, "dot"),
-            ("Vidrio 2 · SONARA", tl2, "dot"),
+            ("Vidrio 1 · modelo físico", tl1, "dot"),
+            ("Vidrio 2 · modelo físico", tl2, "dot"),
         ],
-        "Pérdida de transmisión sonora por bandas · motor SONARA",
+        "Pérdida de transmisión sonora por bandas",
         [(f1, "f₁"), (fcs[0], "fᶜ₁"), (fcs[1], "fᶜ₂")],
     )
 
     table = pd.DataFrame({
         "Frecuencia (Hz)": FREQS.astype(int),
         "Régimen": np.where(FREQS < f1, "Bajo f₁", "Sobre f₁"),
-        "TL vidrio 1 SONARA (dB)": np.round(tl1, 1),
-        "TL vidrio 2 SONARA (dB)": np.round(tl2, 1),
+        "TL vidrio 1 (dB)": np.round(tl1, 1),
+        "TL vidrio 2 (dB)": np.round(tl2, 1),
         "TL placa equivalente (dB)": np.round(equivalent, 1),
         "TL ventana doble (dB)": np.round(window_tl, 1),
     })
@@ -7340,15 +7340,15 @@ def lab2_stage6():
         )
         st.markdown("**2 · Frecuencia de cambio de régimen**")
         st.latex(rf"f_1={f1:.1f}\ \mathrm{{Hz}}")
-        st.markdown("**3 · Cada vidrio se calcula primero con SONARA**")
-        st.latex(r"TL_{\mathrm{SONARA}}(f)=-10\log_{10}\overline{\tau}(f)")
+        st.markdown("**3 · Cada vidrio se calcula primero con el modelo físico de placa simple**")
+        st.latex(r"TL_{\mathrm{vidrio}}(f)=-10\log_{10}\overline{\tau}(f)")
         st.latex(
-            rf"TL_{{1,\mathrm{{SONARA}}}}({selected_f})"
+            rf"TL_{{1,\mathrm{{vidrio}}}}({selected_f})"
             rf"={tl1[idx]:.2f}\ \mathrm{{dB}},\quad "
             rf"f_{{c1}}={fcs[0]:.0f}\ \mathrm{{Hz}}"
         )
         st.latex(
-            rf"TL_{{2,\mathrm{{SONARA}}}}({selected_f})"
+            rf"TL_{{2,\mathrm{{vidrio}}}}({selected_f})"
             rf"={tl2[idx]:.2f}\ \mathrm{{dB}},\quad "
             rf"f_{{c2}}={fcs[1]:.0f}\ \mathrm{{Hz}}"
         )
@@ -7369,7 +7369,7 @@ def lab2_stage6():
             st.latex(rf"TL({selected_f})={window_tl[idx]:.1f}\ \mathrm{{dB}}")
         st.caption(
             "Los TL de los vidrios incluyen masa, rigidez, amortiguamiento, incidencia "
-            "angular y coincidencia mediante el motor SONARA. Quirt representa después "
+            "angular y coincidencia mediante el modelo físico de placa simple. Quirt representa después "
             "la cavidad ideal; no incorpora fugas, marco, herrajes ni transmisión lateral."
         )
 
