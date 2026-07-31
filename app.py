@@ -863,6 +863,12 @@ def _is_open(value):
     opening=_parse_opening(value)
     return opening is None or dt.datetime.now(dt.timezone.utc) >= opening.astimezone(dt.timezone.utc)
 
+def _effective_opening(class_number, remote_value=None, fallback_value=None):
+    """Use the corrected Lab 2 release date even if Supabase still has the old value."""
+    if int(class_number or 0) == 2:
+        return ACADEMIC_COURSES[0]["labs"][1]["opens_at"]
+    return remote_value or fallback_value
+
 def _remote_rows(table, **filters):
     client=_supabase()
     if client is None:
@@ -9548,7 +9554,7 @@ def course_dashboard():
     for lab in first_course["labs"]:
         number=lab["number"]
         item=class_by_number.get(number,{})
-        opening=item.get("opens_at") or lab["opens_at"]
+        opening=_effective_opening(number,item.get("opens_at"),lab["opens_at"])
         released=item.get("status") in ("published","archived")
         if st.session_state.get("role")=="Alumno" and not released:
             continue
@@ -9894,8 +9900,13 @@ if st.session_state.get("role")=="Alumno":
             selected_row_cached=_class_row(CLASS_ID)
             selected_status=[selected_row_cached] if selected_row_cached else []
             selected_row=selected_status[0] if selected_status else {}
+            selected_opening=_effective_opening(
+                ACTIVE_LAB,
+                selected_row.get("opens_at"),
+                ACADEMIC_COURSES[0]["labs"][ACTIVE_LAB-1]["opens_at"],
+            )
             if (selected_row.get("status")!="published" or
-                    not _is_open(selected_row.get("opens_at"))):
+                    not _is_open(selected_opening)):
                 st.session_state["active_lab"]=1
                 st.session_state["main_view"]="🏠 Mis clases"
                 st.warning("Ese laboratorio todavía no está habilitado para alumnos.")
