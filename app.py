@@ -6369,36 +6369,44 @@ def lab2_stage5():
         with st.container(border=True):
             st.markdown("#### 🔐 Lectura docente · ¿En qué frecuencias actúa mejor el absorbente?")
             st.markdown(
-                fr"""
-                Para la configuración seleccionada, la resonancia masa–aire–masa es
-                **\(f_0 \approx {f0:.0f}\ \mathrm{{Hz}}\)** y la frecuencia límite usada
-                por este modelo es **\(f_l \approx {fl:.0f}\ \mathrm{{Hz}}\)**. Estos
-                valores permiten interpretar el aporte del material poroso por regiones:
+                "Para la configuración seleccionada, las frecuencias que delimitan "
+                "las regiones de análisis son:"
+            )
+            freq_col_1, freq_col_2 = st.columns(2)
+            with freq_col_1:
+                st.caption("Resonancia masa–aire–masa")
+                st.latex(rf"f_0 \approx {f0:.0f}\ \mathrm{{Hz}}")
+            with freq_col_2:
+                st.caption("Frecuencia límite del modelo")
+                st.latex(rf"f_l \approx {fl:.0f}\ \mathrm{{Hz}}")
+            st.markdown(
+                """
+                Estos valores permiten interpretar el aporte del material poroso por regiones:
 
-                1. **Bajo \(f_0\): aporte generalmente limitado.** Las longitudes de onda
+                1. **Bajo f₀: aporte generalmente limitado.** Las longitudes de onda
                    son grandes y el comportamiento está controlado principalmente por las
                    masas de las hojas y la rigidez del aire encerrado. La lana puede
                    introducir amortiguamiento, pero no reemplaza masa, mayor separación ni
                    desacoplamiento. En esta zona no debe esperarse una ganancia uniforme
                    importante de TL.
 
-                2. **En torno a \(f_0\): aporte especialmente valioso.** El material poroso
+                2. **En torno a f₀: aporte especialmente valioso.** El material poroso
                    disipa energía por pérdidas viscosas y térmicas y reduce el factor de
                    calidad de la resonancia masa–aire–masa. Su principal beneficio es
                    hacer menos profundo y menos abrupto el valle de TL. Normalmente
                    amortigua la resonancia más de lo que desplaza su frecuencia central.
 
-                3. **Entre \(f_0\) y \(f_l\): región de mejor eficacia de banda ancha.**
+                3. **Entre f₀ y fₗ: región de mejor eficacia de banda ancha.**
                    Aquí disminuyen las reflexiones múltiples, las ondas estacionarias y el
                    acoplamiento acústico entre hojas. El efecto aumenta cuando el material
                    ocupa una fracción importante de la cámara sin quedar excesivamente
                    comprimido y posee una resistividad al flujo adecuada.
 
-                4. **Sobre \(f_l\): el absorbente todavía controla el campo de la cámara,
+                4. **Sobre fₗ: el absorbente todavía controla el campo de la cámara,
                    pero la mejora adicional del TL total puede estabilizarse.** En esta
                    región pueden dominar la coincidencia de las placas, los montantes,
-                   tornillos, encuentros y otros puentes estructurales. Si
-                   \(TL_{{\\mathrm{{línea}}}}\) es menor que el TL del camino aéreo, agregar
+                   tornillos, encuentros y otros puentes estructurales. Si el **TL de la
+                   conexión lineal** es menor que el TL del camino aéreo, agregar
                    más absorbente producirá poca mejora en el **TL real**.
                 """
             )
