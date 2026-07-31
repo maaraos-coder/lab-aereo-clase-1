@@ -4057,7 +4057,7 @@ def lab2_stage10():
 # Laboratorio 2 · Clase 1 · Primer bloque de 120 minutos
 # Modelos de predicción del aislamiento a ruido aéreo
 # ---------------------------------------------------------------------------
-LAB2_MINUTES = [10, 15, 30, 35, 20, 25, 5, 0, 0, 0, 0]
+LAB2_MINUTES = [10, 15, 30, 35, 20, 25, 5, 30, 40, 0, 0]
 LAB2_FREQS = np.array([63, 80, 100, 125, 160, 200, 250, 315, 400, 500,
                        630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000])
 
@@ -4090,6 +4090,10 @@ LAB2_IMAGES = {
     "s5_conexion_puntual": "etapa5_conexion_puntual_profesional.png",
     "s5_geometria_camara_montantes": "etapa5_geometria_camara_montantes_profesional.png",
 }
+LAB2_IMAGES.update({
+    "stage7_espectro_a_bandas": "stage7_espectro_a_bandas.png",
+    "stage7_octava_vs_tercio": "stage7_octava_vs_tercio.png",
+})
 
 def _lab2_image(image_key, caption=None):
     """Load every replaceable Lab 2 illustration from assets/lab2."""
@@ -6654,9 +6658,803 @@ def _lab2_pending(stage, title):
     _lab2_heading(stage,title,"Contenido reservado para la segunda mitad de la Clase 1.")
     st.info("Esta etapa se desarrollará después de validar en aula las primeras dos horas.")
 
-def lab2_stage7(): _lab2_pending(7,"Ventanas dobles y modelo de cavidad")
-def lab2_stage8(): _lab2_pending(8,"Bandas de octava y tercio de octava")
-def lab2_stage9(): _lab2_pending(9,"Números únicos Rw, C y Ctr")
+def lab2_stage7():
+    _lab2_heading(
+        7,
+        "Bandas de frecuencia: octavas y tercios de octava",
+        "Transformar un espectro continuo en bandas normalizadas y elegir la resolución adecuada para interpretar el aislamiento acústico.",
+    )
+
+    st.markdown("""
+    ### 1 · De una frecuencia continua a grupos comparables
+
+    El sonido puede contener energía en una cantidad prácticamente continua de
+    frecuencias. Mostrar cada frecuencia por separado entrega mucho detalle, pero
+    dificulta comparar mediciones, materiales y soluciones constructivas.
+
+    Por eso la acústica agrupa la energía en **bandas de frecuencia**. Cada banda
+    reúne todas las frecuencias comprendidas entre un límite inferior y un límite
+    superior, y se identifica mediante una **frecuencia central**.
+    """)
+    _lab2_image(
+        "stage7_espectro_a_bandas",
+        "El analizador agrupa un espectro continuo en intervalos de frecuencia que pueden compararse de manera ordenada.",
+    )
+
+    st.markdown(
+        """
+        <div class="route-grid">
+          <div class="route-card"><span class="step">f</span><div><b>Frecuencia</b>
+          <p>Indica cuántas oscilaciones ocurren cada segundo. Se expresa en hertz.</p></div></div>
+          <div class="route-card"><span class="step">B</span><div><b>Banda</b>
+          <p>Intervalo que reúne varias frecuencias para analizarlas como un conjunto.</p></div></div>
+          <div class="route-card"><span class="step">fᶜ</span><div><b>Frecuencia central</b>
+          <p>Nombre de la banda; no significa que solo se mida esa frecuencia.</p></div></div>
+          <div class="route-card"><span class="step">R</span><div><b>Resolución</b>
+          <p>Cuanto más estrecha es la banda, mayor detalle conserva el análisis.</p></div></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.success(
+        "**En palabras simples:** una banda funciona como una caja. Dentro de ella se "
+        "guarda la energía de un intervalo completo, y la frecuencia central es la "
+        "etiqueta que usamos para reconocer esa caja."
+    )
+
+    st.markdown("### 2 · La escala no se divide en anchos iguales")
+    st.write(
+        "En una escala lineal se avanza sumando una cantidad fija, por ejemplo "
+        "100, 200, 300 y 400 Hz. En las bandas de octava y de tercio se avanza "
+        "multiplicando por una razón constante. Por eso su eje natural es logarítmico."
+    )
+    formula_card(
+        "Relación entre frecuencias centrales consecutivas",
+        r"f_{c,k+1}=f_{c,k}\,2^{1/b}",
+        "<b>f<sub>c,k</sub></b>: frecuencia central de una banda (Hz)<br>"
+        "<b>f<sub>c,k+1</sub></b>: frecuencia central siguiente (Hz)<br>"
+        "<b>b</b>: número de bandas por octava; b=1 para octavas y b=3 para tercios",
+        "Permite construir una sucesión proporcional. En una octava la frecuencia se "
+        "duplica; en un tercio se multiplica aproximadamente por 1,26.",
+    )
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Una octava", "× 2")
+        st.caption("125 → 250 → 500 → 1.000 Hz")
+    with c2:
+        st.metric("Un tercio de octava", "× 1,26")
+        st.caption("100 → 125 → 160 → 200 Hz")
+    with c3:
+        st.metric("Tres tercios", "× 2")
+        st.caption("100 → 125 → 160 → 200 Hz")
+
+    st.markdown("### 3 · Frecuencia central y límites de cada banda")
+    formula_card(
+        "Límites exactos de una banda fraccionaria",
+        r"\begin{aligned}"
+        r"f_i&=f_c\,2^{-1/(2b)}\\[0.35em]"
+        r"f_s&=f_c\,2^{1/(2b)}\\[0.35em]"
+        r"f_c&=\sqrt{f_i f_s}"
+        r"\end{aligned}",
+        "<b>fᵢ</b>: límite inferior de la banda (Hz)<br>"
+        "<b>fₛ</b>: límite superior de la banda (Hz)<br>"
+        "<b>f<sub>c</sub></b>: frecuencia central exacta (Hz)<br>"
+        "<b>b</b>: 1 para octava y 3 para tercio de octava",
+        "Sirve para saber qué frecuencias pertenecen realmente a una banda. La "
+        "frecuencia central es la media geométrica de sus límites, no la media aritmética.",
+    )
+
+    calc_type = st.radio(
+        "Calcula los límites de una banda",
+        ["Octava", "Tercio de octava"],
+        horizontal=True,
+        key="lab2_s7_band_calc_type",
+    )
+    available_centers = (
+        [63, 125, 250, 500, 1000, 2000, 4000]
+        if calc_type == "Octava"
+        else [50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630,
+              800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000]
+    )
+    nominal_fc = st.select_slider(
+        "Frecuencia central nominal",
+        available_centers,
+        value=1000,
+        format_func=lambda x: f"{x:,} Hz".replace(",", "."),
+        key="lab2_s7_nominal_center",
+    )
+    bands_per_octave = 1 if calc_type == "Octava" else 3
+    lower_limit = nominal_fc * 2 ** (-1 / (2 * bands_per_octave))
+    upper_limit = nominal_fc * 2 ** (1 / (2 * bands_per_octave))
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Límite inferior fᵢ", f"{lower_limit:.1f} Hz")
+    m2.metric("Centro nominal fᶜ", f"{nominal_fc} Hz")
+    m3.metric("Límite superior fₛ", f"{upper_limit:.1f} Hz")
+    st.caption(
+        "Los instrumentos muestran centros nominales redondeados —por ejemplo 125 o "
+        "160 Hz— para facilitar la lectura. Los filtros se definen mediante relaciones "
+        "exactas alrededor de su frecuencia central."
+    )
+
+    st.markdown("### 4 · Octava y tercio de octava")
+    _lab2_image(
+        "stage7_octava_vs_tercio",
+        "Arriba: pocas bandas anchas. Abajo: tres subdivisiones por cada octava, capaces de revelar más detalle espectral.",
+    )
+    comparison = pd.DataFrame([
+        ["Octava", "1", "2", "Vista general del espectro", "Diagnóstico rápido y comunicación global"],
+        ["Tercio de octava", "3", "2^(1/3) ≈ 1,26", "Mayor detalle", "Aislamiento, normativa y detección de valles"],
+    ], columns=["Análisis", "Bandas por octava", "Razón entre centros",
+                "Qué muestra", "Uso típico"])
+    st.dataframe(comparison, hide_index=True, use_container_width=True)
+    st.info(
+        "Una banda de tercio no contiene un tercio de la energía de una octava. "
+        "Significa que el intervalo de una octava fue dividido logarítmicamente en "
+        "tres bandas consecutivas."
+    )
+
+    st.markdown("### 5 · ¿Cómo se obtiene el nivel de una banda?")
+    formula_card(
+        "Suma energética dentro del intervalo",
+        r"L_{\mathrm{banda}}=10\log_{10}\left(\sum_{j\in\mathrm{banda}}10^{L_j/10}\right)",
+        "<b>L<sub>banda</sub></b>: nivel total de la banda (dB)<br>"
+        "<b>Lⱼ</b>: nivel de cada componente o subintervalo contenido en la banda (dB)",
+        "Los decibeles no se promedian aritméticamente. Primero se convierten a energía, "
+        "se suman y después se vuelve a decibeles.",
+    )
+    st.warning(
+        "**Error frecuente:** sumar o promediar directamente los valores en dB. "
+        "Una banda representa la suma energética de todo lo que contiene."
+    )
+
+    st.markdown("### 6 · Laboratorio interactivo · del espectro a las bandas")
+    st.write(
+        "Construye una fuente con contenido amplio y agrega un tono dominante. Luego "
+        "compara cuánto detalle conserva cada representación."
+    )
+    a, b, c = st.columns(3)
+    with a:
+        tone_frequency = st.slider(
+            "Frecuencia del tono",
+            80, 4000, 630, 10,
+            key="lab2_s7_tone_frequency",
+        )
+    with b:
+        tone_level = st.slider(
+            "Intensidad del tono",
+            0, 25, 16, 1,
+            key="lab2_s7_tone_level",
+        )
+    with c:
+        view_mode = st.radio(
+            "Representación",
+            ["Espectro fino", "Octavas", "Tercios", "Comparar"],
+            key="lab2_s7_view_mode",
+        )
+
+    fine_f = np.geomspace(40, 8000, 720)
+    base_level = (
+        56
+        - 5.5 * np.log2(fine_f / 250)
+        + 3.2 * np.sin(np.log(fine_f) * 4.1)
+        + 1.4 * np.cos(np.log(fine_f) * 9.3)
+    )
+    peak_width = 0.028
+    tone_shape = tone_level * np.exp(
+        -0.5 * (np.log2(fine_f / tone_frequency) / peak_width) ** 2
+    )
+    fine_levels = base_level + tone_shape
+
+    octave_centers = np.array([63, 125, 250, 500, 1000, 2000, 4000], dtype=float)
+    third_centers = np.array(
+        [50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800,
+         1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000], dtype=float
+    )
+
+    def aggregate_bands(centers, subdivisions):
+        results = []
+        for center in centers:
+            lo = center * 2 ** (-1 / (2 * subdivisions))
+            hi = center * 2 ** (1 / (2 * subdivisions))
+            mask = (fine_f >= lo) & (fine_f < hi)
+            if not np.any(mask):
+                results.append(np.nan)
+                continue
+            # Each logarithmic sample represents an equal spectral subinterval.
+            results.append(10 * np.log10(np.sum(10 ** (fine_levels[mask] / 10))))
+        return np.array(results)
+
+    octave_levels = aggregate_bands(octave_centers, 1)
+    third_levels = aggregate_bands(third_centers, 3)
+    fig = go.Figure()
+    if view_mode in ("Espectro fino", "Comparar"):
+        fig.add_trace(go.Scatter(
+            x=fine_f, y=fine_levels, name="Espectro fino",
+            mode="lines", line=dict(color="#f39c3d", width=2),
+        ))
+    if view_mode in ("Octavas", "Comparar"):
+        fig.add_trace(go.Scatter(
+            x=octave_centers, y=octave_levels, name="Bandas de octava",
+            mode="lines+markers", line=dict(color="#26a7df", width=4),
+            marker=dict(size=9),
+        ))
+    if view_mode in ("Tercios", "Comparar"):
+        fig.add_trace(go.Scatter(
+            x=third_centers, y=third_levels, name="Bandas de tercio",
+            mode="lines+markers", line=dict(color="#25d6b2", width=3),
+            marker=dict(size=7),
+        ))
+    fig.add_vline(
+        x=tone_frequency, line_dash="dot", line_color="#ff8a38",
+        annotation_text=f"Tono: {tone_frequency} Hz",
+        annotation_position="top",
+    )
+    fig.update_layout(
+        title="Una misma fuente, distintas resoluciones",
+        xaxis_title="Frecuencia (Hz)", yaxis_title="Nivel relativo (dB)",
+        xaxis_type="log", hovermode="x unified", height=470,
+        margin=dict(l=35, r=20, t=65, b=40),
+        legend=dict(orientation="h", y=1.13),
+    )
+    fig.update_xaxes(
+        tickvals=[50, 63, 100, 125, 250, 500, 1000, 2000, 4000, 8000],
+        ticktext=["50", "63", "100", "125", "250", "500", "1k", "2k", "4k", "8k"],
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    nearest_oct = int(octave_centers[np.argmin(np.abs(np.log(octave_centers / tone_frequency)))])
+    nearest_third = int(third_centers[np.argmin(np.abs(np.log(third_centers / tone_frequency)))])
+    x1, x2, x3 = st.columns(3)
+    x1.metric("Tono configurado", f"{tone_frequency} Hz")
+    x2.metric("Banda de octava más próxima", f"{nearest_oct} Hz")
+    x3.metric("Banda de tercio más próxima", f"{nearest_third} Hz")
+    st.success(
+        "**Lectura del laboratorio:** la octava entrega una tendencia compacta; el "
+        "tercio de octava localiza mejor la zona del tono o del valle. Ninguna crea "
+        "energía nueva: solo cambia la resolución con que se agrupa la misma señal."
+    )
+
+    st.markdown("### 7 · Relación con el aislamiento acústico")
+    st.write("""
+    Las curvas de pérdida de transmisión se presentan por bandas porque un elemento
+    no aísla igual en todo el espectro. Los tercios de octava permiten reconocer:
+
+    - resonancias y valles estrechos;
+    - la región controlada por masa;
+    - la caída de coincidencia;
+    - diferencias entre dos soluciones que una octava podría ocultar;
+    - bandas críticas de una fuente real.
+    """)
+    st.markdown(
+        '<div class="good"><b>Idea central:</b> una octava resume; un tercio diagnostica. '
+        'Para evaluar aislamiento acústico y construir índices ponderados se necesita '
+        'conservar suficiente detalle por frecuencia.</div>',
+        unsafe_allow_html=True,
+    )
+
+    if st.session_state.get("role") == "Docente":
+        with st.expander("🔐 Lectura docente · precisión técnica y conducción"):
+            st.markdown("""
+            - Aclare que **frecuencia lineal** y **bandas** no son magnitudes opuestas:
+              una escala lineal representa incrementos aditivos; las bandas fraccionarias
+              se ordenan mediante razones constantes y se visualizan mejor en escala logarítmica.
+            - La frecuencia central mostrada normalmente es **nominal**. Los filtros
+              normalizados emplean centros y límites exactos; no conviene deducir límites
+              usando el punto medio aritmético.
+            - Tres bandas de tercio consecutivas cubren una octava porque sus razones
+              se multiplican tres veces y producen una razón total igual a 2.
+            - El nivel de octava puede reconstruirse desde sus tres tercios mediante
+              suma energética, no mediante promedio de dB.
+            - En aislamiento, mayor resolución permite observar resonancia y coincidencia,
+              pero no mejora por sí misma la exactitud física del modelo o de la medición.
+            """)
+            st.latex(
+                r"L_{\mathrm{oct}}=10\log_{10}\left("
+                r"10^{L_1/10}+10^{L_2/10}+10^{L_3/10}\right)"
+            )
+
+    st.markdown("### 8 · Cinco preguntas de comprensión")
+    check(
+        "lab2_s7_q1",
+        "¿Qué representa la frecuencia central de una banda?",
+        [
+            "La etiqueta de un intervalo comprendido entre dos límites",
+            "La única frecuencia que mide el instrumento",
+            "El promedio aritmético obligatorio de todos los tonos",
+            "La intensidad máxima del sonido",
+        ],
+        "La etiqueta de un intervalo comprendido entre dos límites",
+        "La banda contiene un intervalo completo; la frecuencia central la identifica.",
+    )
+    check(
+        "lab2_s7_q2",
+        "¿Qué ocurre con la frecuencia al avanzar una octava completa?",
+        ["Se duplica", "Aumenta siempre 100 Hz", "Se triplica", "Disminuye 3 dB"],
+        "Se duplica",
+        "Entre centros separados por una octava existe una razón de 2.",
+    )
+    check(
+        "lab2_s7_q3",
+        "¿Cuántas bandas de tercio de octava cubren una octava?",
+        ["Tres", "Dos", "Diez", "Depende del nivel en dB"],
+        "Tres",
+        "Cada paso multiplica la frecuencia por 2^(1/3); tres pasos producen una razón total de 2.",
+    )
+    check(
+        "lab2_s7_q4",
+        "¿Por qué el tercio de octava ayuda a diagnosticar una caída de aislamiento?",
+        [
+            "Porque conserva más detalle espectral que una octava",
+            "Porque siempre entrega 3 dB más",
+            "Porque elimina la frecuencia crítica",
+            "Porque convierte el aislamiento en absorción",
+        ],
+        "Porque conserva más detalle espectral que una octava",
+        "Sus bandas más estrechas permiten localizar mejor valles, tonos y cambios de pendiente.",
+    )
+    check(
+        "lab2_s7_q5",
+        "¿Cómo deben combinarse varios niveles contenidos dentro de una banda?",
+        [
+            "Mediante suma energética",
+            "Promediando directamente los dB",
+            "Eligiendo siempre el valor menor",
+            "Sumando las frecuencias centrales",
+        ],
+        "Mediante suma energética",
+        "Los dB son logarítmicos: se convierten a energía, se suman y se vuelve a dB.",
+    )
+
+def lab2_stage8():
+    _lab2_heading(
+        8,
+        "Número único de aislamiento a ruido aéreo: Rw, C y Ctr",
+        "Convertir una curva de reducción sonora por tercios de octava en un descriptor único, sin perder de vista el espectro de la fuente.",
+    )
+
+    st.markdown("""
+    ### 1 · ¿Qué resume el número único?
+
+    La reducción sonora **R** de un elemento constructivo cambia con la frecuencia.
+    Una pared puede aislar bien en bandas medias y presentar un valle en bajas
+    frecuencias o alrededor de la coincidencia. Por eso el resultado físico completo
+    sigue siendo la curva **R(f)**.
+
+    Para comparar soluciones y expresar requisitos de forma compacta, el método
+    pondera esa curva mediante una referencia normalizada y obtiene **Rw**. Luego,
+    los términos **C** y **Ctr** adaptan el resultado a dos familias de espectros.
+    """)
+    _lab2_image(
+        "stage8_airborne_rw",
+        "Aislamiento a ruido aéreo: una fuente excita el recinto emisor, el elemento separador reduce la transmisión y una fracción menor llega al recinto receptor.",
+    )
+    st.markdown(
+        """
+        <div class="route-grid">
+          <div class="route-card"><span class="step">R(f)</span><div><b>Curva por bandas</b>
+          <p>Muestra cuánto reduce el elemento en cada tercio de octava.</p></div></div>
+          <div class="route-card"><span class="step">Rw</span><div><b>Valor ponderado</b>
+          <p>Resume la curva mediante el ajuste de una referencia normalizada.</p></div></div>
+          <div class="route-card"><span class="step">C</span><div><b>Adaptación espectral 1</b>
+          <p>Ajusta Rw a fuentes con mayor importancia relativa en frecuencias medias y altas.</p></div></div>
+          <div class="route-card"><span class="step">Ctr</span><div><b>Adaptación espectral 2</b>
+          <p>Da más importancia al contenido grave típico del tránsito urbano.</p></div></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.success(
+        "**En palabras simples:** Rw es el titular; C y Ctr explican cómo cambia ese "
+        "titular cuando la fuente tiene otro reparto de energía por frecuencia."
+    )
+
+    st.markdown("### 2 · ¿Cuándo corresponde usar Rw?")
+    st.write("""
+    **Rw describe el aislamiento a ruido aéreo de un elemento ensayado en
+    laboratorio**, como un muro, tabique, puerta, ventana, piso o cubierta. La fuente
+    sonora se ubica en un recinto emisor y se determina cuánto se reduce la energía
+    que atraviesa el elemento hacia el recinto receptor.
+
+    No corresponde usar Rw para describir absorción interior, tiempo de reverberación
+    ni ruido de impactos. Tampoco debe confundirse con el desempeño aparente de toda
+    una construcción terminada, donde pueden intervenir encuentros, fugas y
+    transmisiones laterales.
+    """)
+    a, b, c = st.columns(3)
+    with a:
+        st.markdown(
+            '<div class="good"><b>✓ Sí corresponde</b><br>Transmisión aérea a través '
+            'de un elemento separador ensayado.</div>',
+            unsafe_allow_html=True,
+        )
+    with b:
+        st.markdown(
+            '<div class="warn"><b>✗ No es absorción</b><br>No indica cuánto sonido '
+            'absorbe una superficie dentro del mismo recinto.</div>',
+            unsafe_allow_html=True,
+        )
+    with c:
+        st.markdown(
+            '<div class="warn"><b>✗ No es impacto</b><br>No caracteriza golpes, '
+            'pisadas ni excitación directa de la estructura.</div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("### 3 · Curva de referencia y desviaciones desfavorables")
+    formula_card(
+        "Desviación desfavorable en cada banda",
+        r"d_i=\max\left(0,\;R_{\mathrm{ref},i}-R_i\right)",
+        "<b>dᵢ</b>: desviación desfavorable en la banda i (dB)<br>"
+        "<b>R<sub>ref,i</sub></b>: valor de la curva de referencia desplazada (dB)<br>"
+        "<b>Rᵢ</b>: reducción sonora medida o calculada en esa banda (dB)",
+        "Solo existe desviación cuando la curva real queda bajo la referencia. Si la "
+        "curva real está por encima, esa diferencia favorable no compensa los valles.",
+    )
+    formula_card(
+        "Condición de ajuste para 16 tercios de octava",
+        r"\sum_{i=1}^{16}d_i\leq 32\ \mathrm{dB}",
+        "<b>16 bandas</b>: desde 100 hasta 3.150 Hz<br>"
+        "<b>32 dB</b>: suma máxima de desviaciones desfavorables",
+        "La referencia se mueve verticalmente en pasos de 1 dB. Se busca la posición "
+        "más alta que todavía cumple el límite total de 32 dB.",
+    )
+    st.info(
+        "**Importante:** Rw no es el promedio de R, ni el mayor valor de la curva, ni "
+        "simplemente R a 500 Hz. Es el valor de la **curva de referencia ya ajustada** "
+        "en la banda de 500 Hz."
+    )
+
+    st.markdown("### 4 · Procedimiento para obtener Rw")
+    st.markdown("""
+    1. Se dispone de los valores de **R** en los 16 tercios de octava entre 100 y
+       3.150 Hz.
+    2. Se superpone la curva de referencia normalizada.
+    3. Se calculan únicamente las diferencias donde la referencia queda sobre R.
+    4. Se suman esas desviaciones desfavorables.
+    5. Se desplaza la referencia en pasos enteros de 1 dB hasta encontrar la posición
+       más alta cuya suma no supera 32 dB.
+    6. El valor de esa referencia desplazada a 500 Hz es **Rw**.
+    """)
+    st.warning(
+        "**Error frecuente:** permitir que bandas con aislamiento alto compensen un "
+        "valle. El método no lo permite: las diferencias favorables valen cero."
+    )
+
+    st.markdown("### 5 · ¿Qué significan C y Ctr?")
+    st.write("""
+    Dos elementos con el mismo Rw pueden comportarse de manera distinta frente a
+    una conversación, música o tránsito. Los términos de adaptación espectral
+    incorporan esa diferencia mediante espectros normalizados.
+
+    - **C** se usa para la familia espectral con mayor importancia relativa en
+      frecuencias medias y altas, asociada, por ejemplo, a actividades de vivienda,
+      conversación, juegos infantiles o tránsito ferroviario rápido.
+    - **Ctr** se usa para fuentes con contenido grave importante, como tránsito
+      urbano, buses, camiones, música con bajos o ciertas fuentes industriales.
+    """)
+    formula_card(
+        "Nivel resultante del espectro adaptado",
+        r"X=-10\log_{10}\left(\sum_i10^{(L_i-R_i)/10}\right)",
+        "<b>X</b>: aislamiento global frente al espectro considerado (dB)<br>"
+        "<b>Lᵢ</b>: nivel relativo normalizado del espectro en la banda i (dB)<br>"
+        "<b>Rᵢ</b>: reducción sonora del elemento en la banda i (dB)",
+        "Se resta el aislamiento banda por banda al espectro de la fuente y se suma "
+        "energéticamente lo que logra transmitirse.",
+    )
+    formula_card(
+        "Términos de adaptación espectral",
+        r"C=X_1-R_w,\qquad C_{tr}=X_2-R_w",
+        "<b>X₁</b>: resultado con el espectro de referencia 1<br>"
+        "<b>X₂</b>: resultado con el espectro de referencia 2<br>"
+        "<b>Rw</b>: índice ponderado (dB)",
+        "C y Ctr no son aislamientos independientes: se suman algebraicamente a Rw.",
+    )
+    st.markdown(
+        '<div class="good"><b>Forma correcta de informar:</b> '
+        'R<sub>w</sub>(C; C<sub>tr</sub>) = 52 (−2; −7) dB<br>'
+        '<span>Para el espectro 1: Rw+C = 50 dB · Para tránsito: Rw+Ctr = 45 dB</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### 6 · Laboratorio interactivo · construye Rw, C y Ctr")
+    st.write(
+        "Modifica la forma de la curva por tercios. El laboratorio ajustará la "
+        "referencia, mostrará las desviaciones desfavorables y calculará los tres "
+        "descriptores sin promediar decibeles."
+    )
+
+    frequencies = np.array(
+        [100, 125, 160, 200, 250, 315, 400, 500,
+         630, 800, 1000, 1250, 1600, 2000, 2500, 3150],
+        dtype=float,
+    )
+    reference_shape = np.array(
+        [33, 36, 39, 42, 45, 48, 51, 52,
+         53, 54, 55, 56, 56, 56, 56, 56],
+        dtype=float,
+    )
+    spectrum_c = np.array(
+        [-29, -26, -23, -21, -19, -17, -15, -13,
+         -12, -11, -10, -9, -9, -9, -9, -9],
+        dtype=float,
+    )
+    spectrum_ctr = np.array(
+        [-20, -20, -18, -16, -15, -14, -13, -12,
+         -11, -9, -8, -9, -10, -11, -13, -15],
+        dtype=float,
+    )
+
+    p1, p2, p3 = st.columns(3)
+    with p1:
+        base_rating = st.slider(
+            "Nivel general de la solución",
+            35, 65, 52, 1,
+            key="lab2_s8_base_rating",
+        )
+    with p2:
+        low_frequency_weakness = st.slider(
+            "Debilidad en bajas frecuencias",
+            0, 15, 7, 1,
+            key="lab2_s8_low_weakness",
+        )
+    with p3:
+        coincidence_depth = st.slider(
+            "Profundidad del valle de coincidencia",
+            0, 15, 6, 1,
+            key="lab2_s8_coincidence_depth",
+        )
+    coincidence_band = st.select_slider(
+        "Centro del valle de coincidencia",
+        [500, 630, 800, 1000, 1250, 1600, 2000, 2500],
+        value=1250,
+        format_func=lambda x: f"{x:,} Hz".replace(",", "."),
+        key="lab2_s8_coincidence_band",
+    )
+
+    logf = np.log2(frequencies / 500.0)
+    r_curve = base_rating + 4.6 * logf
+    low_shape = np.exp(-0.5 * (np.log2(frequencies / 125.0) / 1.05) ** 2)
+    coincidence_shape = np.exp(
+        -0.5 * (np.log2(frequencies / float(coincidence_band)) / 0.34) ** 2
+    )
+    r_curve = np.round(
+        r_curve - low_frequency_weakness * low_shape
+        - coincidence_depth * coincidence_shape,
+        1,
+    )
+
+    best_shift = None
+    best_deviations = None
+    for shift in range(-60, 61):
+        shifted = reference_shape + shift
+        deviations = np.maximum(0.0, shifted - r_curve)
+        if float(np.sum(deviations)) <= 32.0 + 1e-9:
+            best_shift = shift
+            best_deviations = deviations
+    shifted_reference = reference_shape + best_shift
+    deviations = best_deviations
+    rw_value = int(round(52 + best_shift))
+    x_c = -10.0 * np.log10(np.sum(10.0 ** ((spectrum_c - r_curve) / 10.0)))
+    x_ctr = -10.0 * np.log10(np.sum(10.0 ** ((spectrum_ctr - r_curve) / 10.0)))
+    c_value = int(round(x_c - rw_value))
+    ctr_value = int(round(x_ctr - rw_value))
+    total_deviation = float(np.sum(deviations))
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=frequencies, y=r_curve, mode="lines+markers",
+        name="Curva R(f)", line=dict(color="#25d6b2", width=4),
+        marker=dict(size=8),
+    ))
+    fig.add_trace(go.Scatter(
+        x=frequencies, y=shifted_reference, mode="lines+markers",
+        name="Referencia ajustada", line=dict(color="#ff9f43", width=3, shape="hv"),
+        marker=dict(size=6),
+    ))
+    unfavorable = deviations > 0
+    for idx in np.where(unfavorable)[0]:
+        fig.add_trace(go.Scatter(
+            x=[frequencies[idx], frequencies[idx]],
+            y=[r_curve[idx], shifted_reference[idx]],
+            mode="lines",
+            line=dict(color="#ff4d6d", width=5),
+            showlegend=False,
+            hovertemplate=(
+                f"{int(frequencies[idx])} Hz<br>"
+                f"Desviación: {deviations[idx]:.1f} dB<extra></extra>"
+            ),
+        ))
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None], mode="lines",
+        name="Desviación desfavorable",
+        line=dict(color="#ff4d6d", width=5),
+    ))
+    fig.update_layout(
+        title="Ajuste de la curva de referencia",
+        xaxis_title="Frecuencia central (Hz)",
+        yaxis_title="Reducción sonora R (dB)",
+        xaxis_type="log", hovermode="x unified", height=500,
+        margin=dict(l=35, r=20, t=65, b=40),
+        legend=dict(orientation="h", y=1.14),
+    )
+    fig.update_xaxes(
+        tickvals=frequencies,
+        ticktext=[str(int(v)) if v < 1000 else f"{v/1000:g}k" for v in frequencies],
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    r1, r2, r3, r4 = st.columns(4)
+    r1.metric("Rw", f"{rw_value} dB")
+    r2.metric("C", f"{c_value:+d} dB")
+    r3.metric("Ctr", f"{ctr_value:+d} dB")
+    r4.metric("Σ desviaciones", f"{total_deviation:.1f} / 32 dB")
+    st.markdown(
+        f'<div class="good"><b>Resultado:</b> R<sub>w</sub>'
+        f'({c_value:+d}; {ctr_value:+d}) = {rw_value} '
+        f'({c_value:+d}; {ctr_value:+d}) dB<br>'
+        f'<span>Rw+C = {rw_value+c_value} dB · '
+        f'Rw+Ctr = {rw_value+ctr_value} dB</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    table = pd.DataFrame({
+        "Frecuencia (Hz)": frequencies.astype(int),
+        "R(f) (dB)": r_curve,
+        "Referencia ajustada (dB)": shifted_reference.astype(int),
+        "Desviación desfavorable (dB)": np.round(deviations, 1),
+        "Espectro C (dB)": spectrum_c.astype(int),
+        "Espectro Ctr (dB)": spectrum_ctr.astype(int),
+    })
+    with st.expander("Ver tabla completa de las 16 bandas"):
+        st.dataframe(table, hide_index=True, use_container_width=True)
+
+    selected_frequency = st.select_slider(
+        "Revisar una banda paso a paso",
+        frequencies.astype(int).tolist(),
+        value=500,
+        format_func=lambda x: f"{x:,} Hz".replace(",", "."),
+        key="lab2_s8_selected_frequency",
+    )
+    selected_idx = int(np.where(frequencies == selected_frequency)[0][0])
+    with st.expander("Ver procedimiento matemático del resultado"):
+        st.markdown("**1. Desviación en la banda seleccionada**")
+        st.latex(
+            rf"d_{{{selected_frequency}}}=\max\left(0,"
+            rf"{shifted_reference[selected_idx]:.0f}-{r_curve[selected_idx]:.1f}\right)"
+            rf"={deviations[selected_idx]:.1f}\ \mathrm{{dB}}"
+        )
+        st.markdown("**2. Suma de desviaciones desfavorables**")
+        st.latex(
+            rf"\sum_{{i=1}}^{{16}}d_i={total_deviation:.1f}\ \mathrm{{dB}}"
+            rf"\leq 32\ \mathrm{{dB}}"
+        )
+        st.markdown("**3. Lectura del índice en 500 Hz**")
+        st.latex(
+            rf"R_w=R_{{\mathrm{{ref,ajustada}}}}(500\ \mathrm{{Hz}})"
+            rf"={rw_value}\ \mathrm{{dB}}"
+        )
+        st.markdown("**4. Adaptaciones espectrales**")
+        st.latex(
+            rf"C=X_1-R_w={x_c:.1f}-{rw_value}={c_value:+d}\ \mathrm{{dB}}"
+        )
+        st.latex(
+            rf"C_{{tr}}=X_2-R_w={x_ctr:.1f}-{rw_value}={ctr_value:+d}\ \mathrm{{dB}}"
+        )
+
+    st.markdown("### 7 · Cómo interpretar el resultado")
+    source_type = st.radio(
+        "Selecciona la fuente que quieres evaluar",
+        ["Voces y actividades de vivienda", "Tránsito urbano, buses o música con bajos",
+         "Fuente tonal o banda dominante"],
+        horizontal=True,
+        key="lab2_s8_source_type",
+    )
+    if source_type == "Voces y actividades de vivienda":
+        st.info(
+            f"Revisa principalmente **Rw+C = {rw_value+c_value} dB**, junto con la "
+            "curva R(f) en las bandas donde se concentra la fuente."
+        )
+    elif source_type == "Tránsito urbano, buses o música con bajos":
+        st.info(
+            f"Revisa principalmente **Rw+Ctr = {rw_value+ctr_value} dB** y confirma "
+            "el desempeño real en bajas frecuencias."
+        )
+    else:
+        st.info(
+            "Un número único puede ocultar la banda decisiva. Para una fuente tonal "
+            "debe revisarse directamente **R(f)** en la frecuencia dominante."
+        )
+    st.warning(
+        "Un Rw mayor no garantiza por sí solo la mejor solución para cualquier fuente. "
+        "Dos elementos con igual Rw pueden tener Ctr y curvas graves muy diferentes."
+    )
+
+    if st.session_state.get("role") == "Docente":
+        with st.expander("🔐 Lectura docente · precisión técnica y conducción"):
+            st.markdown("""
+            - Presente primero la curva R(f). El índice único debe aparecer como una
+              consecuencia del análisis por bandas, no como sustituto de este.
+            - La referencia se desplaza verticalmente sin cambiar su forma. El ajuste
+              se realiza en pasos de 1 dB y se conserva la posición más alta que cumple
+              la suma máxima de desviaciones desfavorables.
+            - Las diferencias favorables no se restan de las desfavorables. Esta regla
+              evita que un buen desempeño agudo oculte un valle importante.
+            - Rw caracteriza el elemento bajo el método de ensayo correspondiente.
+              No debe prometerse el mismo valor para la construcción instalada sin
+              considerar sellos, encuentros, flancos y calidad de ejecución.
+            - C y Ctr se calculan energéticamente con espectros normalizados. En muchos
+              sistemas constructivos Ctr es más negativo porque el aislamiento suele
+              ser menor en graves y el espectro de tránsito pondera más esa región.
+            - La notación completa conserva los signos: 52 (−2; −7) dB. No escriba
+              “C = 2” si el resultado real es −2 dB.
+            """)
+            st.latex(
+                r"R_w(C;C_{tr})=52(-2;-7)\ \mathrm{dB}"
+            )
+            st.latex(
+                r"R_w+C=50\ \mathrm{dB},\qquad R_w+C_{tr}=45\ \mathrm{dB}"
+            )
+
+    st.markdown("### 8 · Cinco preguntas de comprensión")
+    check(
+        "lab2_s8_q1",
+        "¿Qué representa Rw?",
+        [
+            "Un índice único obtenido ajustando una curva de referencia a R(f)",
+            "El promedio aritmético de todos los valores R",
+            "El aislamiento exacto en todas las frecuencias",
+            "El coeficiente de absorción del muro",
+        ],
+        "Un índice único obtenido ajustando una curva de referencia a R(f)",
+        "Rw resume la curva mediante un procedimiento de referencia y desviaciones.",
+    )
+    check(
+        "lab2_s8_q2",
+        "¿Cuándo existe una desviación desfavorable?",
+        [
+            "Cuando la referencia ajustada queda sobre la curva R",
+            "Cuando R queda sobre la referencia",
+            "Siempre que la frecuencia supera 500 Hz",
+            "Solo cuando Ctr es negativo",
+        ],
+        "Cuando la referencia ajustada queda sobre la curva R",
+        "Solo el déficit de R respecto de la referencia aporta a la suma desfavorable.",
+    )
+    check(
+        "lab2_s8_q3",
+        "¿Dónde se lee Rw después de ajustar la referencia?",
+        [
+            "En el valor de la referencia ajustada a 500 Hz",
+            "En la banda con mayor R",
+            "En el promedio entre 100 y 3150 Hz",
+            "En el valor de Ctr",
+        ],
+        "En el valor de la referencia ajustada a 500 Hz",
+        "Ese valor define el índice ponderado una vez cumplido el criterio de ajuste.",
+    )
+    check(
+        "lab2_s8_q4",
+        "¿Qué combinación es especialmente pertinente frente a tránsito urbano?",
+        ["Rw+Ctr", "Rw+C únicamente", "R a 3150 Hz únicamente", "El promedio de C y Ctr"],
+        "Rw+Ctr",
+        "Ctr adapta el resultado a un espectro con mayor contenido relativo en bajas frecuencias.",
+    )
+    check(
+        "lab2_s8_q5",
+        "¿Puede una fuente tonal evaluarse correctamente usando solo Rw?",
+        [
+            "No; debe revisarse también R(f) en la banda dominante",
+            "Sí; Rw siempre contiene toda la información espectral",
+            "Sí, pero solo si Ctr es cero",
+            "No; debe usarse absorción Sabine",
+        ],
+        "No; debe revisarse también R(f) en la banda dominante",
+        "El número único puede ocultar un valle localizado justo en la frecuencia de la fuente.",
+    )
+
+def lab2_stage9(): _lab2_pending(9,"Aplicación de Rw, C y Ctr")
 def lab2_stage10(): _lab2_pending(10,"Aplicación integradora")
 
 def lab2_stage3():
@@ -7474,9 +8272,9 @@ LAB2_STAGE_TITLES = [
     ("Etapa 4","Pérdida de transmisión en paneles dobles"),
     ("Etapa 5","Modelo de Sharp: TL por tramos"),
     ("Etapa 6","Pérdida de transmisión en ventanas dobles"),
-    ("Etapa 7","Bandas de octava y tercios · segunda mitad"),
-    ("Etapa 8","Octavas y tercios · segunda mitad"),
-    ("Etapa 9","Rw, C y Ctr · segunda mitad"),
+    ("Etapa 7","Bandas de frecuencia: octavas y tercios"),
+    ("Etapa 8","Número único Rw, C y Ctr"),
+    ("Etapa 9","Aplicación de Rw, C y Ctr · segunda mitad"),
     ("Etapa 10","Aplicación integradora · segunda mitad"),
 ]
 LAB_STAGE_TITLES = {1: LAB1_STAGE_TITLES, 2: LAB2_STAGE_TITLES}
