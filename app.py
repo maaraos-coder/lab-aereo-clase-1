@@ -3774,7 +3774,17 @@ def lab1_stage10():
             total = theory / 29 * 80 + practical
             st.session_state.exam_result = (theory, practical, total)
             level = 'Correcta' if total >= 60 else 'Incorrecta'
-            _save_formative(10, 'final_exam', 'Evaluación final del Curso 1', json.dumps({'respuestas_teoricas': st.session_state.exam_answers, 'aciertos_teoricos': theory, 'puntaje_caso': practical}, ensure_ascii=False), level, f'Teoría: {theory}/29 aciertos. Caso práctico: {practical}/20 puntos.', score=total, max_score=100)
+            final_payload={
+                'respuestas_teoricas':st.session_state.exam_answers,
+                'aciertos_teoricos':theory,
+                'puntaje_caso':practical,
+                'caso_integrador':{
+                    't60':calc,'diferencia_costo':diff,
+                    'incremento_porcentual':pct,'bandas_criticas':bands,
+                    'recomendacion':choice,'justificacion':justification,
+                },
+            }
+            _save_formative(10, 'final_exam', 'Evaluación final del Curso 1', json.dumps(final_payload, ensure_ascii=False), level, f'Teoría: {theory}/29 aciertos. Caso práctico: {practical}/20 puntos.', score=total, max_score=100)
     if 'exam_result' in st.session_state:
         theory, practical, total = st.session_state.exam_result
         st.markdown(f"""<div class="good"><b>Resultado: {total:.1f}/100</b><br>Teoría: {theory}/29 aciertos, ponderados a 80 puntos. Caso práctico: {practical}/20 puntos.<br>{('APROBADO' if total >= 60 else 'REQUIERE REFORZAMIENTO')}</div>""", unsafe_allow_html=True)
@@ -7798,6 +7808,139 @@ def teacher_stage9_answer_key():
             st.success(f"Respuesta correcta: {correct}")
             st.info(item["explanation"])
 
+def _teacher_lab1_final_results(compact=False):
+    """Resultados de la evaluación final (Etapa 10) del Laboratorio 1."""
+    client=_supabase()
+    if client is None:
+        st.warning("Conecta Supabase para consultar las respuestas de los alumnos.")
+        return
+    try:
+        raw=(client.table("responses").select("*,users(display_name,email)")
+             .eq("class_id",CLASS_ID).eq("stage",10)
+             .eq("question_key","final_exam")
+             .order("updated_at",desc=True).execute().data or [])
+    except Exception as exc:
+        st.error(f"No fue posible consultar la evaluación del Laboratorio 1: {exc}")
+        return
+    if not raw:
+        st.info("Todavía no hay evaluaciones finales enviadas en el Laboratorio 1.")
+        return
+
+    def student_name(row):
+        user=row.get("users") or {}
+        return user.get("display_name") or user.get("email") or row.get("user_key","Alumno")
+
+    selected=st.selectbox(
+        "Alumno evaluado",range(len(raw)),
+        format_func=lambda i:f"{student_name(raw[i])} · {float(raw[i].get('auto_score') or 0):.1f}/100",
+        key=f"lab1_final_student_{'compact' if compact else 'full'}",
+    )
+    row=raw[selected]
+    payload=_stage9_answer_payload(row)
+    answers=payload.get("respuestas_teoricas",{}) if isinstance(payload,dict) else {}
+    theory_hits=int(payload.get("aciertos_teoricos",0) or 0) if isinstance(payload,dict) else 0
+    case_score=float(payload.get("puntaje_caso",0) or 0) if isinstance(payload,dict) else 0
+    auto_score=float(row.get("auto_score") or 0)
+    st.caption(f"Envío: {str(row.get('updated_at') or '').replace('T',' ')[:19]} · Laboratorio 1 · Etapa 10")
+    c1,c2,c3=st.columns(3)
+    c1.metric("Aciertos teóricos",f"{theory_hits}/29")
+    c2.metric("Caso integrador",f"{case_score:g}/20")
+    c3.metric("Puntaje automático",f"{auto_score:.1f}/100")
+
+    with st.expander("Respuestas 1 a 29",expanded=not compact):
+        for i,(question,options,correct_index) in enumerate(LAB1_QUESTIONS):
+            chosen_raw=answers.get(str(i),answers.get(i)) if isinstance(answers,dict) else None
+            try: chosen_index=int(chosen_raw) if chosen_raw is not None else None
+            except (TypeError,ValueError): chosen_index=None
+            chosen=options[chosen_index] if chosen_index is not None and 0<=chosen_index<len(options) else "Sin respuesta"
+            correct=options[correct_index]
+            icon="✅" if chosen_index==correct_index else "❌"
+            st.markdown(f"**{icon} {i+1}. {question}**")
+            st.write(f"Respuesta del alumno: {chosen}")
+            st.caption(f"Respuesta correcta: {correct}")
+
+    with st.expander("Pregunta 30 · Caso profesional integrador"):
+        case=payload.get("caso_integrador",{}) if isinstance(payload,dict) else {}
+        if case:
+            st.write(f"T₆₀ calculado: {case.get('t60','Sin respuesta')}")
+            st.write(f"Diferencia de costo: {case.get('diferencia_costo','Sin respuesta')}")
+            st.write(f"Incremento porcentual: {case.get('incremento_porcentual','Sin respuesta')}")
+            st.write(f"Bandas críticas: {case.get('bandas_criticas',[])}")
+            st.write(f"Recomendación: {case.get('recomendacion','Sin respuesta')}")
+            st.write(f"Justificación: {case.get('justificacion','Sin respuesta')}")
+        else:
+            st.info("Este envío pertenece a una versión anterior: conserva el puntaje del caso, pero no el detalle de sus campos.")
+        st.success("Pauta: T₆₀≈0,40 s; $300.000; 16,7 %; bandas 125, 250 y 500 Hz; Solución B con justificación técnica y económica.")
+
+    st.markdown("#### Rúbrica automática editable")
+    adjusted=st.number_input(
+        "Puntaje final otorgado por el docente",0.0,100.0,
+        float(row.get("teacher_score") if row.get("teacher_score") is not None else auto_score),0.5,
+        key=f"lab1_final_score_{row['id']}_{'c' if compact else 'f'}",
+    )
+    note=st.text_area("Observación docente",value=row.get("teacher_note") or "",
+                      key=f"lab1_final_note_{row['id']}_{'c' if compact else 'f'}")
+    if st.button("Guardar revisión del Laboratorio 1",type="primary",use_container_width=True,
+                 key=f"lab1_final_save_{row['id']}_{'c' if compact else 'f'}"):
+        client.table("responses").update({
+            "teacher_level":"Correcta" if adjusted>=60 else "Incorrecta",
+            "teacher_score":adjusted,"teacher_note":note,"status":"reviewed","updated_at":_now(),
+        }).eq("id",row["id"]).execute()
+        st.success("Puntaje y observación docente guardados.")
+
+def teacher_course_results(compact=False):
+    """Centro docente general de evaluaciones de todos los laboratorios del Curso 1."""
+    if st.session_state.get("role")!="Docente":
+        return
+    st.markdown("### Centro de resultados · Curso 1")
+    st.caption("Consulta separadamente cada evaluación. Las respuestas y puntajes de un laboratorio no sobrescriben los de otro.")
+    client=_supabase()
+    if client is not None:
+        try:
+            all_rows=(client.table("responses").select("*,users(display_name,email)")
+                      .eq("class_id",CLASS_ID).in_("question_key",["final_exam","final_comprehension"])
+                      .execute().data or [])
+            consolidated={}
+            for row in all_rows:
+                user=row.get("users") or {}
+                key=row.get("user_key") or user.get("email") or str(row.get("id"))
+                item=consolidated.setdefault(key,{
+                    "Alumno":user.get("display_name") or user.get("email") or key,
+                    "Lab. 1 · Etapa 10":"Pendiente","Lab. 2 · Etapa 9":"Pendiente",
+                    "Total registrado":"Pendiente",
+                })
+                score=row.get("teacher_score") if row.get("teacher_score") is not None else row.get("auto_score")
+                if row.get("question_key")=="final_exam": item["Lab. 1 · Etapa 10"]=f"{float(score or 0):.1f}/100"
+                if row.get("question_key")=="final_comprehension": item["Lab. 2 · Etapa 9"]=f"{float(score or 0):.1f}/40"
+            for item in consolidated.values():
+                values=[]
+                for field,maximum in (("Lab. 1 · Etapa 10",100),("Lab. 2 · Etapa 9",40)):
+                    if item[field]!="Pendiente": values.append(float(item[field].split("/")[0])/maximum*100)
+                item["Total registrado"]=f"{sum(values)/len(values):.1f}%" if values else "Pendiente"
+            if consolidated:
+                with st.expander("Resumen acumulado de todos los alumnos"):
+                    summary_frame=pd.DataFrame(consolidated.values())
+                    st.dataframe(summary_frame,hide_index=True,use_container_width=True)
+                    st.download_button("Descargar consolidado CSV",summary_frame.to_csv(index=False).encode("utf-8-sig"),
+                                       "resultados_curso_1.csv","text/csv",
+                                       key=f"course_results_csv_{'compact' if compact else 'full'}")
+        except Exception as exc:
+            st.warning(f"No fue posible construir el resumen acumulado: {exc}")
+    evaluations={
+        "Laboratorio 1 · Etapa 10 · Evaluación final":("lab1",100),
+        "Laboratorio 2 · Etapa 9 · Comprensión":("lab2",40),
+        "Laboratorio 2 · Etapa 10 · Desarrollo (pendiente)":("pending",60),
+    }
+    label=st.selectbox("Laboratorio y evaluación",list(evaluations),
+                       key=f"course_results_evaluation_{'compact' if compact else 'full'}")
+    kind,_=evaluations[label]
+    if kind=="lab1":
+        _teacher_lab1_final_results(compact=compact)
+    elif kind=="lab2":
+        teacher_stage9_results(compact=compact)
+    else:
+        st.info("Esta evaluación se habilitará cuando se incorpore el problema de desarrollo de la Etapa 10 del Laboratorio 2.")
+
 def _finish_stage9(reason="submitted"):
     answers={str(i):st.session_state.get(f"e9_q{i}") for i in range(10)}
     score=sum(
@@ -9222,9 +9365,8 @@ with st.sidebar:
             teacher_student_management()
         with st.expander("🔒 Publicación de laboratorios"):
             teacher_publication_management()
-        with st.expander("📊 Resultados y rúbrica · Etapa 9"):
-            st.caption("Las respuestas correctas se muestran automáticamente al alumno cuando cierra su único intento; no requieren liberación manual.")
-            teacher_stage9_results(compact=True)
+        with st.expander("📊 Centro de resultados · Curso 1"):
+            teacher_course_results(compact=True)
     active_titles=LAB_STAGE_TITLES[ACTIVE_LAB]
     active_minutes=STAGE_MINUTES if ACTIVE_LAB==1 else dict(enumerate(LAB2_MINUTES))
     labels=[
