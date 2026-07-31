@@ -7071,7 +7071,7 @@ def lab2_stage8():
     """)
     _lab2_image(
         "stage8_airborne_rw",
-        "Aislamiento a ruido aéreo: una fuente excita el recinto emisor, el elemento separador reduce la transmisión y una fracción menor llega al recinto receptor.",
+        "La curva de referencia se ajusta sobre R(f) y el número único Rw se lee en 500 Hz sobre esa referencia desplazada.",
     )
     st.markdown(
         """
