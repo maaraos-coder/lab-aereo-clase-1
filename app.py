@@ -4669,7 +4669,7 @@ def lab2_stage1():
     acústica R**, obtenido a partir de los niveles de las cámaras y de las condiciones
     del ensayo. Ambos describen el aislamiento por bandas y pueden coincidir bajo
     condiciones ideales, pero el símbolo debe corresponder al contexto y al método de
-    obtención. Más adelante, la curva **R(f)** permitirá calcular **Rᵥ**.
+    obtención. Más adelante, la curva **R(f)** permitirá calcular **Rw**.
     """)
 
     st.markdown("### 5. Preguntas de comprensión")
