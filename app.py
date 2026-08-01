@@ -8020,7 +8020,7 @@ def _teacher_lab1_final_results(compact=False):
     selected=st.selectbox(
         "Alumno evaluado",range(len(raw)),
         format_func=lambda i:f"{student_name(raw[i])} · {float(raw[i].get('auto_score') or 0):.1f}/100",
-        key=f"lab1_final_student_{'compact' if compact else 'full'}",
+        key=f"teacher_lab1_final_student_{'compact' if compact else 'full'}",
     )
     row=raw[selected]
     payload=_stage9_answer_payload(row)
@@ -8063,12 +8063,12 @@ def _teacher_lab1_final_results(compact=False):
     adjusted=st.number_input(
         "Puntaje final otorgado por el docente",0.0,100.0,
         float(row.get("teacher_score") if row.get("teacher_score") is not None else auto_score),0.5,
-        key=f"lab1_final_score_{row['id']}_{'c' if compact else 'f'}",
+        key=f"teacher_lab1_final_score_{row['id']}_{'c' if compact else 'f'}",
     )
     note=st.text_area("Observación docente",value=row.get("teacher_note") or "",
-                      key=f"lab1_final_note_{row['id']}_{'c' if compact else 'f'}")
+                      key=f"teacher_lab1_final_note_{row['id']}_{'c' if compact else 'f'}")
     if st.button("Guardar revisión del Laboratorio 1",type="primary",use_container_width=True,
-                 key=f"lab1_final_save_{row['id']}_{'c' if compact else 'f'}"):
+                 key=f"teacher_lab1_final_save_{row['id']}_{'c' if compact else 'f'}"):
         client.table("responses").update({
             "teacher_level":"Correcta" if adjusted>=60 else "Incorrecta",
             "teacher_score":adjusted,"teacher_note":note,"status":"reviewed","updated_at":_now(),
@@ -8145,7 +8145,7 @@ def _teacher_lab2_integrated_results(compact=False):
     labels=[]
     for row in rows:
         user=row.get("users") or {}; labels.append(f"{user.get('display_name') or user.get('email') or row.get('user_key')} · {str(row.get('updated_at') or '')[:16]}")
-    idx=st.selectbox("Alumno",range(len(rows)),format_func=lambda i:labels[i],key=f"l2s10_teacher_student_{'c' if compact else 'f'}")
+    idx=st.selectbox("Alumno",range(len(rows)),format_func=lambda i:labels[i],key=f"teacher_l2s10_student_{'c' if compact else 'f'}")
     row=rows[idx]; payload=row.get("answer") or {}
     if isinstance(payload,dict) and "value" in payload:
         try: payload=json.loads(payload["value"])
@@ -8158,9 +8158,9 @@ def _teacher_lab2_integrated_results(compact=False):
         data=payload.get(key,{}) if isinstance(payload,dict) else {}; st.write(f"**{label}:** {data.get('description','Sin información')} · Rw {data.get('rw','—')} dB")
     st.write(f"Puntaje de diseño: {payload.get('design_score',0):g}/40 · Comprensión: {payload.get('comprehension_score',0):g}/20")
     current=row.get("teacher_score") if row.get("teacher_score") is not None else row.get("auto_score") or 0
-    adjusted=st.number_input("Puntaje docente",0.,60.,float(current),1.,key=f"l2s10_teacher_score_{row.get('id')}_{compact}")
-    note=st.text_area("Observación docente",value=row.get("teacher_note") or "",key=f"l2s10_teacher_note_{row.get('id')}_{compact}")
-    if st.button("Guardar revisión del diseño integrador",type="primary",key=f"l2s10_teacher_save_{row.get('id')}_{compact}"):
+    adjusted=st.number_input("Puntaje docente",0.,60.,float(current),1.,key=f"teacher_l2s10_score_{row.get('id')}_{compact}")
+    note=st.text_area("Observación docente",value=row.get("teacher_note") or "",key=f"teacher_l2s10_note_{row.get('id')}_{compact}")
+    if st.button("Guardar revisión del diseño integrador",type="primary",key=f"teacher_l2s10_save_{row.get('id')}_{compact}"):
         client.table("responses").update({"teacher_score":adjusted,"teacher_note":note,"teacher_level":"Correcta" if adjusted>=36 else "Parcialmente correcta","status":"reviewed","updated_at":_now()}).eq("id",row["id"]).execute(); st.success("Revisión guardada.")
 
 def _finish_stage9(reason="submitted"):
